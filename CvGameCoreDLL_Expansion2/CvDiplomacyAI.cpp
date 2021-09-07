@@ -23284,7 +23284,7 @@ void CvDiplomacyAI::DoUpdatePeaceTreatyWillingness(bool bMyTurn)
 						break;
 					}
 					// A city that we want to liberate?
-					else if ((GET_PLAYER(eOriginalOwner).isMinorCiv() && DoPossibleMinorLiberation(eOriginalOwner, pLoopCity, /*bHypothetical*/ true)) || (GET_PLAYER(eOriginalOwner).isMajorCiv() && DoPossibleMajorLiberation(eOriginalOwner, *it, pLoopCity, /*bHypothetical*/ true)))
+					else if (IsTryingToLiberate(eOriginalOwner, *it, pLoopCity))
 					{
 						bReadyForVassalage = false;
 						bCapturedAnyCityWeWantToLiberate = true;
@@ -45678,6 +45678,8 @@ int CvDiplomacyAI::GetScenarioModifier3(PlayerTypes ePlayer)
 // Miscellaneous
 /////////////////////////////////////////////////////////
 
+//unused - see IsTryingToLiberate
+/*
 /// Will this player liberate a Minor's City that it now owns?
 bool CvDiplomacyAI::DoPossibleMinorLiberation(PlayerTypes eMinor, CvCity* pCity, bool bHypothetical)
 {
@@ -45726,20 +45728,23 @@ bool CvDiplomacyAI::DoPossibleMinorLiberation(PlayerTypes eMinor, CvCity* pCity,
 
 	return bLiberate;
 }
+/**/
 
 /// Will this player liberate a Major's City that it now owns?
+/// Only used for CvPlayerAI::AI_conquerCity()
 bool CvDiplomacyAI::DoPossibleMajorLiberation(PlayerTypes eMajor, PlayerTypes eOldOwner, CvCity* pCity, bool bHypothetical)
 {
 	if (pCity == NULL)
 		return false;
 
-	// Received from a teammate?
-	if (IsTeammate(eOldOwner))
-		return false;
-
 	// Originally owned by a teammate?
 	if (IsTeammate(eMajor))
+	{
+		if (!bHypothetical)
+			GetPlayer()->DoLiberatePlayer(eMajor, pCity->GetID());
+		
 		return true;
+	}
 
 	// We're a backstabber?
 	if (IsBackstabber())
@@ -45782,12 +45787,8 @@ bool CvDiplomacyAI::DoPossibleMajorLiberation(PlayerTypes eMajor, PlayerTypes eO
 		}
 		else if (eOpinion >= CIV_OPINION_NEUTRAL)
 		{
-			if (GetCivOpinion(eOldOwner) <= CIV_OPINION_ENEMY)
-			{
-				bLiberate = true;
-			}
 			// Very unhappy and war weary? Liberating a city will help.
-			else if (GetPlayer()->IsEmpireVeryUnhappy() && GetPlayer()->GetCulture()->GetWarWeariness() > 0)
+			if (GetPlayer()->IsEmpireVeryUnhappy() && GetPlayer()->GetCulture()->GetWarWeariness() > 0)
 			{
 				bLiberate = true;
 			}
@@ -45828,6 +45829,11 @@ bool CvDiplomacyAI::DoPossibleMajorLiberation(PlayerTypes eMajor, PlayerTypes eO
 			}
 			// They liberated some of our cities before or vice versa, and at least Favorable?
 			else if ((GetNumCitiesLiberatedBy(eMajor) > 0 || GET_PLAYER(eMajor).GetDiplomacyAI()->GetNumCitiesLiberatedBy(GetID()) > 0) && eOpinion >= CIV_OPINION_FAVORABLE)
+			{
+				bLiberate = !bBadWarDecision;
+			}
+			// Have policies that boost liberation?
+			else if (GetPlayer()->GetPlayerPolicies()->GetNumericModifier(POLICYMOD_LIBERATION_BONUS) > 0)
 			{
 				bLiberate = !bBadWarDecision;
 			}
@@ -45893,6 +45899,11 @@ bool CvDiplomacyAI::DoPossibleMajorLiberation(PlayerTypes eMajor, PlayerTypes eO
 			{
 				bLiberate = true;
 			}
+			// Have policies that boost liberation?
+			else if (GetPlayer()->GetPlayerPolicies()->GetNumericModifier(POLICYMOD_LIBERATION_BONUS) > 0)
+			{
+				bLiberate = !bBadWarDecision;
+			}
 			else
 			{
 				// Going for culture victory?
@@ -45928,6 +45939,107 @@ bool CvDiplomacyAI::DoPossibleMajorLiberation(PlayerTypes eMajor, PlayerTypes eO
 	}
 
 	return bLiberate;
+}
+
+//Are we *Actively* trying and wanting to liberate a city?
+bool CvDiplomacyAI::IsTryingToLiberate(PlayerTypes eOriginalOwner, PlayerTypes eOldOwner, CvCity* pCity)
+{
+	if (pCity == NULL)
+		return false;
+
+	bool bIsDiplo = IsGoingForDiploVictory() || GetPlayer()->GetPlayerTraits()->IsDiplomat();
+	CivOpinionTypes eOpinion = GetCivOpinion(eOriginalOwner);
+	CivApproachTypes eApproach = GetCivApproach(eOriginalOwner);
+
+	// won't try to liberate a city that a teammate owns
+	if (IsTeammate(eOldOwner))
+		return false;
+
+	// Backstabbers won't go out of their way to liberate cities
+	if (IsBackstabber())
+		return false;
+
+	// If we're going for world conquest, never liberate an original major capital!
+	if (IsGoingForWorldConquest() || IsCloseToDominationVictory())
+	{
+		if (pCity->IsOriginalMajorCapital())
+			return false;
+	}
+
+	// Never liberate a rival Holy City...
+	if (GetPlayer()->GetReligions()->GetCurrentReligion(false) != NO_RELIGION)
+	{
+		if (pCity->GetCityReligions()->IsHolyCityAnyReligion() && !pCity->GetCityReligions()->IsHolyCityForReligion(GetPlayer()->GetReligions()->GetCurrentReligion(false)))
+			return false;
+	}
+
+	if (GET_PLAYER(eOriginalOwner).isMajorCiv())
+	{
+		// If we're planning to attack them, liberating their cities would be foolish!
+		if (IsWantsSneakAttack(eOriginalOwner) || IsArmyInPlaceForAttack(eOriginalOwner) || GetGlobalCoopWarAgainstState(eOriginalOwner) >= COOP_WAR_STATE_PREPARING)
+			return false;
+
+		// Hate them? Don't consider liberating!
+		if (eOpinion <= CIV_OPINION_ENEMY || IsUntrustworthy(eOriginalOwner) || eApproach == CIV_APPROACH_WAR || eApproach == CIV_APPROACH_HOSTILE || eApproach == CIV_APPROACH_GUARDED)
+			return false;
+
+		//diplo civs will try to liberate friendly capitals/holy cities to get a big bonus
+		if (bIsDiplo && eOpinion >= CIV_OPINION_FRIEND && (pCity->GetCityReligions()->IsHolyCityAnyReligion() || pCity->IsOriginalMajorCapital()))
+		{
+			return true;
+		}
+	}
+	else if (GET_PLAYER(eOriginalOwner).isMinorCiv())
+	{
+		bool bHasLiberateQuest = false;
+		bool bWantsLiberateQuest = false;
+
+		// Are there any liberation quests
+		for (int iMinorLoop = MAX_MAJOR_CIVS; iMinorLoop < MAX_CIV_PLAYERS; iMinorLoop++)
+		{
+			PlayerTypes eMinor = (PlayerTypes)iMinorLoop;
+			if (IsPlayerValid(eMinor) && GET_PLAYER(eMinor).isMinorCiv() && !IsAtWar(eMinor) && GetCivApproach(eMinor) > CIV_APPROACH_HOSTILE)
+			{
+				CvPlayer* pMinor = &GET_PLAYER(eMinor);
+				CvMinorCivAI* pMinorCivAI = pMinor->GetMinorCivAI();
+				if (pMinor && pMinorCivAI)
+				{
+					if (pMinorCivAI->IsActiveQuestForPlayer(GetID(), MINOR_CIV_QUEST_LIBERATION))
+					{
+						PlayerTypes eMinorToLiberate = (PlayerTypes)pMinorCivAI->GetQuestData1(GetID(), MINOR_CIV_QUEST_LIBERATION);
+						int iX = GET_PLAYER(eMinorToLiberate).GetOriginalCapitalX();
+						int iY = GET_PLAYER(eMinorToLiberate).GetOriginalCapitalY();
+
+						if (pCity->getX() == iX && pCity->getY() == iY)
+						{
+							bHasLiberateQuest = true;
+							if (eApproach == CIV_APPROACH_FRIENDLY || pMinorCivAI->GetAlly() == GetID())
+								bWantsLiberateQuest = true;
+
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		//if there is a quest to liberate, then diplo civs or civs that care about the CS with the quest will liberate
+		if (bHasLiberateQuest && (bIsDiplo || bWantsLiberateQuest))
+		{
+			return true;
+		}
+	}
+
+	//policy boosts liberation? Will try to go after cities to liberate, if friendly/diplomatic
+	if (GetPlayer()->GetPlayerPolicies()->GetNumericModifier(POLICYMOD_LIBERATION_BONUS) > 0)
+	{
+		if ((bIsDiplo &&  eOpinion > CIV_OPINION_NEUTRAL) || eOpinion >= CIV_OPINION_FRIEND)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /// Is this a bad target to steal from?

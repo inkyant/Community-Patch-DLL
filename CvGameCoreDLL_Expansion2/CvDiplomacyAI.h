@@ -1687,6 +1687,7 @@ public:
 
 	bool DoPossibleMinorLiberation(PlayerTypes eMinor, CvCity* pCity, bool bHypothetical = false);
 	bool DoPossibleMajorLiberation(PlayerTypes eMajor, PlayerTypes eOldOwner, CvCity* pCity, bool bHypothetical = false);
+	bool IsTryingToLiberate(PlayerTypes eOriginalOwner, PlayerTypes eOldOwner, CvCity* pCity);
 
 	bool IsPlayerBadTheftTarget(PlayerTypes ePlayer, TheftTypes eTheftType, const CvPlot* pPlot = NULL);
 

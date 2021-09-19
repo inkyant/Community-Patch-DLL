@@ -1020,7 +1020,7 @@ int CvCityCitizens::GetSpecialistValue(SpecialistTypes eSpecialist, const SPreco
 		}
 	}
 
-	if (GetCity()->isCapital() && GetPlayer()->IsDiplomaticMarriage())
+	if (GetCity()->isCapital() && GetPlayer()->GetPlayerTraits()->IsDiplomaticMarriage())
 	{
 		int iNumMarried = 0;
 		// Loop through all minors and get the total number we've met.
@@ -1289,7 +1289,7 @@ bool CvCityCitizens::DoRemoveWorstCitizen(CvCity::eUpdateMode updateMode, bool b
 /// Find a Plot the City is either working or not, and the best/worst value for it - this function does "double duty" depending on what the user wants to find
 CvPlot* CvCityCitizens::GetBestCityPlotWithValue(int& iChosenValue, ePlotSelectionMode eMode, bool bLogging)
 {
-	int iBestPlotValue = -1;
+	int iBestPlotValue = (eMode<eWORST_WORKED_UNFORCED) ? -INT_MAX : INT_MAX;
 	bool bBestPlotIsForcedWork = false;
 	CvPlot* pBestPlot = NULL;
 
@@ -1735,6 +1735,9 @@ bool CvCityCitizens::IsWorkingPlot(const CvPlot* pPlot) const
 /// Tell a City to start or stop working a Plot.  Citizens will go to/from the Unassigned Pool if the 3rd argument is true
 void CvCityCitizens::SetWorkingPlot(CvPlot* pPlot, bool bNewValue, CvCity::eUpdateMode updateMode)
 {
+	if (!pPlot)
+		return;
+
 	int iIndex = GetCityIndexFromPlot(pPlot);
 
 	CvAssertMsg(iIndex >= 0, "iIndex expected to be >= 0");
@@ -2349,7 +2352,7 @@ int CvCityCitizens::GetSpecialistRate(SpecialistTypes eSpecialist)
 				}
 #endif
 #if defined(MOD_BALANCE_CORE)
-				if (GetCity()->isCapital() && GetPlayer()->IsDiplomaticMarriage())
+				if (GetCity()->isCapital() && GetPlayer()->GetPlayerTraits()->IsDiplomaticMarriage())
 				{
 					int iNumMarried = 0;
 					// Loop through all minors and get the total number we've met.

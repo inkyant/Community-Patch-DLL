@@ -1,9 +1,9 @@
 ﻿/*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
-	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
-	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
-	All other marks and trademarks are the property of their respective owners.  
-	All rights reserved. 
+	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.
+	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software
+	and their respective logos are all trademarks of Take-Two interactive Software, Inc.
+	All other marks and trademarks are the property of their respective owners.
+	All rights reserved.
 	------------------------------------------------------------------------------------------------------- */
 
 #include "CvGameCoreDLLPCH.h"
@@ -287,31 +287,27 @@ void CvPlayerAI::AI_unitUpdate()
 	}
 }
 
-void CvPlayerAI::AI_conquerCity(CvCity* pCity, PlayerTypes eOldOwner, bool bGift, bool bAllowRaze)
+void CvPlayerAI::AI_conquerCity(CvCity* pCity, PlayerTypes ePlayerToLiberate, bool bGift)
 {
 	if (isHuman())
 		return;
-	
+
 	PlayerTypes eOriginalOwner = pCity->getOriginalOwner();
 
-	bool bCanLiberate = (eOriginalOwner != eOldOwner && eOriginalOwner != GetID() && CanLiberatePlayerCity(eOriginalOwner) && getNumCities() > 1);
-	bool bCanRaze = (canRaze(pCity) && bAllowRaze && !bGift); //shouldn't raze cities you bought
-	bool bCanAnnex = !GET_PLAYER(m_eID).GetPlayerTraits()->IsNoAnnexing();
+	// What are our options for this city?
+	bool bCanLiberate = (ePlayerToLiberate != NO_PLAYER && getNumCities() > 1);
+	bool bCanRaze = (canRaze(pCity) && !bGift); //shouldn't raze cities you bought
+	bool bCanAnnex = (isMinorCiv() || !GetPlayerTraits()->IsNoAnnexing());
 
-	// Burn them all to the ground!
-	if (bCanRaze && MOD_BALANCE_CORE_SETTLER_ADVANCED && GetPlayerTraits()->GetRazeSpeedModifier() > 0)
-	{
-		pCity->doTask(TASK_RAZE);
-		return;
-	}
-
-
-
+	// City-States
 	if (isMinorCiv())
 	{
-		if (GetMinorCivAI()->GetAlly() == eOriginalOwner && bCanLiberate)
+		PlayerTypes eAlly = GetMinorCivAI()->GetAlly();
+
+		// They will liberate their ally's team and no one else
+		if (bCanLiberate && eAlly != NO_PLAYER && GET_PLAYER(eAlly).getTeam() == GET_PLAYER(ePlayerToLiberate).getTeam())
 		{
-			DoLiberatePlayer(eOriginalOwner, pCity->GetID());
+			DoLiberatePlayer(ePlayerToLiberate, pCity->GetID());
 			return;
 		}
 		else if (bCanAnnex)
@@ -319,23 +315,21 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity, PlayerTypes eOldOwner, bool bGift
 			pCity->DoAnnex();
 			return;
 		}
-		else
-		{
-			pCity->DoCreatePuppet();
-			return;
-		}
+
+		pCity->DoCreatePuppet();
+		return;
+	}
+
+	// If we have been actively trying to liberate this city, liberate it! (note - some more liberation checks are later in this method)
+	if (bCanLiberate && GetDiplomacyAI()->IsTryingToLiberate(pCity, ePlayerToLiberate))
+	{
+		DoLiberatePlayer(ePlayerToLiberate, pCity->GetID());
+		return;
 	}
 
 	if ((eOriginalOwner == GetID() || getNumCities() < 2) && bCanAnnex)
 	{
 		pCity->DoAnnex();
-		return;
-	}
-
-	// if we have actively been trying to liberate this city, liberate it! (note - some more liberation checks are later in this method)
-	if (GetDiplomacyAI()->IsTryingToLiberate(eOriginalOwner, eOldOwner, pCity) && bCanLiberate)
-	{
-		DoLiberatePlayer(eOriginalOwner, pCity->GetID());
 		return;
 	}
 
@@ -346,15 +340,14 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity, PlayerTypes eOldOwner, bool bGift
 		return;
 	}
 
-	// Huns will burn down everything possible once they have a core of a few cities (was 3, but this put Attila out of the running long term as a conqueror)
-	CUSTOMLOG("AI_conquerCity: City=%s, Player=%d, ExcessHappiness=%d", pCity->getName().GetCString(), GetID(), GetExcessHappiness());
-	if ((GC.getMap().GetAIMapHint() & ciMapHint_Raze) || (GetPlayerTraits()->GetRazeSpeedModifier() > 0 && getNumCities() >= (GetDiplomacyAI()->GetBoldness() + GetDiplomacyAI()->GetMeanness() + (GC.getGame().getGameTurn() / 100))))
+	// Burn them all to the ground! (Timurids modmod)
+	if (MOD_BALANCE_CORE_SETTLER_ADVANCED && GetPlayerTraits()->GetRazeSpeedModifier() > 0 && canRaze(pCity))
 	{
 		pCity->doTask(TASK_RAZE);
 		return;
 	}
 
-	// city has a courthouse (possible with rome)? should annex.
+	// City has a courthouse (possible with Rome). Should annex.
 	BuildingClassTypes iCourthouse = (BuildingClassTypes)GC.getInfoTypeForString("BUILDINGCLASS_COURTHOUSE");
 	if (iCourthouse != -1 && pCity->HasBuildingClass(iCourthouse))
 	{
@@ -362,8 +355,9 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity, PlayerTypes eOldOwner, bool bGift
 		return;
 	}
 
+
 	// Now that the preliminary checks are out of the way, a choice:
-	//Should we keep the city (puppet/annex) or do we not want it (liberate/raze)?
+	// Should we keep the city (puppet/annex) or do we not want it (liberate/raze)?
 	bool bKeepCity = false;
 
 	// Cities are rated on a 0-100 scale, where 0 = worthless, and 100 = most valuable in the world.
@@ -371,21 +365,14 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity, PlayerTypes eOldOwner, bool bGift
 	int iLocalEconomicPower = pCity->getEconomicValue(GetID());
 	int iCityValue = (iLocalEconomicPower * 100) / max(1, iHighestEconomicPower);
 
-	// Modders can change this value to apply a multiplier to the worth of all cities
-	iCityValue *= /*100*/ GC.getWARMONGER_THREAT_CITY_VALUE_MULTIPLIER();
-	iCityValue /= 100;
-
 	// Original major capitals are worth more.
 	if (pCity->IsOriginalMajorCapital())
 	{
-		iCityValue *= /*150*/ GC.getWARMONGER_THREAT_CAPITAL_CITY_PERCENT();
+		iCityValue *= 150;
 		iCityValue /= 100;
 	}
 
-	if (iCityValue <= 0)
-		iCityValue = 1;
-
-	if (iCityValue > 60 && !IsEmpireVeryUnhappy())
+	if (iCityValue >= 60 && !IsEmpireVeryUnhappy())
 	{
 		bKeepCity = true;
 	}
@@ -410,11 +397,10 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity, PlayerTypes eOldOwner, bool bGift
 		bKeepCity = true;
 	}
 
+	//Want to keep city - will puppet/annex
 	if (bKeepCity || (!bCanLiberate && !bCanRaze))
 	{
-		//Want to keep city - will puppet/annex
-
-		//can't annex? have to puppet. Will also trigger if can't annex, raze, or liberate.
+		// Can't annex? Have to puppet.
 		if (!bCanAnnex)
 		{
 			pCity->DoCreatePuppet();
@@ -436,7 +422,7 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity, PlayerTypes eOldOwner, bool bGift
 				return;
 			}
 
-			if (iCityValue > 60)
+			if (iCityValue >= 60)
 			{
 				pCity->DoAnnex();
 				return;
@@ -452,26 +438,24 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity, PlayerTypes eOldOwner, bool bGift
 		pCity->DoCreatePuppet();
 		return;
 	}
+	//Doesn't want the city - will raze/liberate (with one exception below)
 	else
 	{
-		//Doesn't want the city - will raze/liberate - with ONE EXCEPTION, civs with bonuses for puppeting will consider puppeting cities they otherwise would have razed
-
 		if (bCanLiberate)
 		{
-			if (GET_PLAYER(eOriginalOwner).isMinorCiv())
+			if (GET_PLAYER(ePlayerToLiberate).isMinorCiv())
 			{
-				DoLiberatePlayer(eOriginalOwner, pCity->GetID());
+				DoLiberatePlayer(ePlayerToLiberate, pCity->GetID());
 				return;
 			}
-			
 
-			if (GetDiplomacyAI()->DoPossibleMajorLiberation(eOriginalOwner, eOldOwner, pCity))
+			if (GetDiplomacyAI()->DoPossibleMajorLiberation(pCity, ePlayerToLiberate))
 				return;
 		}
 
 		// ONE EXCEPTION, civs with bonuses for puppeting will consider puppeting cities they otherwise would have razed
 		// if the city is ok-ish value and they aren't in revolt
-		if ((GetPlayerPolicies()->GetNumericModifier(POLICYMOD_PUPPET_BONUS) > 0 || GET_PLAYER(m_eID).GetPlayerTraits()->IsNoAnnexing()) && iCityValue > 30 && !IsEmpireVeryUnhappy())
+		if ((GetPlayerPolicies()->GetNumericModifier(POLICYMOD_PUPPET_BONUS) > 0 || GET_PLAYER(m_eID).GetPlayerTraits()->IsNoAnnexing()) && iCityValue >= 30 && !IsEmpireVeryUnhappy())
 		{
 			pCity->DoCreatePuppet();
 			return;
@@ -608,13 +592,13 @@ void CvPlayerAI::AI_chooseResearch()
 	if(GetPlayerTechs()->GetCurrentResearch() == NO_TECH)
 	{
 #if defined(MOD_EVENTS_AI_OVERRIDE_TECH)
-		if (MOD_EVENTS_AI_OVERRIDE_TECH && eBestTech == NO_TECH) 
+		if (MOD_EVENTS_AI_OVERRIDE_TECH && eBestTech == NO_TECH)
 		{
 			int iValue = 0;
-			if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_AiOverrideChooseNextTech, GetID(), false) == GAMEEVENTRETURN_VALUE) 
+			if (GAMEEVENTINVOKE_VALUE(iValue, GAMEEVENT_AiOverrideChooseNextTech, GetID(), false) == GAMEEVENTRETURN_VALUE)
 			{
 				// Defend against modder stupidity!
-				if (iValue >= 0 && iValue < GC.getNumTechInfos() && !GET_TEAM(getTeam()).GetTeamTechs()->HasTech((TechTypes) iValue)) 
+				if (iValue >= 0 && iValue < GC.getNumTechInfos() && !GET_TEAM(getTeam()).GetTeamTechs()->HasTech((TechTypes) iValue))
 				{
 					eBestTech = (TechTypes)iValue;
 				}
@@ -718,7 +702,7 @@ void CvPlayerAI::AI_considerAnnex()
 		// if a capital city is puppeted, annex it
 		if (pCity->IsOriginalMajorCapital())
 			iWeight += 5;
-	
+
 		// annex the holy city for our religion
 		if (pCity->GetCityReligions()->IsHolyCityForReligion(eOurReligion))
 			iWeight += 4;
@@ -795,7 +779,7 @@ void CvPlayerAI::AI_DoEventChoice(EventTypes eChosenEvent)
 				pLog->Msg(strBaseString);
 			}
 			//Lua Hook
-			if (GAMEEVENTINVOKE_TESTANY(GAMEEVENT_OverrideAIEventChoice, GetID(), eChosenEvent) == GAMEEVENTRETURN_TRUE) 
+			if (GAMEEVENTINVOKE_TESTANY(GAMEEVENT_OverrideAIEventChoice, GetID(), eChosenEvent) == GAMEEVENTRETURN_TRUE)
 			{
 				return;
 			}
@@ -829,7 +813,7 @@ void CvPlayerAI::AI_DoEventChoice(EventTypes eChosenEvent)
 			{
 				//sort em!
 				flavorChoices.SortItems();
-				
+
 				//And grab the top selection.
 				EventChoiceTypes eBestEventChoice = (EventChoiceTypes)flavorChoices.GetElement(0);
 
@@ -883,7 +867,7 @@ void CvPlayerAI::AI_DoEventChoice(EventTypes eChosenEvent)
 				}
 			}
 			randomChoices.SortItems();
-				
+
 			//And grab the top selection.
 			EventChoiceTypes eBestEventChoice = (EventChoiceTypes)randomChoices.GetElement(0);
 
@@ -1034,7 +1018,6 @@ void CvPlayerAI::AI_DoEspionageEventChoice(CityEventTypes eEvent, int uiSpyIndex
 					}
 				}
 
-				//If didn't find something (probably because a modder forgot to set flavors...), do a random selection.
 				if (eBestEventChoice != NO_EVENT_CHOICE_CITY)
 				{
 					pCity->DoEventChoice(eBestEventChoice, NO_EVENT_CITY, true, uiSpyIndex, GetID());
@@ -1453,13 +1436,13 @@ GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveMusician(CvUnit* pGreatMusicia
 GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveEngineer(CvUnit* pGreatEngineer)
 {
 	GreatPeopleDirectiveTypes eDirective = NO_GREAT_PEOPLE_DIRECTIVE_TYPE;
-	
+
 	// look for a wonder to rush
 	bool bAlmostThere = false;
 	if(eDirective == NO_GREAT_PEOPLE_DIRECTIVE_TYPE)
 	{
 		BuildingTypes eNextWonderDesired = GetCitySpecializationAI()->GetNextWonderDesired();
-		
+
 		int iLoop;
 		CvCity* pLoopCity;
 		int iOurPower = pGreatEngineer->GetHurryStrength();
@@ -1474,7 +1457,7 @@ GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveEngineer(CvUnit* pGreatEnginee
 					continue;
 
 				int iDelta = iProductionNeeded - iOurPower;
-				
+
 				//Surplus? Just how much?
 				if (iDelta < 0)
 				{
@@ -1506,7 +1489,7 @@ GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveEngineer(CvUnit* pGreatEnginee
 			}
 		}
 	}
-	
+
 	if (bAlmostThere)
 		return NO_GREAT_PEOPLE_DIRECTIVE_TYPE;
 
@@ -1682,7 +1665,7 @@ GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveGeneral(CvUnit* pGreatGeneral)
 		if (pTargetPlot)
 			return GREAT_PEOPLE_DIRECTIVE_USE_POWER;
 	}
-	
+
 	// default
 	return GREAT_PEOPLE_DIRECTIVE_FIELD_COMMAND;
 }
@@ -1698,7 +1681,7 @@ GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveProphet(CvUnit* pUnit)
 	if (pUnit && !pUnit->GetReligionData()->IsFullStrength())
 		eDirective = GREAT_PEOPLE_DIRECTIVE_SPREAD_RELIGION;
 
-	// CASE 1: I have an enhanced religion. 
+	// CASE 1: I have an enhanced religion.
 	if (pMyReligion && pMyReligion->m_bEnhanced)
 	{
 		ImprovementTypes eHolySite = (ImprovementTypes)GC.getInfoTypeForString("IMPROVEMENT_HOLY_SITE");
@@ -1781,7 +1764,7 @@ GreatPeopleDirectiveTypes CvPlayerAI::GetDirectiveDiplomat(CvUnit* pGreatDiploma
 	{
 		bTheAustriaException = true;
 	}
-	
+
 	int iFlavorDiplo =  GetFlavorManager()->GetPersonalityIndividualFlavor((FlavorTypes)GC.getInfoTypeForString("FLAVOR_DIPLOMACY"));
 	int iDesiredEmb = max(1, ((iFlavorDiplo * 2) - 3));
 	int iNumMinors = GC.getGame().GetNumMinorCivsAlive();
@@ -1929,7 +1912,7 @@ bool WantEmbassyAt(PlayerTypes ePlayer, CvCity* pCity)
 		return false;
 
 	//Danger
-	if(kCityPlayer.GetMinorCivAI()->IsActiveQuestForPlayer(ePlayer, MINOR_CIV_QUEST_HORDE) || 
+	if(kCityPlayer.GetMinorCivAI()->IsActiveQuestForPlayer(ePlayer, MINOR_CIV_QUEST_HORDE) ||
 		kCityPlayer.GetMinorCivAI()->IsActiveQuestForPlayer(ePlayer, MINOR_CIV_QUEST_REBELLION) ||
 		kCityPlayer.GetMinorCivAI()->IsThreateningBarbariansEventActiveForPlayer(ePlayer))
 		return false;
@@ -2059,8 +2042,8 @@ CvCity* CvPlayerAI::FindBestMessengerTargetCity(CvUnit* pUnit, const vector<int>
 	}
 
 	return NULL;
-}	
-	
+}
+
 int CvPlayerAI::ScoreCityForMessenger(CvCity* pCity, CvUnit* pUnit)
 {
 	//First, the exclusions!
@@ -2200,7 +2183,7 @@ int CvPlayerAI::ScoreCityForMessenger(CvCity* pCity, CvUnit* pUnit)
 				{
 					iScore *= 3;
 					iScore /= 2;
-				}				
+				}
 			}
 			// Can we found a religion?
 			else if (GC.getGame().GetGameReligions()->GetNumReligionsStillToFound() <= 0 || pTraits->IsAlwaysReligion())
@@ -2590,7 +2573,7 @@ CvPlot* CvPlayerAI::FindBestCultureBombPlot(CvUnit* pUnit, BuildTypes eBuild, co
 				bTooClose = true;
 		if (bTooClose)
 			continue;
-		
+
 		bool bGoodCandidate = true;
 		std::vector<int> vPossibleTiles;
 

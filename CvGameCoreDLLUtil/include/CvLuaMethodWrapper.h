@@ -56,6 +56,7 @@ protected:
 	static int BasicLuaMethod(lua_State* L, void (InstanceType::*func)(arg1, arg2, arg3));
 	template<typename arg1, typename arg2, typename arg3, typename arg4>
 	static int BasicLuaMethod(lua_State* L, void (InstanceType::*func)(arg1, arg2, arg3, arg4));
+
 };
 
 //------------------------------------------------------------------------------

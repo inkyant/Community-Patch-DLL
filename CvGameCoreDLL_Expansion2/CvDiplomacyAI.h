@@ -1,9 +1,9 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
-	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
-	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
-	All other marks and trademarks are the property of their respective owners.  
-	All rights reserved. 
+	ï¿½ 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.
+	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software
+	and their respective logos are all trademarks of Take-Two interactive Software, Inc.
+	All other marks and trademarks are the property of their respective owners.
+	All rights reserved.
 	------------------------------------------------------------------------------------------------------- */
 #pragma once
 
@@ -408,15 +408,6 @@ public:
 	int GetNumCitiesCapturedBy(PlayerTypes ePlayer) const;
 	void SetNumCitiesCapturedBy(PlayerTypes ePlayer, int iValue);
 	void ChangeNumCitiesCapturedBy(PlayerTypes ePlayer, int iChange);
-
-	// War Value Lost: the int value of damage ePlayer has inflicted on us in war
-	int GetWarValueLost(PlayerTypes ePlayer) const;
-	void SetWarValueLost(PlayerTypes ePlayer, int iValue);
-	void ChangeWarValueLost(PlayerTypes ePlayer, int iChange);
-
-	// War Damage Level: how much damage have we taken in a war against ePlayer? Looks at WarValueLost
-	int GetWarDamageValue(PlayerTypes ePlayer) const;
-	void SetWarDamageValue(PlayerTypes ePlayer, int iValue);
 
 	// War State: How's the war with ePlayer going? (NO_WAR_STATE_TYPE if at peace)
 	WarStateTypes GetWarState(PlayerTypes ePlayer) const;
@@ -833,7 +824,7 @@ public:
 
 	int GetPlottedAgainstUsTurn(PlayerTypes ePlayer) const;
 	void SetPlottedAgainstUsTurn(PlayerTypes ePlayer, int iTurn);
-	
+
 	int GetPlunderedTradeRouteTurn(PlayerTypes ePlayer) const;
 	void SetPlunderedTradeRouteTurn(PlayerTypes ePlayer, int iTurn);
 
@@ -990,11 +981,9 @@ public:
 	void DoTurn(DiplomacyMode eDiploMode, PlayerTypes ePlayer=NO_PLAYER);
 
 	// ------------------------------------
-	// War Damage
+	// Conquest Stats
 	// ------------------------------------
 
-	void DoWarValueLostDecay();
-	void DoUpdateWarDamage();
 	void DoUpdateConquestStats();
 
 	// ------------------------------------
@@ -1234,7 +1223,7 @@ public:
 	bool IsIgnoreIdeologyDifferences(PlayerTypes ePlayer) const;
 
 	bool IsMinorCivTroublemaker(PlayerTypes ePlayer, bool bIgnoreBullying = false) const;
-	
+
 	// Diplomacy AI Options
 	bool ShouldHideDisputeMods(PlayerTypes ePlayer) const;
 	bool ShouldHideNegativeMods(PlayerTypes ePlayer) const;
@@ -1366,7 +1355,7 @@ public:
 	const char* GetDiploStringForMessage(DiploMessageTypes eDiploMessage, PlayerTypes eForPlayer = NO_PLAYER);
 	const char* GetDiploStringForMessage(DiploMessageTypes eDiploMessage, PlayerTypes eForPlayer, const Localization::String& strOptionalKey1);
 	const char* GetDiploStringForMessage(DiploMessageTypes eDiploMessage, PlayerTypes eForPlayer, const Localization::String& strOptionalKey1, const Localization::String& strOptionalKey2);
-	
+
 	void DoFromUIDiploEvent(PlayerTypes eFromPlayer, FromUIDiploEventTypes eEvent, int iArg1, int iArg2);
 
 	bool IsActHostileTowardsHuman(PlayerTypes eHuman) const;
@@ -1685,9 +1674,8 @@ public:
 	// Miscellaneous
 	/////////////////////////////////////////////////////////
 
-	bool DoPossibleMinorLiberation(PlayerTypes eMinor, CvCity* pCity, bool bHypothetical = false);
-	bool DoPossibleMajorLiberation(PlayerTypes eMajor, PlayerTypes eOldOwner, CvCity* pCity, bool bHypothetical = false);
-	bool IsTryingToLiberate(PlayerTypes eOriginalOwner, PlayerTypes eOldOwner, CvCity* pCity);
+	bool IsTryingToLiberate(CvCity* pCity, PlayerTypes ePlayerToLiberate);
+	bool DoPossibleMajorLiberation(CvCity* pCity, PlayerTypes ePlayerToLiberate);
 
 	bool IsPlayerBadTheftTarget(PlayerTypes ePlayer, TheftTypes eTheftType, const CvPlot* pPlot = NULL);
 
@@ -1751,7 +1739,7 @@ private:
 	int GetEstimatePlayerNeediness(PlayerTypes ePlayer) const;
 	int GetEstimatePlayerForgiveness(PlayerTypes ePlayer) const;
 	int GetEstimatePlayerChattiness(PlayerTypes ePlayer) const;
-	int GetEstimatePlayerMeanness(PlayerTypes ePlayer) const;	
+	int GetEstimatePlayerMeanness(PlayerTypes ePlayer) const;
 	int GetEstimatePlayerMajorCivApproachBias(PlayerTypes ePlayer, CivApproachTypes eApproach) const;
 	int GetEstimatePlayerMinorCivApproachBias(PlayerTypes ePlayer, CivApproachTypes eApproach) const;
 	int GetEstimatePlayerFlavorValue(PlayerTypes ePlayer, FlavorTypes eFlavor) const;
@@ -1903,8 +1891,6 @@ private:
 	unsigned char m_aiNumWarsDeclaredOnUs[MAX_MAJOR_CIVS];
 	unsigned short m_aiCivilianKillerValue[MAX_MAJOR_CIVS];
 	unsigned char m_aiNumCitiesCaptured[MAX_CIV_PLAYERS];
-	int m_aiWarValueLost[MAX_CIV_PLAYERS];
-	unsigned short m_aiWarDamageValue[MAX_CIV_PLAYERS];
 	char m_aeWarState[MAX_CIV_PLAYERS];
 
 	// Peace
@@ -2059,7 +2045,7 @@ private:
 	char m_aeProtectedMinorBullied[MAX_MAJOR_CIVS];
 	char m_aeProtectedMinorAttacked[MAX_MAJOR_CIVS];
 	char m_aeProtectedMinorKilled[MAX_MAJOR_CIVS];
-	
+
 	// GUESSES
 	// Guesses about other players' feelings towards us
 	char m_aeOpinionTowardsUsGuess[MAX_MAJOR_CIVS];

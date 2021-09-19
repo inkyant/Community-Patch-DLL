@@ -52,8 +52,7 @@ public:
 	void DLLCALL ResponseLeagueEditName(LeagueTypes eLeague, PlayerTypes ePlayer, const char* szCustomName);
 	void DLLCALL ResponseSetSwappableGreatWork(PlayerTypes ePlayer, int iWorkClass, int iWorkIndex);
 	void DLLCALL ResponseSwapGreatWorks(PlayerTypes ePlayer1, int iWorkIndex1, PlayerTypes ePlayer2, int iWorkIndex2);
-	void DLLCALL ResponseMoveGreatWorks(PlayerTypes ePlayer, int iCity1, int iBuildingClass1, int iWorkIndex1, 
-																													 int iCity2, int iBuildingClass2, int iWorkIndex2);
+	void DLLCALL ResponseMoveGreatWorks(PlayerTypes ePlayer, int iCity1, int iBuildingClass1, int iWorkIndex1, int iCity2, int iBuildingClass2, int iWorkIndex2);
 	void DLLCALL ResponseChangeIdeology(PlayerTypes ePlayer);
 	void DLLCALL ResponseGiftUnit(PlayerTypes ePlayer, PlayerTypes eMinor, int iUnitID);
 	void DLLCALL ResponseGreatPersonChoice(PlayerTypes ePlayer, UnitTypes eGreatPersonUnit);

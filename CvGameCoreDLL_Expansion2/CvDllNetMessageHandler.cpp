@@ -291,9 +291,6 @@ void CvDllNetMessageHandler::ResponseDiplomacyFromUI(PlayerTypes ePlayer, Player
 	if (!GC.getGame().isFinalInitialized() || PlayerInvalid(ePlayer))
 		return;
 
-	// hijacks message for MP events since it has a few args and is sent to everyone
-	if (NetMessageExt::Process::FromDiplomacyFromUI(ePlayer, eOtherPlayer, eEvent, iArg1, iArg2))
-		return;
 	GET_PLAYER(eOtherPlayer).GetDiplomacyAI()->DoFromUIDiploEvent(ePlayer, eEvent, iArg1, iArg2);
 }
 //------------------------------------------------------------------------------
@@ -688,6 +685,11 @@ void CvDllNetMessageHandler::ResponseMoveGreatWorks(PlayerTypes ePlayer, int iCi
 	//safeguard
 	if (!GC.getGame().isFinalInitialized() || PlayerInvalid(ePlayer))
 		return;
+
+	// hijacks message for MP events since it has a few args and is sent to everyone
+	if (NetMessageExt::Process::ResponseMoveGreatWorks(ePlayer, iCity1, iBuildingClass1, iWorkIndex1, iCity2, iBuildingClass2, iWorkIndex2))
+		return;
+
 	GC.getGame().GetGameCulture()->MoveGreatWorks(ePlayer, iCity1, iBuildingClass1, iWorkIndex1, iCity2, iBuildingClass2, iWorkIndex2);
 }
 //------------------------------------------------------------------------------

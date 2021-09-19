@@ -487,7 +487,7 @@
 #define MOD_EVENTS_NW_DISCOVERY                     gCustomMods.isEVENTS_NW_DISCOVERY()
 
 // Event sent during Game.DoFromUIDiploEvent, see also DiscussionDialog.lua
-//   GameEvents.UiDiploEvent.Add(function(iEvent, iAIPlayer, iArg1, iArg2) end)
+//   GameEvents.UiDiploEvent.Add(function(iEvent, iAIPlayer, iArg1, iArg2, int iArg3, int iArg4) end)
 #define MOD_EVENTS_DIPLO_EVENTS                     gCustomMods.isEVENTS_DIPLO_EVENTS()
 
 // Enhanced Diplomacy Modifiers events (v53)
@@ -1227,8 +1227,6 @@ public:
 	MOD_OPT_DECL(GLOBAL_CS_GIFTS);
 	MOD_OPT_DECL(GLOBAL_CS_GIFTS_LOCAL_XP);
 	MOD_OPT_DECL(GLOBAL_CS_OVERSEAS_TERRITORY);
-	MOD_OPT_DECL(GLOBAL_VENICE_KEEPS_RESOURCES);
-	MOD_OPT_DECL(GLOBAL_CS_MARRIAGE_KEEPS_RESOURCES);
 	MOD_OPT_DECL(GLOBAL_NO_FOLLOWUP_FROM_CITIES);
 	MOD_OPT_DECL(GLOBAL_CAPTURE_AFTER_ATTACKING);
 	MOD_OPT_DECL(GLOBAL_NO_OCEAN_PLUNDERING);

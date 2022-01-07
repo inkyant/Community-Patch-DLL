@@ -41,6 +41,9 @@
     <File md5="9AE69E7FD299CA9C0CD4E574C5D2DE3B" import="1">Images/DC45_UnitPromotions.dds</File>
     <File md5="CD9F2334872FB51C97AD44078F851621" import="1">Images/DC45_VassalOverview.dds</File>
 	<File md5="CD9F2334872FB511412D45078F851621" import="1">EUI/UnitPanel.lua</File>
+	<File md5="CD9F2334872FB511412D45078F851621" import="1">EUI/InfoTooltipInclude.lua</File>
+	<File md5="CD9F2334872FB511412D45078F851621" import="1">EUI/GreatPeopleIcons.lua</File>
+	<File md5="CD9F2334872FB511412D45078F851621" import="1">EUI/InGame.lua</File>
     <File md5="1E95C0C367049F5AD2458691813445CE" import="1">MoreLuxuries/AssignStartingPlots.lua</File>
     <File md5="E0635CA37CA0F94F3E08245215D67479" import="0">MoreLuxuries/MoreLuxuries.sql</File>
     <File md5="567FC006B5708250D24849DE4EE79CB2" import="0">MoreLuxuries/Text/Text_en_US.sql</File>

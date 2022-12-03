@@ -292,6 +292,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetTourismPenalty);
 	Method(GetTechsToFreePolicy);
 #endif
+	Method(GetWarType);
 	Method(GetInfluenceCityStateSpyRankBonus);
 	Method(GetInfluenceMajorCivSpyRankBonus);
 	Method(GetInfluenceSpyRankTooltip);
@@ -3374,6 +3375,28 @@ int CvLuaPlayer::lGetTechsToFreePolicy(lua_State* L)
 }
 
 #endif
+//------------------------------------------------------------------------------
+int CvLuaPlayer::lGetWarType(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+
+	if (pkPlayer == NULL)
+		return 0;
+
+	lua_pushinteger(L, pkPlayer->GetWarType((PlayerTypes)lua_tointeger(L, 2)));
+	return 1;
+}
+//------------------------------------------------------------------------------
+int CvLuaPlayer::lSetWarType(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+
+	if (pkPlayer == NULL)
+		return 0;
+
+	pkPlayer->SetWarType((PlayerTypes)lua_tointeger(L, 2), (CasusBelliWarTypes)lua_tointeger(L, 3));
+	return 0;
+}
 //------------------------------------------------------------------------------
 //int GetInfluenceTradeRouteScienceBonus();
 int CvLuaPlayer::lGetInfluenceTradeRouteScienceBonus(lua_State* L)

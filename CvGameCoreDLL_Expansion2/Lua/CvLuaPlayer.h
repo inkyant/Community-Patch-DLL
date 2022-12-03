@@ -278,6 +278,8 @@ protected:
 	LUAAPIEXTN(GetTourismPenalty, int);
 	LUAAPIEXTN(GetTechsToFreePolicy, int);
 #endif
+	LUAAPIEXTN(GetWarType, int);
+	LUAAPIEXTN(SetWarType, int);
 	static int lGetInfluenceTradeRouteScienceBonus(lua_State* L);
 	static int lGetInfluenceCityStateSpyRankBonus(lua_State* L);
 	static int lGetInfluenceMajorCivSpyRankBonus(lua_State* L);

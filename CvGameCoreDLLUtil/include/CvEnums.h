@@ -1583,8 +1583,8 @@ enum OPEN_ENUM ContractTypes
 
 enum OPEN_ENUM CasusBelliWarTypes
 {
-	NO_WARTYPE = -1,
-	WARTYPE_PEACE = 0,
+	NO_WARTYPE = 0,
+	WARTYPE_SURPRISE = 1,
 };
 
 enum OPEN_ENUM BeliefTypes

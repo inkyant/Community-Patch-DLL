@@ -406,6 +406,7 @@ CvPlayer::CvPlayer() :
 	, m_aiNumResourceFromGP()
 	, m_paiImprovementCount()
 	, m_paiImprovementBuiltCount()
+	, m_aePlayerWarTypes()
 #if defined(MOD_BALANCE_CORE)
 	, m_paiTotalImprovementsBuilt()
 #endif
@@ -802,6 +803,8 @@ CvPlayer::CvPlayer() :
 	m_aiGreatWorkYieldChange.clear();
 	m_aiSiphonLuxuryCount.clear();
 	m_aiTourismBonusTurnsPlayer.clear();
+
+	m_aePlayerWarTypes.clear();
 
 	reset(NO_PLAYER, true);
 }
@@ -1932,6 +1935,9 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 	m_aiTourismBonusTurnsPlayer.resize(MAX_PLAYERS, 0);
 
 	m_aOptions.clear();
+
+	m_aePlayerWarTypes.clear();
+	m_aePlayerWarTypes.resize(MAX_PLAYERS, NO_WARTYPE);
 
 	m_strReligionKey = "";
 	m_strScriptData = "";
@@ -37114,6 +37120,17 @@ void CvPlayer::ResetWarPeaceTurnCounters() // called when a player is killed
 		GET_PLAYER(ePlayer).SetPlayerNumTurnsSinceCityCapture(ePlayer, 0);
 	}
 }
+CasusBelliWarTypes CvPlayer::GetWarType(PlayerTypes ePlayer) const
+{
+	return m_aePlayerWarTypes[ePlayer];
+}
+
+void CvPlayer::SetWarType(PlayerTypes ePlayer, CasusBelliWarTypes warType)
+{
+	if (ePlayer < 0 || ePlayer >= MAX_PLAYERS) return;
+	m_aePlayerWarTypes[ePlayer] = warType;
+}
+
 
 //	--------------------------------------------------------------------------------
 
@@ -47099,6 +47116,7 @@ void CvPlayer::Serialize(Player& player, Visitor& visitor)
 	visitor(player.m_iMilitarySeaMight);
 	visitor(player.m_iMilitaryAirMight);
 	visitor(player.m_iMilitaryLandMight);
+	visitor(player.m_aePlayerWarTypes);
 
 	visitor(*player.m_pPlayerPolicies);
 	visitor(*player.m_pEconomicAI);

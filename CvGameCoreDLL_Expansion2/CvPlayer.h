@@ -2077,6 +2077,9 @@ public:
 	void DoUpdateWarPeaceTurnCounters();
 	void ResetWarPeaceTurnCounters();
 
+	CasusBelliWarTypes GetWarType(PlayerTypes ePlayer) const;
+	void SetWarType(PlayerTypes ePlayer, CasusBelliWarTypes warType);
+
 	PlayerProximityTypes GetProximityToPlayer(PlayerTypes ePlayer) const;
 	void SetProximityToPlayer(PlayerTypes ePlayer, PlayerProximityTypes eProximity);
 
@@ -3486,6 +3489,8 @@ protected:
 	typedef std::vector< PlayerOptionEntry > PlayerOptionsVector;
 	PlayerOptionsVector m_aOptions;
 
+	std::vector<CasusBelliWarTypes> m_aePlayerWarTypes;
+
 	CvString m_strReligionKey;
 	CvString m_strScriptData;
 
@@ -4245,6 +4250,7 @@ SYNC_ARCHIVE_VAR(std::vector<int>, m_aiResearchAgreementCounter)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiSiphonLuxuryCount)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiGreatWorkYieldChange)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiTourismBonusTurnsPlayer)
+SYNC_ARCHIVE_VAR(std::vector<CasusBelliWarTypes>, m_aePlayerWarTypes)
 SYNC_ARCHIVE_VAR(SYNC_ARCHIVE_VAR_TYPE(std::vector< std::pair<uint, int> >), m_aOptions)
 SYNC_ARCHIVE_VAR(CvString, m_strReligionKey)
 SYNC_ARCHIVE_VAR(CvString, m_strScriptData)

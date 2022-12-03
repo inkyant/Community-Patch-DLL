@@ -285,6 +285,11 @@ namespace CvEnumsUtil
 		enum { IsFixed = false };
 		static inline std::size_t Count() { return GC.getContractInfo().size(); }
 	};
+	template<> struct Traits<CasusBelliWarTypes>
+	{
+		enum { IsFixed = false };
+		static inline std::size_t Count() { return static_cast<std::size_t>(GC.getNumWarTypeInfos()); }
+	};
 	template<> struct Traits<BeliefTypes>
 	{
 		enum { IsFixed = false };

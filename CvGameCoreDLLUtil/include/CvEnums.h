@@ -1581,6 +1581,12 @@ enum OPEN_ENUM ContractTypes
 };
 #endif
 
+enum OPEN_ENUM CasusBelliWarTypes
+{
+	NO_WARTYPE = -1,
+	WARTYPE_PEACE = 0,
+};
+
 enum OPEN_ENUM BeliefTypes
 {
 	NO_BELIEF = -1,

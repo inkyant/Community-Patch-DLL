@@ -194,6 +194,8 @@ private:
 	CvWarTypeInfo& operator=(const CvWarTypeInfo&);
 
 };
+FDataStream& operator<<(FDataStream&, const CasusBelliWarTypes&);
+FDataStream& operator>>(FDataStream&, CasusBelliWarTypes&);
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //  CLASS:      CvHotkeyInfo
 //!  \brief		Holds the hotkey info for an info class.

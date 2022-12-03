@@ -977,6 +977,20 @@ bool CvWarTypeInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 
 	return true;
 }
+FDataStream& operator<<(FDataStream& saveTo, const CasusBelliWarTypes& readFrom)
+{
+	int v = static_cast<int>(readFrom);
+	saveTo << v;
+	return saveTo;
+}
+
+FDataStream& operator>>(FDataStream& loadFrom, CasusBelliWarTypes& writeTo)
+{
+	int v = 0;
+	loadFrom >> v;
+	writeTo = static_cast<CasusBelliWarTypes>(v);
+	return loadFrom;
+}
 
 //======================================================================================================
 //					CvAutomateInfo

@@ -3749,12 +3749,12 @@ std::vector<CvWarTypeInfo*>& CvGlobals::getWarTypeInfo()
 	return m_paWarTypeInfo;
 }
 
-CvWarTypeInfo* CvGlobals::getWarTypeInfo(int iWarTypeNum)
+CvWarTypeInfo* CvGlobals::getWarTypeInfo(CasusBelliWarTypes eWarTypeNum)
 {
-	CvAssertMsg(iWarTypeNum < getNumWarTypeInfos(), "Index out of bounds");
-	CvAssertMsg(iWarTypeNum > -1, "Index out of bounds");
-	if (iWarTypeNum > -1 && iWarTypeNum < (int)m_paWarTypeInfo.size())
-		return m_paWarTypeInfo[iWarTypeNum];
+	CvAssertMsg(eWarTypeNum < getNumWarTypeInfos(), "Index out of bounds");
+	CvAssertMsg(eWarTypeNum > -1, "Index out of bounds");
+	if (eWarTypeNum > -1 && eWarTypeNum < (int)m_paWarTypeInfo.size())
+		return m_paWarTypeInfo[eWarTypeNum];
 	else
 		return NULL;
 }

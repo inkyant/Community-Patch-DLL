@@ -504,7 +504,7 @@ public:
 
 	int getNumWarTypeInfos();
 	std::vector<CvWarTypeInfo*>& getWarTypeInfo();
-	_Ret_maybenull_ CvWarTypeInfo* getWarTypeInfo(int iWarTypeNum);
+	_Ret_maybenull_ CvWarTypeInfo* getWarTypeInfo(CasusBelliWarTypes eWarTypeNum);
 
 	int getNumPromotionInfos();
 	std::vector<CvPromotionEntry*>& getPromotionInfo();

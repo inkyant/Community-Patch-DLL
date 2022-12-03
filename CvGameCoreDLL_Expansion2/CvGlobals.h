@@ -61,6 +61,7 @@ class CvMissionInfo;
 class CvControlInfo;
 class CvCommandInfo;
 class CvAutomateInfo;
+class CvWarTypeInfo;
 class CvSpecialistInfo;
 class CvEraInfo;
 class CvHurryInfo;
@@ -500,6 +501,10 @@ public:
 	int getNumAutomateInfos();
 	std::vector<CvAutomateInfo*>& getAutomateInfo();
 	_Ret_maybenull_ CvAutomateInfo* getAutomateInfo(int iAutomateNum);
+
+	int getNumWarTypeInfos();
+	std::vector<CvWarTypeInfo*>& getWarTypeInfo();
+	_Ret_maybenull_ CvWarTypeInfo* getWarTypeInfo(int iWarTypeNum);
 
 	int getNumPromotionInfos();
 	std::vector<CvPromotionEntry*>& getPromotionInfo();
@@ -2691,6 +2696,7 @@ protected:
 	std::vector<CvControlInfo*> m_paControlInfo;
 	std::vector<CvCommandInfo*> m_paCommandInfo;
 	std::vector<CvAutomateInfo*> m_paAutomateInfo;
+	std::vector<CvWarTypeInfo*> m_paWarTypeInfo;
 	std::vector<CvEraInfo*> m_aEraInfo;	// [NUM_ERA_TYPES];
 	std::vector<CvHurryInfo*> m_paHurryInfo;
 	std::vector<CvVictoryInfo*> m_paVictoryInfo;

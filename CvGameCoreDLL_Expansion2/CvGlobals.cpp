@@ -3588,6 +3588,7 @@ void CvGlobals::calcGameDataHash()
 	HashGameDataCombine(m_gameDataHash, writeWord, m_paControlInfo);
 	HashGameDataCombine(m_gameDataHash, writeWord, m_paCommandInfo);
 	HashGameDataCombine(m_gameDataHash, writeWord, m_paAutomateInfo);
+	HashGameDataCombine(m_gameDataHash, writeWord, m_paWarTypeInfo);
 	HashGameDataCombine(m_gameDataHash, writeWord, m_aEraInfo);
 	HashGameDataCombine(m_gameDataHash, writeWord, m_paHurryInfo);
 	HashGameDataCombine(m_gameDataHash, writeWord, m_paVictoryInfo);
@@ -3734,6 +3735,26 @@ CvAutomateInfo* CvGlobals::getAutomateInfo(int iAutomateNum)
 	CvAssertMsg(iAutomateNum > -1, "Index out of bounds");
 	if(iAutomateNum > -1 && iAutomateNum < (int)m_paAutomateInfo.size())
 		return m_paAutomateInfo[iAutomateNum];
+	else
+		return NULL;
+}
+
+int CvGlobals::getNumWarTypeInfos()
+{
+	return (int)m_paWarTypeInfo.size();
+}
+
+std::vector<CvWarTypeInfo*>& CvGlobals::getWarTypeInfo()
+{
+	return m_paWarTypeInfo;
+}
+
+CvWarTypeInfo* CvGlobals::getWarTypeInfo(int iWarTypeNum)
+{
+	CvAssertMsg(iWarTypeNum < getNumWarTypeInfos(), "Index out of bounds");
+	CvAssertMsg(iWarTypeNum > -1, "Index out of bounds");
+	if (iWarTypeNum > -1 && iWarTypeNum < (int)m_paWarTypeInfo.size())
+		return m_paWarTypeInfo[iWarTypeNum];
 	else
 		return NULL;
 }
@@ -6437,6 +6458,7 @@ void CvGlobals::deleteInfoArrays()
 	deleteInfoArray(m_paControlInfo);
 	deleteInfoArray(m_paCommandInfo);
 	deleteInfoArray(m_paAutomateInfo);
+	deleteInfoArray(m_paWarTypeInfo);
 
 	deleteInfoArray(m_paUnitCombatClassInfo);
 	deleteInfoArray(m_paUnitAIInfos);

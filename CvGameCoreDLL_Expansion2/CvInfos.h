@@ -173,7 +173,27 @@ private:
 
 FDataStream& operator<<(FDataStream&, const CvBaseInfo&);
 FDataStream& operator>>(FDataStream&, CvBaseInfo&);
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//  class : CvWarTypeInfo
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+class CvWarTypeInfo : public CvBaseInfo
+{
+public:
 
+	CvWarTypeInfo();
+
+	int getDiploPenalty() const;
+
+	virtual bool CacheResults(Database::Results& kResults, CvDatabaseUtility& kUtility);
+
+protected:
+	int m_iDiploPenalty;
+
+private:
+	CvWarTypeInfo(const CvWarTypeInfo&);
+	CvWarTypeInfo& operator=(const CvWarTypeInfo&);
+
+};
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //  CLASS:      CvHotkeyInfo
 //!  \brief		Holds the hotkey info for an info class.

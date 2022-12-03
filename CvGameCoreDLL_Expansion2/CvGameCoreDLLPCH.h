@@ -244,6 +244,7 @@ typedef wchar_t          wchar;
 #if defined(MOD_BALANCE_CORE)
 #include "CvCorporationClasses.h"
 #include "CvContractClasses.h"
+#include "CvWarTypeClasses.h"
 #endif
 
 using namespace fastdelegate;

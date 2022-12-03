@@ -392,6 +392,7 @@ CvPlayer::CvPlayer() :
 	, m_aiResearchAgreementCounter()
 	, m_aiSiphonLuxuryCount()
 	, m_aiTourismBonusTurnsPlayer()
+	, m_aePlayerWarTypes()
 	, m_aiGreatWorkYieldChange()
 	, m_aOptions()
 	, m_strReligionKey()
@@ -802,6 +803,8 @@ CvPlayer::CvPlayer() :
 	m_aiGreatWorkYieldChange.clear();
 	m_aiSiphonLuxuryCount.clear();
 	m_aiTourismBonusTurnsPlayer.clear();
+
+	m_aePlayerWarTypes.clear();
 
 	reset(NO_PLAYER, true);
 }
@@ -1930,6 +1933,9 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 	
 	m_aiTourismBonusTurnsPlayer.clear();
 	m_aiTourismBonusTurnsPlayer.resize(MAX_PLAYERS, 0);
+
+	m_aePlayerWarTypes.clear();
+	m_aePlayerWarTypes.resize(MAX_PLAYERS, NO_WAR);
 
 	m_aOptions.clear();
 
@@ -37110,9 +37116,22 @@ void CvPlayer::ResetWarPeaceTurnCounters() // called when a player is killed
 		SetPlayerNumTurnsAtWar(ePlayer, 0);
 		SetPlayerNumTurnsSinceCityCapture(ePlayer, 0);
 
+		SetWarType(ePlayer, NO_WAR);
+
 		GET_PLAYER(ePlayer).SetPlayerNumTurnsAtWar(ePlayer, 0);
 		GET_PLAYER(ePlayer).SetPlayerNumTurnsSinceCityCapture(ePlayer, 0);
 	}
+}
+
+CasusBelliWarType CvPlayer::GetWarType(PlayerTypes ePlayer) const
+{
+	return m_aePlayerWarTypes[ePlayer];
+}
+
+void CvPlayer::SetWarType(PlayerTypes ePlayer, CasusBelliWarType warType)
+{
+	if (ePlayer < 0 || ePlayer >= MAX_PLAYERS) return;
+	m_aePlayerWarTypes[ePlayer] = warType;
 }
 
 //	--------------------------------------------------------------------------------
@@ -47040,6 +47059,7 @@ void CvPlayer::Serialize(Player& player, Visitor& visitor)
 	visitor(player.m_aiSiphonLuxuryCount);
 	visitor(player.m_aiGreatWorkYieldChange);
 	visitor(player.m_aiTourismBonusTurnsPlayer);
+	visitor(player.m_aePlayerWarTypes);
 	visitor(player.m_aOptions);
 	visitor(player.m_strReligionKey);
 	visitor(player.m_strScriptData);

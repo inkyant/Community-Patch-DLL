@@ -2052,6 +2052,16 @@ enum OPEN_ENUM PolicyBranchTypes
 	NO_POLICY_BRANCH_TYPE = -1,
 };
 
+enum CLOSED_ENUM CasusBelliWarType
+{
+	NO_WAR = -1,
+
+	WAR_SURPRISE,
+	WAR_FORMAL,
+
+	NUM_WAR_TYPES ENUM_META_VALUE
+};
+
 enum CLOSED_ENUM FogOfWarModeTypes
 {
 	FOGOFWARMODE_OFF,

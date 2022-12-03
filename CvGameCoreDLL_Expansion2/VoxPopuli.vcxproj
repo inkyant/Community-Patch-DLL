@@ -651,7 +651,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CvGameCoreDLLPCH.h</PrecompiledHeaderFile>
     </ClCompile>
-    <ClCompile Include="CvWarTypeClasses.cpp" />
     <ClCompile Include="CvWonderProductionAI.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Use</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CvGameCoreDLLPCH.h</PrecompiledHeaderFile>
@@ -892,7 +891,6 @@
     <ClInclude Include="CvUnitMovement.h" />
     <ClInclude Include="CvUnitProductionAI.h" />
     <ClInclude Include="CvVotingClasses.h" />
-    <ClInclude Include="CvWarTypeClasses.h" />
     <ClInclude Include="CvWonderProductionAI.h" />
     <ClInclude Include="CvWorldBuilderMapLoader.h" />
     <ClInclude Include="HHMods.h" />

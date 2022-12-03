@@ -141,8 +141,6 @@ class CvCorporationEntry;
 class CvCorporationXMLEntries;
 class CvContractEntry;
 class CvContractXMLEntries;
-class CvWarTypeEntry;
-class CvWarTypesXMLEntries;
 #endif
 
 class CvDLLInterfaceIFaceBase;
@@ -571,11 +569,6 @@ public:
 	std::vector<CvContractEntry*>& getContractInfo();
 	_Ret_maybenull_ CvContractEntry* getContractInfo(ContractTypes eContract);
 	CvContractXMLEntries* GetGameContracts() const;
-
-	int getNumWarTypeInfos();
-	std::vector<CvWarTypeEntry*>& getWarTypeInfo();
-	_Ret_maybenull_ CvWarTypeEntry* getWarTypeInfo(CasusBelliWarType eContract);
-	CvWarTypesXMLEntries* GetGameWarTypes() const;
 #endif
 
 	int getNumBeliefInfos();

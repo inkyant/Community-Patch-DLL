@@ -50,7 +50,8 @@ public:
 
 	bool canChangeWarPeace(TeamTypes eTeam) const;
 
-	bool canDeclareWar(TeamTypes eTeam, PlayerTypes eOriginatingPlayer = NO_PLAYER);
+	bool canDeclareWar(TeamTypes eTeam, PlayerTypes eOriginatingPlayer = NO_PLAYER, CasusBelliWarTypes eWarType = WARTYPE_SURPRISE);
+	bool canDeclareWarType(CasusBelliWarTypes eWarType, TeamTypes eTeam, PlayerTypes eOriginatingPlayer = NO_PLAYER);
 	void declareWar(TeamTypes eTeam, bool bDefensivePact = false, PlayerTypes eOriginatingPlayer = NO_PLAYER, CasusBelliWarTypes eWarType = WARTYPE_SURPRISE);
 	void makePeace(TeamTypes eTeam, bool bBumpUnits = true, bool bSuppressNotification = false, PlayerTypes eOriginatingPlayer = NO_PLAYER);
 

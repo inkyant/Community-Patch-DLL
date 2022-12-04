@@ -182,12 +182,17 @@ public:
 
 	CvWarTypeInfo();
 
+	// Effects of War Type
 	int getDiploPenalty() const;
+
+	// Requirements for war type, see CvTeam::canDeclareWarType
+	int getTurnsDenouncedReq() const;
 
 	virtual bool CacheResults(Database::Results& kResults, CvDatabaseUtility& kUtility);
 
 protected:
 	int m_iDiploPenalty;
+	int m_iTurnsDenouncedReq;
 
 private:
 	CvWarTypeInfo(const CvWarTypeInfo&);

@@ -959,7 +959,8 @@ bool CvCommandInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 //					CvWarTypeInfo
 //======================================================================================================
 CvWarTypeInfo::CvWarTypeInfo() :
-	m_iDiploPenalty(0)
+	m_iDiploPenalty(0),
+	m_iTurnsDenouncedReq(0)
 {
 }
 //------------------------------------------------------------------------------
@@ -968,12 +969,18 @@ int CvWarTypeInfo::getDiploPenalty() const
 	return m_iDiploPenalty;
 }
 //------------------------------------------------------------------------------
+int CvWarTypeInfo::getTurnsDenouncedReq() const
+{
+	return m_iTurnsDenouncedReq;
+}
+//------------------------------------------------------------------------------
 bool CvWarTypeInfo::CacheResults(Database::Results& kResults, CvDatabaseUtility& kUtility)
 {
 	if (!CvBaseInfo::CacheResults(kResults, kUtility))
 		return false;
 
 	m_iDiploPenalty = kResults.GetInt("DiploPenalty");
+	m_iTurnsDenouncedReq = kResults.GetInt("TurnsDenouncedReq");
 
 	return true;
 }

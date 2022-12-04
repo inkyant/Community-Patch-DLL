@@ -1139,7 +1139,7 @@ void CvTeam::changeCorporationsEnabledCount(int iChange)
 #endif
 
 //	--------------------------------------------------------------------------------
-bool CvTeam::canDeclareWar(TeamTypes eTeam, PlayerTypes eOriginatingPlayer)
+bool CvTeam::canDeclareWar(TeamTypes eTeam, PlayerTypes eOriginatingPlayer, CasusBelliWarTypes eWarType)
 {
 	if (eTeam == GetID())
 	{
@@ -1211,6 +1211,10 @@ bool CvTeam::canDeclareWar(TeamTypes eTeam, PlayerTypes eOriginatingPlayer)
 		}
 	}
 
+	if (!canDeclareWarType(eWarType, eTeam, eOriginatingPlayer)) {
+		return false;
+	}
+
 	if (MOD_EVENTS_WAR_AND_PEACE) 
 	{
 		if (GAMEEVENTINVOKE_TESTALL(GAMEEVENT_IsAbleToDeclareWar, eOriginatingPlayer, eTeam) == GAMEEVENTRETURN_FALSE) 
@@ -1241,6 +1245,31 @@ bool CvTeam::canDeclareWar(TeamTypes eTeam, PlayerTypes eOriginatingPlayer)
 			// Check the result.
 			if (!bResult)
 				return false;
+		}
+	}
+
+	return true;
+}
+
+//	-----------------------------------------------------------------------------------------------
+bool CvTeam::canDeclareWarType(CasusBelliWarTypes eWarType, TeamTypes eTeam, PlayerTypes eOriginatingPlayer) {
+
+	CvWarTypeInfo* warType = GC.getWarTypeInfo(eWarType);
+
+	if (warType->getTurnsDenouncedReq() > 0) {
+		int iTurnDenounced = -1;
+		for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
+		{
+			PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
+			if (GET_PLAYER(eLoopPlayer).getTeam() == eTeam && GET_PLAYER(eLoopPlayer).isAlive())
+			{
+				iTurnDenounced = max(iTurnDenounced, GET_PLAYER(eLoopPlayer).GetDiplomacyAI()->GetDenouncedPlayerTurn(eOriginatingPlayer));
+				iTurnDenounced = max(iTurnDenounced, GET_PLAYER(eOriginatingPlayer).GetDiplomacyAI()->GetDenouncedPlayerTurn(eLoopPlayer));
+			}
+		}
+
+		if (iTurnDenounced != -1 && warType->getTurnsDenouncedReq() > (GC.getGame().getGameTurn() - iTurnDenounced)) {
+			return false;
 		}
 	}
 

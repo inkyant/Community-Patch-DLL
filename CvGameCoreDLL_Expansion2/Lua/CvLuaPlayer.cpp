@@ -3383,7 +3383,7 @@ int CvLuaPlayer::lGetWarType(lua_State* L)
 	if (pkPlayer == NULL)
 		return 0;
 
-	lua_pushinteger(L, pkPlayer->GetWarType((PlayerTypes)lua_tointeger(L, 2)));
+	lua_pushinteger(L, pkPlayer->GetWarType((TeamTypes)lua_tointeger(L, 2)));
 	return 1;
 }
 //------------------------------------------------------------------------------
@@ -3394,7 +3394,7 @@ int CvLuaPlayer::lSetWarType(lua_State* L)
 	if (pkPlayer == NULL)
 		return 0;
 
-	pkPlayer->SetWarType((PlayerTypes)lua_tointeger(L, 2), (CasusBelliWarTypes)lua_tointeger(L, 3));
+	pkPlayer->SetWarType((TeamTypes)lua_tointeger(L, 2), (CasusBelliWarTypes)lua_tointeger(L, 3));
 	return 0;
 }
 //------------------------------------------------------------------------------

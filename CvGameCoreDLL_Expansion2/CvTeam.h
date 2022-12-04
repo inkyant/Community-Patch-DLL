@@ -51,7 +51,7 @@ public:
 	bool canChangeWarPeace(TeamTypes eTeam) const;
 
 	bool canDeclareWar(TeamTypes eTeam, PlayerTypes eOriginatingPlayer = NO_PLAYER);
-	void declareWar(TeamTypes eTeam, bool bDefensivePact = false, PlayerTypes eOriginatingPlayer = NO_PLAYER);
+	void declareWar(TeamTypes eTeam, bool bDefensivePact = false, PlayerTypes eOriginatingPlayer = NO_PLAYER, CasusBelliWarTypes eWarType = WARTYPE_SURPRISE);
 	void makePeace(TeamTypes eTeam, bool bBumpUnits = true, bool bSuppressNotification = false, PlayerTypes eOriginatingPlayer = NO_PLAYER);
 
 	int GetTurnMadePeaceTreatyWithTeam(TeamTypes eTeam) const;
@@ -668,7 +668,7 @@ protected:
 
 	void DoNowAtWarOrPeace(TeamTypes eTeam, bool bWar);
 
-	void DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamTypes eTeam, bool bDefensivePact, bool bMinorAllyPact = false);
+	void DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamTypes eTeam, bool bDefensivePact, bool bMinorAllyPact = false, CasusBelliWarTypes eWarType = WARTYPE_SURPRISE);
 	void DoMakePeace(PlayerTypes eOriginatingPlayer, bool bPacifier, TeamTypes eTeam, bool bBumpUnits, bool bSuppressNotification = false);
 };
 

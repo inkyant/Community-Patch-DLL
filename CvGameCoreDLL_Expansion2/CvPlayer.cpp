@@ -1937,7 +1937,7 @@ void CvPlayer::reset(PlayerTypes eID, bool bConstructorCall)
 	m_aOptions.clear();
 
 	m_aePlayerWarTypes.clear();
-	m_aePlayerWarTypes.resize(MAX_PLAYERS, NO_WARTYPE);
+	m_aePlayerWarTypes.resize(MAX_TEAMS, NO_WARTYPE);
 
 	m_strReligionKey = "";
 	m_strScriptData = "";
@@ -37120,15 +37120,15 @@ void CvPlayer::ResetWarPeaceTurnCounters() // called when a player is killed
 		GET_PLAYER(ePlayer).SetPlayerNumTurnsSinceCityCapture(ePlayer, 0);
 	}
 }
-CasusBelliWarTypes CvPlayer::GetWarType(PlayerTypes ePlayer) const
+CasusBelliWarTypes CvPlayer::GetWarType(TeamTypes eTeam) const
 {
-	return m_aePlayerWarTypes[ePlayer];
+	return m_aePlayerWarTypes[eTeam];
 }
 
-void CvPlayer::SetWarType(PlayerTypes ePlayer, CasusBelliWarTypes warType)
+void CvPlayer::SetWarType(TeamTypes eTeam, CasusBelliWarTypes warType)
 {
-	if (ePlayer < 0 || ePlayer >= MAX_PLAYERS) return;
-	m_aePlayerWarTypes[ePlayer] = warType;
+	if (eTeam < 0 || eTeam >= MAX_TEAMS) return;
+	m_aePlayerWarTypes[eTeam] = warType;
 }
 
 

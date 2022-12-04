@@ -2077,8 +2077,8 @@ public:
 	void DoUpdateWarPeaceTurnCounters();
 	void ResetWarPeaceTurnCounters();
 
-	CasusBelliWarTypes GetWarType(PlayerTypes ePlayer) const;
-	void SetWarType(PlayerTypes ePlayer, CasusBelliWarTypes warType);
+	CasusBelliWarTypes GetWarType(TeamTypes eTeam) const;
+	void SetWarType(TeamTypes eTeam, CasusBelliWarTypes warType);
 
 	PlayerProximityTypes GetProximityToPlayer(PlayerTypes ePlayer) const;
 	void SetProximityToPlayer(PlayerTypes ePlayer, PlayerProximityTypes eProximity);

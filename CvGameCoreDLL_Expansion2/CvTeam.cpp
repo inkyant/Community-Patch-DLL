@@ -1248,15 +1248,15 @@ bool CvTeam::canDeclareWar(TeamTypes eTeam, PlayerTypes eOriginatingPlayer)
 }
 
 //	-----------------------------------------------------------------------------------------------
-void CvTeam::declareWar(TeamTypes eTeam, bool bDefensivePact, PlayerTypes eOriginatingPlayer)
+void CvTeam::declareWar(TeamTypes eTeam, bool bDefensivePact, PlayerTypes eOriginatingPlayer, CasusBelliWarTypes warType)
 {
-	DoDeclareWar(eOriginatingPlayer, true, eTeam, bDefensivePact);
+	DoDeclareWar(eOriginatingPlayer, true, eTeam, bDefensivePact, false, warType);
 
 	CvPlayerManager::Refresh(true);
 }
 
 //	-----------------------------------------------------------------------------------------------
-void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamTypes eTeam, bool bDefensivePact, bool bMinorAllyPact)
+void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamTypes eTeam, bool bDefensivePact, bool bMinorAllyPact, CasusBelliWarTypes eWarType)
 {
 	Localization::String locString;
 	int iI = 0;
@@ -1271,7 +1271,7 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 		{
 			if (!isAtWar(GET_TEAM(eTeam).GetMaster()))
 			{
-				DoDeclareWar(eOriginatingPlayer, bAggressor, GET_TEAM(eTeam).GetMaster(), bDefensivePact);
+				DoDeclareWar(eOriginatingPlayer, bAggressor, GET_TEAM(eTeam).GetMaster(), bDefensivePact, false, eWarType);
 				return;
 			}
 		}
@@ -1748,7 +1748,7 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 			//Defensive pacts and vassals trigger here.
 			if (GET_TEAM((TeamTypes)iI).IsHasDefensivePact(eTeam) || GET_TEAM((TeamTypes)iI).IsVassal(eTeam))
 			{
-				GET_TEAM(GetID()).DoDeclareWar(eOriginatingPlayer, true, (TeamTypes)iI, /*bDefensivePact*/ true);
+				DoDeclareWar(eOriginatingPlayer, true, (TeamTypes)iI, /*bDefensivePact*/ true, false, eWarType);
 			}
 		}
 	}
@@ -1763,7 +1763,7 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 				
 		if (GET_TEAM((TeamTypes)iI).IsVassal(GetID()))
 		{
-			GET_TEAM((TeamTypes)iI).DoDeclareWar(eOriginatingPlayer, bAggressor, eTeam, /*bDefensivePact*/ true);
+			GET_TEAM((TeamTypes)iI).DoDeclareWar(eOriginatingPlayer, bAggressor, eTeam, /*bDefensivePact*/ true, false, eWarType);
 		}
 	}
 
@@ -1778,12 +1778,12 @@ void CvTeam::DoDeclareWar(PlayerTypes eOriginatingPlayer, bool bAggressor, TeamT
 
 		if (GET_TEAM((TeamTypes)iI).IsVassal(eTeam))
 		{
-			GET_TEAM((TeamTypes)iI).DoDeclareWar(eOriginatingPlayer, bAggressor, GetID(), /*bDefensivePact*/ true);
+			GET_TEAM((TeamTypes)iI).DoDeclareWar(eOriginatingPlayer, bAggressor, GetID(), /*bDefensivePact*/ true, false, eWarType);
 		}
 
 		if (GET_TEAM((TeamTypes)iI).IsVassal(GetID()))
 		{
-			GET_TEAM((TeamTypes)iI).DoDeclareWar(eOriginatingPlayer, bAggressor, eTeam, /*bDefensivePact*/ true);
+			GET_TEAM((TeamTypes)iI).DoDeclareWar(eOriginatingPlayer, bAggressor, eTeam, /*bDefensivePact*/ true, false, eWarType);
 		}
 	}
 
@@ -1986,7 +1986,7 @@ void CvTeam::DoNowAtWarOrPeace(TeamTypes eTeam, bool bWar)
 						// Match war state
 						if (GET_TEAM(eTeam).isAtWar(GET_PLAYER(ePlayer).getTeam()))
 						{
-							GET_TEAM(GET_PLAYER(eMinor).getTeam()).DoDeclareWar(eMinor, false, eTeam, /*bDefensivePact*/ false, /*bMinorAllyPact*/ true);
+							GET_TEAM(GET_PLAYER(eMinor).getTeam()).DoDeclareWar(eMinor, false, eTeam, /*bDefensivePact*/ false, /*bMinorAllyPact*/ true); // CS will only declare suprise wars?
 						}
 
 						// Add to vector for notification sent out
@@ -9654,7 +9654,7 @@ void CvTeam::DoUpdateVassalWarPeaceRelationships()
 		{
 			if (!isAtWar(eTeam))
 			{
-				DoDeclareWar(getLeaderID(), false, eTeam, false);
+				DoDeclareWar(getLeaderID(), false, eTeam, false, false, GET_PLAYER(GET_TEAM(eMaster).getLeaderID()).GetWarType(eTeam));
 			}
 		}
 		// Not at war

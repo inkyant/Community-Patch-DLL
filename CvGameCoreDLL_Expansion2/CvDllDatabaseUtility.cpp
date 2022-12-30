@@ -399,6 +399,8 @@ bool CvDllDatabaseUtility::PrefetchGameData()
 	PrefetchCollection(GC.getContractInfo(), "Contracts");
 #endif
 
+	PrefetchCollection(GC.getWarTypeInfo(), "WarTypes");
+
 	//Copy flavors into string array
 	{
 		CvDatabaseUtility kUtility;

@@ -1211,7 +1211,8 @@ bool CvTeam::canDeclareWar(TeamTypes eTeam, PlayerTypes eOriginatingPlayer, Casu
 		}
 	}
 
-	if (!canDeclareWarType(eWarType, eTeam, eOriginatingPlayer)) {
+	// TODO: IA: what to do for no wartype
+	if (eWarType != 0 && !canDeclareWarType(eWarType, eTeam, eOriginatingPlayer)) {
 		return false;
 	}
 
@@ -1268,7 +1269,7 @@ bool CvTeam::canDeclareWarType(CasusBelliWarTypes eWarType, TeamTypes eTeam, Pla
 			}
 		}
 
-		if (iTurnDenounced != -1 && warType->getTurnsDenouncedReq() > (GC.getGame().getGameTurn() - iTurnDenounced)) {
+		if (iTurnDenounced == -1 || warType->getTurnsDenouncedReq() > (GC.getGame().getGameTurn() - iTurnDenounced)) {
 			return false;
 		}
 	}

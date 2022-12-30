@@ -5381,6 +5381,13 @@ void CvGame::DoFromUIDiploEvent(FromUIDiploEventTypes eEvent, PlayerTypes eAIPla
 	}
 #endif
 
+	// Is there a better way to do this? sendFromUIDiploEvent() is obscured, so seems like this is the only way we can intercept it
+	if (eEvent == FROM_UI_DIPLO_EVENT_HUMAN_DECLARES_WAR) {
+		GET_PLAYER(getActivePlayer()).SetWarType(GET_PLAYER(eAIPlayer).getTeam(), (CasusBelliWarTypes)iArg1);
+	} else if (eEvent == FROM_UI_DIPLO_EVENT_HUMAN_NEGOTIATE_PEACE) {
+		GET_PLAYER(getActivePlayer()).SetWarType(GET_PLAYER(eAIPlayer).getTeam(), NO_WARTYPE);
+	}
+
 	gDLL->sendFromUIDiploEvent(eAIPlayer, eEvent, iArg1, iArg2);
 }
 

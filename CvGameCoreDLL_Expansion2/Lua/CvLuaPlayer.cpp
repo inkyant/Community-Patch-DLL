@@ -293,6 +293,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetTechsToFreePolicy);
 #endif
 	Method(GetWarType);
+	Method(SetWarType);
 	Method(GetInfluenceCityStateSpyRankBonus);
 	Method(GetInfluenceMajorCivSpyRankBonus);
 	Method(GetInfluenceSpyRankTooltip);

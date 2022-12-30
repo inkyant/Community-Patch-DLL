@@ -3753,7 +3753,7 @@ CvWarTypeInfo* CvGlobals::getWarTypeInfo(CasusBelliWarTypes eWarTypeNum)
 {
 	CvAssertMsg(eWarTypeNum < getNumWarTypeInfos(), "Index out of bounds");
 	CvAssertMsg(eWarTypeNum > -1, "Index out of bounds");
-	if (eWarTypeNum > -1 && eWarTypeNum < (int)m_paWarTypeInfo.size())
+	if (eWarTypeNum > -1 && eWarTypeNum < getNumWarTypeInfos())
 		return m_paWarTypeInfo[eWarTypeNum];
 	else
 		return NULL;

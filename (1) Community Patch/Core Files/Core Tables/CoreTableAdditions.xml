@@ -2073,6 +2073,17 @@
 		<Column name="DiploPenalty" type="integer" default="0"/>
 		<Column name="TurnsDenouncedReq" type="integer" default="0"/>
 	</Table>
+	<WarTypes>
+		<Row>
+			<ID>0</ID>
+			<Type>WAR_TYPE_SURPRISE</Type>
+			<Description>TXT_KEY_WAR_TYPE_SURPRISE</Description>
+			<Strategy>TXT_KEY_WAR_TYPE_SURPRISE_STRAT</Strategy>
+			<Help>TXT_KEY_WAR_TYPE_SURPRISE_HELP</Help>
+			<DisabledHelp>TXT_KEY_WAR_TYPE_SURPRISE_DISABLED</DisabledHelp>
+			<DiploPenalty>100</DiploPenalty>
+		</Row>
+	</WarTypes>
 	<!-- End of Casus Belli War Type -->
 	<!-- Start bias -->
 	<Table name="Civilization_Start_Prefer_Mountain">

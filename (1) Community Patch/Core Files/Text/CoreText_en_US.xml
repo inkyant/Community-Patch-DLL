@@ -114,6 +114,20 @@
 		<Row Tag="TXT_KEY_DIPLOMATIC_MISSION_RESULT_NO_GOLD">
 			<Text>You have gained {1_Num} [ICON_INFLUENCE] Influence from the Diplomatic Mission!</Text>
 		</Row>
+
+		<!-- Casus Belli Default War Type (Surprise War) -->
+		<Row Tag="TXT_KEY_WAR_TYPE_SURPRISE">
+			<Text>Surprise War</Text>
+		</Row>
+		<Row Tag="TXT_KEY_WAR_TYPE_SURPRISE_STRAT">
+			<Text>A surprise war can be declared almost any time, which allows it a lot of flexibility to attack your enemies, or even more so, your (former) friends. However, such a war comes with heavy diplomatic reprecussions.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_WAR_TYPE_SURPRISE_HELP">
+			<Text>Declares a Surprise War immediately, with heavy diplomatic penalties.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_WAR_TYPE_SURPRISE_DISABLED">
+			<Text>You can not declare war at this time.</Text>
+		</Row>
 		
 		<!-- America - Flavoured -->
 		<Row Tag="TXT_KEY_SPY_NAME_AMERICA_10">

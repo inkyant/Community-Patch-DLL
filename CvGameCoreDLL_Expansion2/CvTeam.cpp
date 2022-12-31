@@ -2064,7 +2064,7 @@ void CvTeam::DoMakePeace(PlayerTypes eOriginatingPlayer, bool bPacifier, TeamTyp
 	{
 		if (MOD_EVENTS_WAR_AND_PEACE) 
 		{
-			GAMEEVENTINVOKE_HOOK(GAMEEVENT_MakePeace, eOriginatingPlayer, eTeam, bPacifier);
+			GAMEEVENTINVOKE_HOOK(GAMEEVENT_MakePeace, eOriginatingPlayer, GetID(), bPacifier);
 		}
 		else 
 		{

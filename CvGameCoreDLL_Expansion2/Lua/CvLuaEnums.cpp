@@ -926,13 +926,8 @@ int CvLuaEnums::pRegister(lua_State* L)
 
 	//Casus Belli War Types
 	EnumStart(L, "WarTypes");
-	std::vector<CvWarTypeInfo*> pkWarTypes = GC.getWarTypeInfo();
-	for (std::vector<CvWarTypeInfo*>::const_iterator it = pkWarTypes.begin(); it != pkWarTypes.end(); ++it)
-	{
-		CvWarTypeInfo* pWarType = *it;
-		if (pWarType)
-			pRegisterEnum(L, pWarType->GetType(), FString::Hash(pWarType->GetType()));
-	}
+	RegisterEnum(NO_WARTYPE);
+	RegisterDynamicEnums(L, "WarTypes", "ID", "Type", "NUM_WARTYPES");
 	EnumEnd(L);
 
 	// Resource Usage

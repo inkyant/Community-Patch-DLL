@@ -172,9 +172,7 @@ function LeaderMessageHandler( iPlayer, iDiploUIState, szLeaderMessage, iAnimati
 		local iWarScore = pActivePlayer:GetWarScore(g_iAIPlayer);
 		local strWarScore = Locale.ConvertTextKey("TXT_KEY_WAR_SCORE", iWarScore);
 
-		local warTypeInfo = GameInfo.WarTypes[Players[Game.GetActivePlayer()]:GetWarType(g_iAITeam)]
-
-		Controls.WarScore:SetText(warTypeInfo.Description .. " " .. strWarScore);
+		Controls.WarScore:SetText(strWarScore);
 	
 		local strWarInfo = Locale.ConvertTextKey("TXT_KEY_WAR_SCORE_EXPLANATION");
 
@@ -393,14 +391,6 @@ function OnShowHide( bHide )
 					end
 				end
 			else
-				Controls.WarButton:SetHide(true)
-
-				for iWarType, warType in ipairs(GameInfo.WarTypes) do
-					local instance = {}
-					ContextPtr:BuildInstanceForControl("WarTypeButton", instance, Controls)
-					instance.Label:LocalizeAndSetText(warType.Description)
-				end
-
 				Controls.WarButton:SetText( Locale.ConvertTextKey( "TXT_KEY_DIPLO_DECLARE_WAR" ));
 				Controls.WarButton:SetToolTipString( Locale.ConvertTextKey( "TXT_KEY_DIPLO_DECLARES_WAR_TT" ));
 				Controls.TradeButton:SetDisabled(false);

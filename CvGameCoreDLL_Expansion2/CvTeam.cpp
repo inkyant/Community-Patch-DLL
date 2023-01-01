@@ -1212,7 +1212,7 @@ bool CvTeam::canDeclareWar(TeamTypes eTeam, PlayerTypes eOriginatingPlayer, Casu
 	}
 
 	// TODO: IA: what to do for no wartype
-	if (eWarType != 0 && !canDeclareWarType(eWarType, eTeam, eOriginatingPlayer)) {
+	if (eWarType != NO_WARTYPE && !canDeclareWarType(eWarType, eTeam, eOriginatingPlayer)) {
 		return false;
 	}
 

@@ -41,6 +41,8 @@ local g_isAnimateOutComplete = false;
 local g_isAnimatingIn = false;
 local g_bRootWasShownThisEvent = false;
 
+local StackInstanceManager = StackInstanceManager
+local g_WarTypeButtonIM = StackInstanceManager( "WarTypeButtonInstance",  "WarTypeButton", Controls.DiploButtonStack )
 
 -- ===========================================================================
 --
@@ -164,7 +166,12 @@ function LeaderMessageHandler( iPlayer, iDiploUIState, szLeaderMessage, iAnimati
 			strMoodText = Locale.ConvertTextKey( "TXT_KEY_DIPLO_MAJOR_CIV_DIPLO_STATE_NEUTRAL", playerLeaderInfo.Description );
 		else
 			if (pActiveTeam:IsAtWar(g_iAITeam)) then
-				strMoodText = Locale.ConvertTextKey( "TXT_KEY_DIPLO_MAJOR_CIV_DIPLO_STATE_WAR" );
+				local warType = Players[Game.GetActivePlayer()]:GetWarType(g_iAITeam)
+				if warType ~= -1 then
+					strMoodText = "[COLOR_WARNING_TEXT]" .. string.upper(Locale.ConvertTextKey(GameInfo.WarTypes[warType].Description)) .. "![ENDCOLOR]"
+				else
+					strMoodText = Locale.ConvertTextKey( "TXT_KEY_DIPLO_MAJOR_CIV_DIPLO_STATE_WAR" );
+				end
 			elseif (Players[g_iAIPlayer]:IsDenouncingPlayer(Game.GetActivePlayer())) then
 				strMoodText = Locale.ConvertTextKey( "TXT_KEY_DIPLO_MAJOR_CIV_DIPLO_STATE_DENOUNCING" );
 			elseif (Players[g_iAIPlayer]:WasResurrectedThisTurnBy(iActivePlayer)) then
@@ -447,7 +454,17 @@ function UpdateDisplay()
 			end
 
 			if (pActiveTeam:CanDeclareWar(g_iAITeam)) then
+				g_WarTypeButtonIM:ResetInstances()
+				for row in GameInfo.WarTypes() do
+					print(row.Description)
+					local instance = g_WarTypeButtonIM:GetInstance()
+					instance.Label:LocalizeAndSetText(row.Description)
+					-- instance.WarTypeButton:SetToolTipString(row.Help) --TODO: get helptext
+					instance.WarTypeButton:RegisterCallback(Mouse.eLClick, onWarType)
+					instance.WarTypeButton:SetVoid1(row.ID)
+				end
 				Controls.WarButton:SetDisabled(false);
+				g_WarTypeButtonIM:Commit()
 			else
 				Controls.WarButton:SetDisabled(true);
 
@@ -471,6 +488,15 @@ function UpdateDisplay()
 	if civBE_mode then
 		Controls.TalkOptionStack:CalculateSize();
 		Controls.TalkOptionStack:ReprocessAnchoring();
+	end
+end
+
+function onWarType(id)
+	print("Clicked war type! #" .. id)
+	if bnw_mode then
+		UI.AddPopup{ Type = ButtonPopupTypes.BUTTONPOPUP_DECLAREWARMOVE, Data1 = g_iAITeam, Option1 = true};
+	else
+		Controls.WarConfirm:SetHide(false);
 	end
 end
 

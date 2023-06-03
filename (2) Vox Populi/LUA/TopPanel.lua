@@ -137,7 +137,15 @@ function UpdateData()
 						strGoldenAgeStr = string.format(Locale.ToUpper(Locale.ConvertTextKey("TXT_KEY_GOLDEN_AGE_ANNOUNCE")) .. " (%i)", pPlayer:GetGoldenAgeTurns());
 					end
 				else
-					strGoldenAgeStr = string.format("%i/%i", pPlayer:GetGoldenAgeProgressMeter(), pPlayer:GetGoldenAgeProgressThreshold());
+					iChange = pPlayer:GetHappinessForGAP() + pPlayer:GetGAPFromReligion() + pPlayer:GetGAPFromTraits() + pPlayer:GetGAPFromCities();
+					if(iChange > 0) then
+						strGoldenAgeStr = string.format("%i/%i (+%i)", pPlayer:GetGoldenAgeProgressMeter(), pPlayer:GetGoldenAgeProgressThreshold(), iChange);
+					elseif(iChange < 0) then
+						strGoldenAgeStr = string.format("%i/%i (%i)", pPlayer:GetGoldenAgeProgressMeter(), pPlayer:GetGoldenAgeProgressThreshold(), iChange);
+					else
+						strGoldenAgeStr = string.format("%i/%i", pPlayer:GetGoldenAgeProgressMeter(), pPlayer:GetGoldenAgeProgressThreshold());
+					end
+					
 				end
 			
 				strGoldenAgeStr = "[ICON_GOLDEN_AGE][COLOR:255:255:255:255]" .. strGoldenAgeStr .. "[/COLOR]";
@@ -543,7 +551,22 @@ function ScienceTipHandler( control )
 	
 			strText = strText .. Locale.ConvertTextKey("TXT_KEY_MINOR_SCIENCE_FROM_LEAGUE_ALLIES", iScienceFromAllies);
 		end
-
+		
+-- CBP
+		-- Science from Annexed Minors
+		local iScienceFromAnnexedMinors = pPlayer:GetSciencePerTurnFromAnnexedMinors();
+		if (iScienceFromAnnexedMinors ~= 0) then
+		
+			-- Add separator for non-initial entries
+			if (bFirstEntry) then
+				bFirstEntry = false;
+			else
+				strText = strText .. "[NEWLINE]";
+			end
+	
+			strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_SCIENCE_FROM_ANNEXED_MINORS", iScienceFromAnnexedMinors);
+		end
+-- END
 		-- Science from Funding from League (CSD MOD)
 		local iScienceFromLeague = pPlayer:GetScienceRateFromLeagueAid();
 		if (iScienceFromLeague ~= 0) then
@@ -582,6 +605,30 @@ function ScienceTipHandler( control )
 			end
 	
 			strText = strText .. Locale.ConvertTextKey("TXT_KEY_SCIENCE_FROM_MINORS", iScienceFromMinors);
+		end
+		
+		-- Science from Espionage
+		local iScienceFromEspionage = pPlayer:GetYieldPerTurnFromEspionageEvents(YieldTypes.YIELD_SCIENCE, true) - pPlayer:GetYieldPerTurnFromEspionageEvents(YieldTypes.YIELD_SCIENCE, false);
+		if (iScienceFromEspionage > 0) then
+		
+			-- Add separator for non-initial entries
+			if (bFirstEntry) then
+				bFirstEntry = false;
+			else
+				strText = strText .. "[NEWLINE]";
+			end
+	
+			strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_SCIENCE_FROM_ESPIONAGE_POSITIVE", iScienceFromEspionage);
+		elseif (iScienceFromEspionage < 0) then
+		
+			-- Add separator for non-initial entries
+			if (bFirstEntry) then
+				bFirstEntry = false;
+			else
+				strText = strText .. "[NEWLINE]";
+			end
+	
+			strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_SCIENCE_FROM_ESPIONAGE_NEGATIVE", iScienceFromEspionage);
 		end
 		
 		-- Let people know that building more cities makes techs harder to get
@@ -627,14 +674,21 @@ function GoldTipHandler( control )
 	-- CBP
 	local iInternalRouteGold = pPlayer:GetInternalTradeRouteGoldBonus();
 	local iMinorGold = pPlayer:GetGoldPerTurnFromMinorCivs();
+	local iAnnexedMinorsGold = pPlayer:GetGoldPerTurnFromAnnexedMinors();
 	-- END
 -- C4DF
 	-- Gold from Vassals
 	local iGoldFromVassals = pPlayer:GetYieldPerTurnFromVassals(YieldTypes.YIELD_GOLD);
 	local iGoldFromVassalTax = math.floor(pPlayer:GetMyShareOfVassalTaxes() / 100);
+	-- Gold from Espionage
+	local iGoldFromEspionageIncoming = pPlayer:GetYieldPerTurnFromEspionageEvents(YieldTypes.YIELD_GOLD, true);
+	
 -- END
 -- C4DF CHANGE
-	local fTotalIncome = fGoldPerTurnFromCities + iGoldPerTurnFromOtherPlayers + fCityConnectionGold + iGoldPerTurnFromReligion + fTradeRouteGold + fTraitGold + iMinorGold + iInternalRouteGold;
+	local fTotalIncome = fGoldPerTurnFromCities + iGoldPerTurnFromOtherPlayers + fCityConnectionGold + iGoldPerTurnFromReligion + fTradeRouteGold + fTraitGold + iMinorGold + iInternalRouteGold + iAnnexedMinorsGold;
+	if (iGoldFromEspionageIncoming > 0) then
+		fTotalIncome = fTotalIncome + iGoldFromEspionageIncoming;
+	end
 	if (iGoldFromVassals > 0) then
 		fTotalIncome = fTotalIncome + iGoldFromVassals;
 	end
@@ -686,6 +740,12 @@ function GoldTipHandler( control )
 	if (iMinorGold > 0) then
 		strText = strText .. "[NEWLINE]  [ICON_BULLET]" .. Locale.ConvertTextKey("TXT_KEY_TP_GOLD_FROM_MINORS", iMinorGold);
 	end
+	if (iAnnexedMinorsGold > 0) then
+		strText = strText .. "[NEWLINE]  [ICON_BULLET]" .. Locale.ConvertTextKey("TXT_KEY_TP_GOLD_FROM_ANNEXED_MINORS", iAnnexedMinorsGold);
+	end
+	if (iGoldFromEspionageIncoming > 0) then
+		strText = strText .. "[NEWLINE]  [ICON_BULLET]" .. Locale.ConvertTextKey("TXT_KEY_TP_GOLD_FROM_ESPIONAGE_INCOMING", iGoldFromEspionageIncoming);
+	end
 --END
 	strText = strText .. "[/COLOR]";
 	
@@ -695,6 +755,7 @@ function GoldTipHandler( control )
 -- BEGIN C4DF
 	local iExpenseFromVassalTaxes = pPlayer:GetExpensePerTurnFromVassalTaxes();
 	local iVassalMaintenance = pPlayer:GetVassalGoldMaintenance();
+	local iExpenseFromEspionage = pPlayer:GetYieldPerTurnFromEspionageEvents(YieldTypes.YIELD_GOLD, false);
 -- END C4DF
 	local iTotalExpenses = iUnitCost + iBuildingMaintenance + iImprovementMaintenance + iGoldPerTurnToOtherPlayers;
 -- BEGIN C4DF
@@ -703,6 +764,9 @@ function GoldTipHandler( control )
 	end
 	if (iExpenseFromVassalTaxes > 0) then
 		iTotalExpenses = iTotalExpenses + iExpenseFromVassalTaxes;
+	end
+	if(iExpenseFromEspionage > 0) then
+		iTotalExpenses = iTotalExpenses + iExpenseFromEspionage;
 	end
 -- END C4DF
 --END
@@ -731,6 +795,10 @@ function GoldTipHandler( control )
 	-- Gold from Vassal Tax
 	if (iExpenseFromVassalTaxes > 0) then
 		strText = strText .. "[NEWLINE]  [ICON_BULLET]" .. Locale.ConvertTextKey("TXT_KEY_TP_GOLD_VASSAL_TAX", iExpenseFromVassalTaxes);
+	end
+	-- Gold From Espionage
+	if (iExpenseFromEspionage > 0) then
+		strText = strText .. "[NEWLINE]  [ICON_BULLET]" .. Locale.ConvertTextKey("TXT_KEY_TP_GOLD_FROM_ESPIONAGE_OUTGOING", iExpenseFromEspionage);
 	end
 --  END
 	strText = strText .. "[/COLOR]";
@@ -828,6 +896,11 @@ function HappinessTipHandler( control )
 			local CityStateHappiness = pPlayer:GetHappinessFromMinorCivs();
 			if (CityStateHappiness ~= 0) then
 				strText = strText .. "[NEWLINE][ICON_BULLET]" .. Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_CITY_STATE_FRIENDSHIP", CityStateHappiness);
+			end
+			
+			local AnnexedMinorsHappiness = pPlayer:GetHappinessFromAnnexedMinors();
+			if (AnnexedMinorsHappiness ~= 0) then
+				strText = strText .. "[NEWLINE][ICON_BULLET]" .. Locale.ConvertTextKey("TXT_KEY_TP_HAPPINESS_FROM_ANNEXED_MINORS", AnnexedMinorsHappiness);
 			end
 
 			local VassalHappiness = pPlayer:GetHappinessFromVassals();
@@ -957,18 +1030,29 @@ function GoldenAgeTipHandler( control )
 	else
 		local pTeam = Teams[pPlayer:GetTeam()];
 		local pCity = UI.GetHeadSelectedCity();
+		
+		local iHappiness = pPlayer:GetHappinessForGAP();
+		local iGAPReligion = pPlayer:GetGAPFromReligion();
+		local iGAPTrait = pPlayer:GetGAPFromTraits();
+		local iGAPCities = pPlayer:GetGAPFromCities();
+		local iChange = iHappiness + iGAPReligion + iGAPTrait + iGAPCities;
 	
 		if (pPlayer:GetGoldenAgeTurns() > 0) then
 			strText = Locale.ConvertTextKey("TXT_KEY_TP_GOLDEN_AGE_NOW", pPlayer:GetGoldenAgeTurns());
+		else
+			if (iChange > 0) then
+				iTurnsUntilGoldenAge = (pPlayer:GetGoldenAgeProgressThreshold() - pPlayer:GetGoldenAgeProgressMeter()) / iChange;
+				iTurnsUntilGoldenAge = math.max(0, math.ceil(iTurnsUntilGoldenAge));
+				strText = strText .. Locale.ConvertTextKey("TXT_KEY_TOP_PANEL_TURNS_UNTIL_GOLDEN_AGE", iTurnsUntilGoldenAge);
+			end
 		end
 		
-		local iHappiness = pPlayer:GetHappinessForGAP();
 
 		if(strText ~= "") then
 			strText = strText .. "[NEWLINE][NEWLINE]";
 		end
 
-		strText = Locale.ConvertTextKey("TXT_KEY_TP_GOLDEN_AGE_PROGRESS", pPlayer:GetGoldenAgeProgressMeter(), pPlayer:GetGoldenAgeProgressThreshold());
+		strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_GOLDEN_AGE_PROGRESS", pPlayer:GetGoldenAgeProgressMeter(), pPlayer:GetGoldenAgeProgressThreshold());
 		strText = strText .. "[NEWLINE]";
 		
 		if (iHappiness >= 0) then
@@ -977,17 +1061,14 @@ function GoldenAgeTipHandler( control )
 			strText = strText .. "[COLOR_WARNING_TEXT]" .. Locale.ConvertTextKey("TXT_KEY_TP_GOLDEN_AGE_LOSS", -iHappiness) .. "[ENDCOLOR]";
 		end
 		-- CBP
-		local iGAPReligion = pPlayer:GetGAPFromReligion();
 		if (iGAPReligion > 0) then
 			strText = strText .. "[NEWLINE]";
 			strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_GOLDEN_AGE_ADDITION_RELIGION", iGAPReligion);
 		end
-		local iGAPTrait = pPlayer:GetGAPFromTraits();
 		if (iGAPTrait > 0) then
 			strText = strText .. "[NEWLINE]";
 			strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_GOLDEN_AGE_ADDITION_TRAIT", iGAPTrait);
 		end
-		local iGAPCities = pPlayer:GetGAPFromCities();
 		if (iGAPCities > 0) then
 			strText = strText .. "[NEWLINE]";
 			strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_GOLDEN_AGE_ADDITION_CITIES", iGAPCities);
@@ -1148,6 +1229,47 @@ function CultureTipHandler( control )
 			strText = strText .. "[NEWLINE]";
 			strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_CULTURE_FROM_MINORS", iCultureFromMinors);
 		end
+		
+-- CBP
+		-- Culture from Annexed Minors
+		local iCultureFromAnnexedMinors = pPlayer:GetCulturePerTurnFromAnnexedMinors();
+		if (iCultureFromAnnexedMinors ~= 0) then
+		
+			-- Add separator for non-initial entries
+			if (bFirstEntry) then
+				strText = strText .. "[NEWLINE]";
+				bFirstEntry = false;
+			end
+
+			strText = strText .. "[NEWLINE]";
+			strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_CULTURE_FROM_ANNEXED_MINORS", iCultureFromAnnexedMinors);
+		end
+		
+		-- Culture from Espionage
+		local iCultureFromEspionage = pPlayer:GetYieldPerTurnFromEspionageEvents(YieldTypes.YIELD_CULTURE, true) - pPlayer:GetYieldPerTurnFromEspionageEvents(YieldTypes.YIELD_CULTURE, false);
+		
+		if (iCultureFromEspionage > 0) then
+		
+			-- Add separator for non-initial entries
+			if (bFirstEntry) then
+				strText = strText .. "[NEWLINE]";
+				bFirstEntry = false;
+			end
+
+			strText = strText .. "[NEWLINE]";
+			strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_CULTURE_FROM_ESPIONAGE_POSITIVE", iCultureFromEspionage);
+		elseif (iCultureFromEspionage < 0) then
+		
+			-- Add separator for non-initial entries
+			if (bFirstEntry) then
+				strText = strText .. "[NEWLINE]";
+				bFirstEntry = false;
+			end
+
+			strText = strText .. "[NEWLINE]";
+			strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_CULTURE_FROM_ESPIONAGE_NEGATIVE", iCultureFromEspionage);
+		end
+-- END
 
 		-- Culture from Religion
 		local iCultureFromReligion = pPlayer:GetCulturePerTurnFromReligion();
@@ -1179,7 +1301,7 @@ function CultureTipHandler( control )
 		end
 		
 		-- Culture from Golden Age (COMMUNITY PATCH EDIT)
-		local iCultureFromGoldenAge = pPlayer:GetTotalJONSCulturePerTurn() - iCultureForFree - iCultureFromCities - iCultureFromHappiness - iCultureFromMinors - iCultureFromReligion - iCultureFromTraits - iCultureFromBonusTurns; -- last part added (COMMUNITY PATCH)
+		local iCultureFromGoldenAge = pPlayer:GetTotalJONSCulturePerTurn() - iCultureForFree - iCultureFromCities - iCultureFromHappiness - iCultureFromMinors - iCultureFromReligion - iCultureFromTraits - iCultureFromBonusTurns - iCultureFromAnnexedMinors - iCultureFromVassals - iCultureFromEspionage; -- last part added (COMMUNITY PATCH)
 		if (iCultureFromGoldenAge ~= 0) then
 		
 			-- Add separator for non-initial entries
@@ -1286,6 +1408,14 @@ function FaithTipHandler( control )
 			strText = strText .. "[NEWLINE]";
 			strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_FAITH_FROM_MINORS", iFaithFromMinorCivs);
 		end
+-- CBP
+		-- Faith from Annexed Minors
+		local iFaithFromAnnexedMinors = pPlayer:GetFaithPerTurnFromAnnexedMinors();
+		if (iFaithFromAnnexedMinors ~= 0) then
+			strText = strText .. "[NEWLINE]";
+			strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_FAITH_FROM_ANNEXED_MINORS", iFaithFromAnnexedMinors);
+		end
+-- END
 
 		-- Faith from Religion
 		local iFaithFromReligion = pPlayer:GetFaithPerTurnFromReligion();
@@ -1294,14 +1424,24 @@ function FaithTipHandler( control )
 			strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_FAITH_FROM_RELIGION", iFaithFromReligion);
 		end
 -- C4DF
+		-- Faith from Vassals
 		local iFaithFromVassals = pPlayer:GetYieldPerTurnFromVassals(YieldTypes.YIELD_FAITH);
 		if (iFaithFromVassals ~= 0) then
 			strText = strText .. "[NEWLINE]";
 			strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_FAITH_VASSALS", iFaithFromVassals);
 		end
+		-- Faith from Espionage
+		local iFaithFromEspionage = pPlayer:GetYieldPerTurnFromEspionageEvents(YieldTypes.YIELD_FAITH, true) - pPlayer:GetYieldPerTurnFromEspionageEvents(YieldTypes.YIELD_FAITH, false);
+		if (iFaithFromEspionage > 0) then
+			strText = strText .. "[NEWLINE]";
+			strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_FAITH_FROM_ESPIONAGE_POSITIVE", iFaithFromEspionage);
+		elseif (iFaithFromEspionage < 0) then
+			strText = strText .. "[NEWLINE]";
+			strText = strText .. Locale.ConvertTextKey("TXT_KEY_TP_FAITH_FROM_ESPIONAGE_NEGATIVE", iFaithFromEspionage);
+		end
 -- END	
 		
-		if (iFaithFromCities ~= 0 or iFaithFromMinorCivs ~= 0 or iFaithFromReligion ~= 0) then
+		if (iFaithFromCities ~= 0 or iFaithFromMinorCivs ~= 0 or iFaithFromReligion ~= 0 or iFaithFromAnnexedMinors ~= 0 or iFaithFromVassals ~= 0 or iFaithFromEspionage ~= 0) then
 			strText = strText .. "[NEWLINE]";
 		end
 	
@@ -1375,39 +1515,31 @@ function UnitSupplyHandler(control)
 	local pPlayer = Players[iPlayerID];
 
 	local iUnitSupplyMod = pPlayer:GetUnitProductionMaintenanceMod();
-	if (iUnitSupplyMod ~= 0) then
-		local iUnitsSupplied = pPlayer:GetNumUnitsSupplied();
-		local iUnitsTotal = pPlayer:GetNumUnitsToSupply();
-		local iPercentPerPop = pPlayer:GetNumUnitsSuppliedByPopulation();
-		local iPerCity = pPlayer:GetNumUnitsSuppliedByCities();
-		local iPerHandicap = pPlayer:GetNumUnitsSuppliedByHandicap();
-		local iWarWearinessReduction = pPlayer:GetWarWeariness();
-		local iWarWearinessActualReduction = pPlayer:GetWarWearinessSupplyReduction();
-		local iTechReduction = pPlayer:GetTechSupplyReduction();
-		local iSupplyFromGreatPeople = pPlayer:GetUnitSupplyFromExpendedGreatPeople();
+	local iUnitsSupplied = pPlayer:GetNumUnitsSupplied();
+	local iUnitsTotal = pPlayer:GetNumUnitsToSupply();
+	local iPercentPerPop = pPlayer:GetNumUnitsSuppliedByPopulation();
+	local iPerCity = pPlayer:GetNumUnitsSuppliedByCities();
+	local iPerHandicap = pPlayer:GetNumUnitsSuppliedByHandicap();
+	local iWarWearinessReduction = pPlayer:GetWarWeariness();
+	local iUnitsOver = pPlayer:GetNumUnitsOutOfSupply();
+	local iWarWearinessActualReduction = pPlayer:GetWarWearinessSupplyReduction();
+	local iTechReduction = pPlayer:GetTechSupplyReduction();
+	local iSupplyFromGreatPeople = pPlayer:GetUnitSupplyFromExpendedGreatPeople();
 
-		local iUnitsOver = pPlayer:GetNumUnitsOutOfSupply();
+	local strUnitSupplyToolTip = "";
+	if(iUnitsOver > 0) then
 		strUnitSupplyToolTip = "[COLOR_NEGATIVE_TEXT]";
 		strUnitSupplyToolTip = strUnitSupplyToolTip .. Locale.ConvertTextKey("TXT_KEY_UNIT_SUPPLY_REACHED_TOOLTIP", iUnitsSupplied, iUnitsOver, -iUnitSupplyMod);
 		strUnitSupplyToolTip = strUnitSupplyToolTip .. "[ENDCOLOR]";
-
-		local strUnitSupplyToolUnderTip = Locale.ConvertTextKey("TXT_KEY_UNIT_SUPPLY_REMAINING_TOOLTIP", iUnitsSupplied, iUnitsTotal, iPercentPerPop, iPerCity, iPerHandicap, (iWarWearinessReduction / 2), iWarWearinessActualReduction, iTechReduction, iWarWearinessReduction, iSupplyFromGreatPeople);
-
-		strUnitSupplyToolTip = strUnitSupplyToolTip .. "[NEWLINE][NEWLINE]" .. strUnitSupplyToolUnderTip;
-	else
-		local iUnitsSupplied = pPlayer:GetNumUnitsSupplied();
-		local iUnitsTotal = pPlayer:GetNumUnitsToSupply();
-		local iPercentPerPop = pPlayer:GetNumUnitsSuppliedByPopulation();
-		local iPerCity = pPlayer:GetNumUnitsSuppliedByCities();
-		local iPerHandicap = pPlayer:GetNumUnitsSuppliedByHandicap();
-		local iWarWearinessReduction = pPlayer:GetWarWeariness();
-		local iWarWearinessActualReduction = pPlayer:GetWarWearinessSupplyReduction();
-		local iTechReduction = pPlayer:GetTechSupplyReduction();
-		local iSupplyFromGreatPeople = pPlayer:GetUnitSupplyFromExpendedGreatPeople();
-
-		strUnitSupplyToolTip = Locale.ConvertTextKey("TXT_KEY_UNIT_SUPPLY_REMAINING_TOOLTIP", iUnitsSupplied, iUnitsTotal, iPercentPerPop, iPerCity, iPerHandicap, iWarWearinessReduction, iWarWearinessActualReduction, iTechReduction, iSupplyFromGreatPeople);
 	end
 
+	local strUnitSupplyToolUnderTip = Locale.ConvertTextKey("TXT_KEY_UNIT_SUPPLY_REMAINING_TOOLTIP", iUnitsSupplied, iUnitsTotal, iPercentPerPop, iPerCity, iPerHandicap, (iWarWearinessReduction / 2), iWarWearinessActualReduction, iTechReduction, iWarWearinessReduction, iSupplyFromGreatPeople);
+
+	if(strUnitSupplyToolTip ~= "") then
+		strUnitSupplyToolTip = strUnitSupplyToolTip .. "[NEWLINE][NEWLINE]" .. strUnitSupplyToolUnderTip;
+	else
+		strUnitSupplyToolTip = strUnitSupplyToolUnderTip;
+	end
 	if(strUnitSupplyToolTip ~= "") then
 		tipControlTable.TopPanelMouseover:SetHide(false);
 		tipControlTable.TooltipLabel:SetText( strUnitSupplyToolTip );

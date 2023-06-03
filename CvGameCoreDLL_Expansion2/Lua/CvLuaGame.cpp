@@ -279,6 +279,7 @@ void CvLuaGame::RegisterMembers(lua_State* L)
 	Method(DoMinorGiftTileImprovement);
 	Method(DoMinorBullyGold);
 	Method(DoMinorBullyUnit);
+	Method(DoMinorBullyAnnex);
 	Method(DoMinorBuyout);
 	Method(DoMinorMarriage);
 
@@ -406,6 +407,7 @@ void CvLuaGame::RegisterMembers(lua_State* L)
 	Method(DoEnactResolution);
 	Method(DoRepealResolution);
 	Method(IsBeliefValid);
+	Method(ScoreBelief);
 
 	Method(IsAchievementUnlocked);
 	Method(GetSteamStat);
@@ -1923,6 +1925,15 @@ int CvLuaGame::lDoMinorBullyUnit(lua_State* L)
 
 	return 1;
 }
+//void DoMinorBullyAnnex(int iBullyCivID, int iMinorCivID);
+int CvLuaGame::lDoMinorBullyAnnex(lua_State* L)
+{
+	const int iBully = lua_tointeger(L, 1);
+	const int iMinor = lua_tointeger(L, 2);
+	GC.getGame().DoMinorBullyAnnex((PlayerTypes)iBully, (PlayerTypes)iMinor);
+
+	return 1;
+}
 //------------------------------------------------------------------------------
 //void DoMinorBuyout(int iMajorCivID, int iMinorCivID);
 int CvLuaGame::lDoMinorBuyout(lua_State* L)
@@ -3221,6 +3232,23 @@ int CvLuaGame::lIsBeliefValid(lua_State* L)
 	}
 	
 	lua_pushboolean(L, bResult);
+	return 1;
+}
+
+int CvLuaGame::lScoreBelief(lua_State* L)
+{
+	const PlayerTypes ePlayer = static_cast<PlayerTypes>(luaL_checkint(L, 1));
+	const BeliefTypes eBeliefType = static_cast<BeliefTypes>(luaL_checkint(L, 2));
+	int iScore = 0;
+
+	if (ePlayer != NO_PLAYER && eBeliefType != NO_BELIEF)
+	{
+		CvBeliefEntry* pBelief = GC.GetGameBeliefs()->GetEntry(eBeliefType);
+		if (pBelief)
+			iScore = GET_PLAYER(ePlayer).GetReligionAI()->ScoreBelief(pBelief);
+	}
+
+	lua_pushinteger(L, iScore);
 	return 1;
 }
 

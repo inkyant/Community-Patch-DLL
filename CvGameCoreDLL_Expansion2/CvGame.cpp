@@ -1,4 +1,4 @@
-﻿/*	-------------------------------------------------------------------------------------------------------
+/*	-------------------------------------------------------------------------------------------------------
 	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
@@ -33,6 +33,7 @@
 #include "CvAdvisorRecommender.h"
 #include "CvWorldBuilderMapLoader.h"
 #include "CvTypes.h"
+#include "CvDllNetMessageExt.h"
 
 #include "cvStopWatch.h"
 #include "CvUnitMission.h"
@@ -6260,7 +6261,7 @@ int CvGame::ComputeAverageMajorMilitaryRating(PlayerTypes ePerceivingPlayer, Pla
 /// Disable Victory Competition
 bool CvGame::IsVictoryCompetitionEnabled() const
 {
-	if (GD_INT_GET(DIPLOAI_DISABLE_VICTORY_COMPETITION) > 0)
+	if (MOD_BALANCE_VP && isOption(GAMEOPTION_DISABLE_VICTORY_COMPETITION))
 	{
 		return false;
 	}
@@ -6277,7 +6278,7 @@ bool CvGame::IsVictoryCompetitionEnabled() const
 /// Disable Endgame Aggression Boost
 bool CvGame::IsEndgameAggressionEnabled() const
 {
-	if (GD_INT_GET(DIPLOAI_DISABLE_ENDGAME_AGGRESSION) > 0)
+	if (MOD_BALANCE_VP && isOption(GAMEOPTION_DISABLE_ENDGAME_AGGRESSION))
 	{
 		return false;
 	}
@@ -9281,7 +9282,7 @@ UnitTypes CvGame::GetCompetitiveSpawnUnitType(PlayerTypes ePlayer, bool bInclude
 		return NO_UNIT;
 
 	// Choose from weighted unit types
-	veUnitRankings.SortItems();
+	veUnitRankings.StableSortItems();
 	int iNumChoices = /*5*/ GD_INT_GET(UNIT_SPAWN_NUM_CHOICES);
 	RandomNumberDelegate randFn = MakeDelegate(&GC.getGame(), &CvGame::getJonRandNum);
 	UnitTypes eChosenUnit = veUnitRankings.ChooseFromTopChoices(iNumChoices, &randFn, "Choosing competitive unit from top choices");
@@ -10947,7 +10948,8 @@ static unsigned long giLastState = 0;
 int CvGame::getSmallFakeRandNum(int iNum, const CvPlot& input) const
 {
 	//do not use turnslice here, it changes after reload!
-	unsigned long iState = input.getX()*17 + input.getY()*23 + getGameTurn()*37 + getActivePlayer()*73;
+	//do not use the active player either, it can be different on both ends of a MP game
+	unsigned long iState = input.getX()*17 + input.getY()*23 + getGameTurn()*37;
 
 	/*
 	//safety check
@@ -10978,7 +10980,8 @@ int CvGame::getSmallFakeRandNum(int iNum, const CvPlot& input) const
 int CvGame::getSmallFakeRandNum(int iNum, int iExtraSeed) const
 {
 	//do not use turnslice here, it changes after reload!
-	unsigned long iState = getGameTurn()*11 + getActivePlayer()*19 + abs(iExtraSeed);
+	//do not use the active player either, it can be different on both ends of a MP game
+	unsigned long iState = getGameTurn()*11 + abs(iExtraSeed);
 
 	/*
 	//safety check
@@ -10998,7 +11001,57 @@ int CvGame::getSmallFakeRandNum(int iNum, int iExtraSeed) const
 	if (pLog)
 	{
 		char szOut[1024] = { 0 };
-		sprintf_s(szOut, "turn %d, turnslice %d, max %d, res %d, seed %d\n", getGameTurn(), getTurnSlice(), iNum, iResult, iExtraSeed);
+		sprintf_s(
+			szOut, 
+			"turn %d, turnslice %d, activePlayer %d, max %d, res %d, seed %d\n", 
+			getGameTurn(), 
+			getTurnSlice(), 
+			getActivePlayer(),
+			iNum, 
+			iResult, 
+			iExtraSeed
+		);
+		pLog->Msg(szOut);
+	}
+	*/
+
+	return iResult;
+}
+
+int CvGame::getSmallFakeRandNum(int iNum, int iExtraSeed, const CvPlot& input) const
+{
+	//do not use turnslice here, it changes after reload!
+	//do not use the active player either, it can be different on both ends of a MP game
+	unsigned long iState = getGameTurn()*29 + abs(iExtraSeed) + input.getX()*41 + input.getY()*13;
+
+	/*
+	//safety check
+	if (iState == giLastState)
+		OutputDebugString("warning rng seed repeated\n");
+	giLastState = iState;
+	*/
+
+	int iResult = 0;
+	if (iNum > 0)
+		iResult = hash32(iState) % iNum;
+	else if (iNum < 0)
+		iResult = -int(hash32(iState) % (-iNum));
+
+	/*
+	FILogFile* pLog = LOGFILEMGR.GetLog("FakeRandCalls2.csv", FILogFile::kDontTimeStamp);
+	if (pLog)
+	{
+		char szOut[1024] = { 0 };
+		sprintf_s(
+			szOut, 
+			"turn %d, turnslice %d, activePlayer %d, max %d, res %d, seed %d\n", 
+			getGameTurn(), 
+			getTurnSlice(), 
+			getActivePlayer(),
+			iNum, 
+			iResult, 
+			iExtraSeed
+		);
 		pLog->Msg(szOut);
 	}
 	*/
@@ -11260,7 +11313,7 @@ int CvGame::CalculateMedianNumCities()
 	if (v.empty())
 		return 0;
 
-	std::sort(v.begin(), v.end());
+	std::stable_sort(v.begin(), v.end());
 
 	return v[v.size()/2];
 }
@@ -11281,7 +11334,7 @@ int CvGame::CalculateMedianNumPlots()
 	if (v.empty())
 		return 0;
 
-	std::sort(v.begin(), v.end());
+	std::stable_sort(v.begin(), v.end());
 
 	return v[v.size()/2];
 }
@@ -11302,7 +11355,7 @@ int CvGame::CalculateMedianNumWondersConstructed()
 	if (v.empty())
 		return 0;
 
-	std::sort(v.begin(), v.end());
+	std::stable_sort(v.begin(), v.end());
 
 	return v[v.size()/2];
 }
@@ -11569,7 +11622,7 @@ void CvGame::SetHighestSpyPotential()
 					//is our resistance better than average? Increase spy rank! Otherwise, reduce it.
 					if (iFinalModifier != 0)
 					{
-						pLoopCity->ChangeEspionageRanking(iFinalModifier, iNumSpies > 0);
+						pLoopCity->ChangeEspionageRanking(iFinalModifier, false);
 					}
 				}
 			}
@@ -11629,6 +11682,16 @@ void CvGame::SetHighestSpyPotential()
 
 void CvGame::DoBarbCountdown()
 {
+	// Update the number of threatening Barbarians for each City-State
+	// this is done here to make sure it's done after the Barbarians have moved
+	for (int iMinorLoop = MAX_MAJOR_CIVS; iMinorLoop < MAX_CIV_PLAYERS; iMinorLoop++)
+	{
+		PlayerTypes eMinor = (PlayerTypes)iMinorLoop;
+
+		if (GET_PLAYER(eMinor).isMinorCiv() && GET_PLAYER(eMinor).isAlive())
+			GET_PLAYER(eMinor).GetMinorCivAI()->DoUpdateNumThreateningBarbarians();
+	}
+
 	if (!MOD_BALANCE_VP)
 		return;
 
@@ -12637,9 +12700,9 @@ void CvGame::DoMinorPledgeProtection(PlayerTypes eMajor, PlayerTypes eMinor, boo
 	CvAssertMsg(eMinor >= MAX_MAJOR_CIVS, "eMinor is not in expected range (invalid Index)");
 	CvAssertMsg(eMinor < MAX_CIV_PLAYERS, "eMinor is not in expected range (invalid Index)");
 
-	if(bProtect)
+	if (bProtect)
 	{
-		CvAssertMsg(GET_PLAYER(eMinor).GetMinorCivAI()->CanMajorProtect(eMajor), "eMajor is not allowed to protect this minor! Please send Anton your save file and version.");
+		CvAssertMsg(GET_PLAYER(eMinor).GetMinorCivAI()->CanMajorProtect(eMajor, false), "eMajor is not allowed to protect this minor! Please send Anton your save file and version.");
 	}
 
 	gDLL->sendMinorPledgeProtection(eMajor, eMinor, bProtect, bPledgeNowBroken);
@@ -12723,13 +12786,22 @@ void CvGame::DoMinorBuyout(PlayerTypes eMajor, PlayerTypes eMinor)
 	gDLL->sendMinorBuyout(eMajor, eMinor);
 }
 //	--------------------------------------------------------------------------------
+/// Do the action of a major annexing a minor using tribute (Rome UA)
+void CvGame::DoMinorBullyAnnex(PlayerTypes eMajor, PlayerTypes eMinor)
+{
+	if (eMajor < 0 || eMajor >= MAX_MAJOR_CIVS) return;
+	if (eMinor < MAX_MAJOR_CIVS || eMinor >= MAX_CIV_PLAYERS) return;
+
+	NetMessageExt::Send::DoMinorBullyAnnex(eMajor, eMinor);
+}
+//	--------------------------------------------------------------------------------
 /// Do the action of a major buying out a minor and marrying it
 void CvGame::DoMinorMarriage(PlayerTypes eMajor, PlayerTypes eMinor)
 {
 	if (eMajor < 0 || eMajor >= MAX_MAJOR_CIVS) return;
 	if (eMinor < MAX_MAJOR_CIVS || eMinor >= MAX_CIV_PLAYERS) return;
 
-	GET_PLAYER(eMinor).GetMinorCivAI()->DoBuyout(eMajor);
+	NetMessageExt::Send::DoMinorBuyout(eMajor, eMinor);
 }
 
 //	--------------------------------------------------------------------------------
@@ -12844,20 +12916,17 @@ void CvGame::DoTestConquestVictory()
 	}
 
 	// Find out how many original capitals there are
-	int iNumOriginalCapitals = 0;
-	std::vector<CvCity*> OriginalCapitals;
+	std::vector<CvCity*> originalCapitals;
 	CvMap& kMap = GC.getMap();
 
 	for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 	{
 		CvPlayer& kLoopPlayer = GET_PLAYER((PlayerTypes)iPlayerLoop);
-
 		if (!kLoopPlayer.isEverAlive())
 			continue;
 
 		const int iOriginalCapitalX = kLoopPlayer.GetOriginalCapitalX();
 		const int iOriginalCapitalY = kLoopPlayer.GetOriginalCapitalY();
-
 		if (iOriginalCapitalX == -1 || iOriginalCapitalY == -1)
 			continue;
 
@@ -12866,42 +12935,35 @@ void CvGame::DoTestConquestVictory()
 		{
 			CvCity* pCapital = pCapitalPlot->getPlotCity();
 			if (pCapital)
-			{
-				iNumOriginalCapitals++;
-				OriginalCapitals.push_back(pCapital);
-			}
+				originalCapitals.push_back(pCapital);
 		}
 	}
 
-	if (iNumOriginalCapitals == 0)
+	if (originalCapitals.empty())
 		return;
 
-	// Go through all capitals and see if they are all owned by the same major team
-	TeamTypes ePossibleWinner = NO_TEAM;
-	for (size_t i = 0; i < OriginalCapitals.size(); i++)
+	// go through all capitals and see which team controls how many
+	std::map<TeamTypes, int> countPerTeam;
+	for (size_t i = 0; i < originalCapitals.size(); i++)
 	{
-		// Note: For Domination Victories, City-States' allies control their capitals, and vassals' masters control their capitals.
-		PlayerTypes eCapitalOwner = OriginalCapitals[i]->GetOwnerForDominationVictory();
-
-		// If effectively owned by Barbarians or City-States, Domination Victory is impossible!
-		if (!GET_PLAYER(eCapitalOwner).isMajorCiv())
-			return;
-
-		// First loop?
-		if (ePossibleWinner == NO_TEAM)
-		{
-			ePossibleWinner = GET_PLAYER(eCapitalOwner).getTeam();
-			continue;
-		}
-
-		// Subsequent loop? If this team isn't the first team, no one has won.
-		if (GET_PLAYER(eCapitalOwner).getTeam() != ePossibleWinner)
-			return;
+		//indirect ownership through vassalage or allied city states is also acceptable
+		PlayerTypes eCapitalOwner = originalCapitals[i]->GetOwnerForDominationVictory();
+		countPerTeam[GET_PLAYER(eCapitalOwner).getTeam()]++;
 	}
 
-	// The winner wins!
-	CUSTOMLOG("Calling setWinner from DoTestConquestVictory: %i, %i", ePossibleWinner, eConquestVictory);
-	setWinner(ePossibleWinner, eConquestVictory);
+	int iMinPercent = range(GD_INT_GET(VICTORY_DOMINATION_CONTROL_PERCENT), 51, 100);
+	int iThreshold = max(2, int(originalCapitals.size() * iMinPercent) / 100);
+	for (std::map<TeamTypes, int>::iterator it = countPerTeam.begin(); it != countPerTeam.end(); ++it)
+	{
+		//must have at least two to win because you start out with one ...
+		if (it->second >= iThreshold)
+		{
+			// The winner wins!
+			CUSTOMLOG("Calling setWinner from DoTestConquestVictory: %i, %i", it->first, eConquestVictory);
+			setWinner(it->first, eConquestVictory);
+			return;
+		}
+	}
 }
 
 //	--------------------------------------------------------------------------------
@@ -13896,7 +13958,7 @@ void CvGame::SpawnArchaeologySitesHistorically()
 		eEraWeights.push_back(i,iWeight);
 		iMaxEraWeight += iWeight;
 	}
-	eEraWeights.SortItems();
+	eEraWeights.StableSortItems();
 
 	RandomNumberDelegate fcn;
 	fcn = MakeDelegate(this, &CvGame::getJonRandNum);
@@ -14001,7 +14063,7 @@ void CvGame::SpawnArchaeologySitesHistorically()
 		}
 
 		// sort the weight vector
-		aDigSiteWeights.SortItems();
+		aDigSiteWeights.StableSortItems();
 
 		// add the best dig site
 		int iBestSite = aDigSiteWeights.GetElement(0);

@@ -20,6 +20,9 @@
 		<Row Tag="TXT_KEY_TOP_PANEL_ITR_GOLDEN_AGE_POINTS_YIELD_TT">
 			<Text>{1_Num} [ICON_GOLDEN_AGE] Golden Age Points</Text>
 		</Row>
+		<Row Tag="TXT_KEY_TOP_PANEL_TURNS_UNTIL_GOLDEN_AGE">
+			<Text>Next Golden Age: {1_Num} Turn(s)</Text>
+		</Row>
 		<Row Tag="TXT_KEY_GOLDEN_AGE_POINTS_FROM_TRADE_ROUTES">
 			<Text>{1_perTurn:number "#.##"} [ICON_GOLDEN_AGE] from Trade Routes established with this city</Text>
 		</Row>
@@ -78,7 +81,7 @@
 			<Text>Remove Sphere of Influence</Text>
 		</Row>
 		<Row Tag="TXT_KEY_POPUP_CITY_CAPTURE_INFO_REMOVE_SPHERE">
-			<Text>Removes the Sphere of Influence placed on {1_CivName}. The city will be returned to the City-State, but they will still be angry with you.</Text>
+			<Text>Removes the Sphere of Influence placed on {1_CivName}. The city will be returned to the City-State, and your [ICON_INFLUENCE] Influence with them will be reset to 0. No warmongering penalties will be incurred for removing a Sphere of Influence.</Text>
 		</Row>
 
 		<!-- Tourism Bonus Turns for Tooltip -->
@@ -115,6 +118,21 @@
 		<!-- New Text for Enemy Unit Panel-->
 		<Row Tag="TXT_KEY_EUPANEL_NO_FRIENDLY_UNIT_ADJACENT_BONUS">
 			<Text>No Adjacent Friendly Unit</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EUPANEL_PENALTY_VS_DOMAIN">
+			<Text>Penalty VS Domain</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EUPANEL_ATTACK_BONUS_VS_DOMAIN">
+			<Text>Attack Bonus VS Domain</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EUPANEL_ATTACK_PENALTY_VS_DOMAIN">
+			<Text>Attack Penalty VS Domain</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EUPANEL_DEFENSE_BONUS_VS_DOMAIN">
+			<Text>Defense Bonus VS Domain</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EUPANEL_DEFENSE_PENALTY_VS_DOMAIN">
+			<Text>Defense Penalty VS Domain</Text>
 		</Row>
 
 		<!-- Diplomatic Mission (No Gold) -->
@@ -5647,7 +5665,7 @@
 
 		<!-- City Rank Increasing -->
 		<Row Tag="TXT_KEY_NOTIFICATION_CITY_RANK_INCREASING">
-			<Text>{1_CityName} is [COLOR_NEGATIVE_TEXT]increasingly vulnerable[ENDCOLOR] to foreign [ICON_SPY] Spies.[NEWLINE]The City currently has a Security Level of [COLOR_NEGATIVE_TEXT]{2_Num}[ENDCOLOR] (out of 10), with lower ranks making it easier for foreign Spies to operate in the city.[NEWLINE]Move a Spy to this city, build Espionage buildings here, and resolve [ICON_HAPPINESS_3] Unhappiness issues to [COLOR_POSITIVE_TEXT]improve[ENDCOLOR] the City's Security Level.</Text>
+			<Text>{1_CityName} is [COLOR_NEGATIVE_TEXT]increasingly vulnerable[ENDCOLOR] to foreign [ICON_SPY] Spies.[NEWLINE]The City currently has a Security Level of [COLOR_NEGATIVE_TEXT]{2_Num}[ENDCOLOR] (out of 50), with lower ranks making it easier for foreign Spies to operate in the city.[NEWLINE]Move a Spy to this city, build Espionage buildings here, and resolve [ICON_HAPPINESS_3] Unhappiness issues to [COLOR_POSITIVE_TEXT]improve[ENDCOLOR] the City's Security Level.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_CITY_RANK_INCREASING_SUMMARY">
 			<Text>Security Level update for {1_CityName}.</Text>
@@ -5699,22 +5717,22 @@
 			<Text>Marriage between {@2_MinorCivName} and {@1_CivName}!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_MINOR_MARRIAGE_TT_1">
-			<Text>A beautiful princess of {@1_CivName} has been married off to a nobleman of {@2_MinorCivName}. With a diplomatic relationship united by marriage, {@2_MinorCivName} grants {@1_CivName} an additional Delegate in the World Congress, boosts their [ICON_CAPITAL] Capital's [ICON_GREAT_PEOPLE] Great Person rate, and their [ICON_INFLUENCE] Influence with the City-State no longer decays.</Text>
+			<Text>A beautiful princess of {@1_CivName} has been married off to a nobleman of {@2_MinorCivName}. With a diplomatic relationship united by marriage, {@2_MinorCivName} grants {@1_CivName} an additional Delegate in the World Congress, boosts their [ICON_CAPITAL] Capital's [ICON_GREAT_PEOPLE] Great Person rate, and increases their resting [ICON_INFLUENCE] Influence with the City-State by 200.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_MINOR_MARRIAGE_TT_2">
-			<Text>A handsome prince of {@1_CivName} has been married off to a noblewoman of {@2_MinorCivName}. With a diplomatic relationship united by marriage, {@2_MinorCivName} grants {@1_CivName} an additional Delegate in the World Congress, boosts their [ICON_CAPITAL] Capital's [ICON_GREAT_PEOPLE] Great Person rate, and their [ICON_INFLUENCE] Influence with the City-State no longer decays.</Text>
+			<Text>A handsome prince of {@1_CivName} has been married off to a noblewoman of {@2_MinorCivName}. With a diplomatic relationship united by marriage, {@2_MinorCivName} grants {@1_CivName} an additional Delegate in the World Congress, boosts their [ICON_CAPITAL] Capital's [ICON_GREAT_PEOPLE] Great Person rate, and increases their resting [ICON_INFLUENCE] Influence with the City-State by 200.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_LEAGUE_OVERVIEW_MEMBER_DETAILS_MARRIED_VOTES">
 			<Text>[NEWLINE][ICON_BULLET]{1_Num} from Diplomatic Marriages</Text>
 		</Row>
 		<Row Tag="TXT_KEY_POP_CSTATE_MARRIAGE_TT">
-			<Text>You may spend {1_BuyoutCost} [ICON_GOLD] Gold to arrange a Diplomatic Marriage with this City-State. Doing so grants: an additional delegate in the World Congress, +15% [ICON_GREAT_PEOPLE] Great Person rate in [ICON_CAPITAL] Capital, and [ICON_INFLUENCE] Influence with the City-State no longer decays.[NEWLINE][NEWLINE] This can be only be done once per City-State, and the [ICON_GOLD] Gold cost increases with each Diplomatic Marriage.</Text>
+			<Text>You may spend {1_BuyoutCost} [ICON_GOLD] Gold to arrange a Diplomatic Marriage with this City-State. Doing so grants: an additional delegate in the World Congress, +15% [ICON_GREAT_PEOPLE] Great Person rate in [ICON_CAPITAL] Capital, and an increase of resting [ICON_INFLUENCE] Influence with the City-State of 200.[NEWLINE][NEWLINE] This can be only be done once per City-State, and the [ICON_GOLD] Gold cost increases with each Diplomatic Marriage.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_POP_CSTATE_MARRIAGE_DISABLED_TT">
-			<Text>You may spend {2_BuyoutCost} [ICON_GOLD] Gold to arrange a Diplomatic Marriage with this City-State. Doing so grants: an additional delegate in the World Congress, +15% [ICON_GREAT_PEOPLE] Great Person rate in [ICON_CAPITAL] Capital, and [ICON_INFLUENCE] Influence with the City-State no longer decays.[NEWLINE][NEWLINE] This can be only be done once per City-State, and the [ICON_GOLD] Gold cost increases with each Diplomatic Marriage.[NEWLINE][NEWLINE][COLOR_WARNING_TEXT]You must be allied for {1_NumTurns} turns and have {2_BuyoutCost} [ICON_GOLD] Gold to perform this action.[ENDCOLOR]</Text>
+			<Text>You may spend {2_BuyoutCost} [ICON_GOLD] Gold to arrange a Diplomatic Marriage with this City-State. Doing so grants: an additional delegate in the World Congress, +15% [ICON_GREAT_PEOPLE] Great Person rate in [ICON_CAPITAL] Capital, and an increase of resting [ICON_INFLUENCE] Influence with the City-State of 200.[NEWLINE][NEWLINE] This can be only be done once per City-State, and the [ICON_GOLD] Gold cost increases with each Diplomatic Marriage.[NEWLINE][NEWLINE][COLOR_WARNING_TEXT]You must be allied for {1_NumTurns} turns and have {2_BuyoutCost} [ICON_GOLD] Gold to perform this action.[ENDCOLOR]</Text>
 		</Row>
 		<Row Tag="TXT_KEY_POP_CSTATE_MARRIAGE_DISABLED_ALLY_TT">
-			<Text>You may spend {3_BuyoutCost} [ICON_GOLD] Gold to arrange a Diplomatic Marriage with this City-State. Doing so grants: an additional delegate in the World Congress, +15% [ICON_GREAT_PEOPLE] Great Person rate in [ICON_CAPITAL] Capital, and [ICON_INFLUENCE] Influence with the City-State no longer decays.[NEWLINE][NEWLINE] This can be only be done once per City-State, and the [ICON_GOLD] Gold cost increases with each Diplomatic Marriage.[NEWLINE][NEWLINE][COLOR_WARNING_TEXT]You must be allied for {1_NumTurns} turns ({2_TurnsAllied} turns so far) and have {3_BuyoutCost} [ICON_GOLD] Gold to perform this action.[ENDCOLOR]</Text>
+			<Text>You may spend {3_BuyoutCost} [ICON_GOLD] Gold to arrange a Diplomatic Marriage with this City-State. Doing so grants: an additional delegate in the World Congress, +15% [ICON_GREAT_PEOPLE] Great Person rate in [ICON_CAPITAL] Capital, and an increase of resting [ICON_INFLUENCE] Influence with the City-State of 200.[NEWLINE][NEWLINE] This can be only be done once per City-State, and the [ICON_GOLD] Gold cost increases with each Diplomatic Marriage.[NEWLINE][NEWLINE][COLOR_WARNING_TEXT]You must be allied for {1_NumTurns} turns ({2_TurnsAllied} turns so far) and have {3_BuyoutCost} [ICON_GOLD] Gold to perform this action.[ENDCOLOR]</Text>
 		</Row>
 		
 		<!-- Venice Tooltip -->
@@ -6625,6 +6643,9 @@
 		<Row Tag="TXT_KEY_PRODMOD_SPIES">
 			<Text>[NEWLINE][ICON_BULLET]Active Spies Modifier: {1_Num}%</Text>
 		</Row>
+		<Row Tag="TXT_KEY_PRODMOD_YIELD_TRAIT">
+			<Text>[NEWLINE][ICON_BULLET]Modifier from Trait: {1_Num}%</Text>
+		</Row>
 
 		<!-- Lua for Buildings -->
 		<Row Tag="TXT_KEY_NO_ACTION_BUILDING_LOCAL_FEATURE">
@@ -6649,6 +6670,19 @@
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_SPY_STAGE_COUP_NOW_POSSIBLE">
 			<Text>Security concerns over the recent coup attempt have faded, and security in {1_City} is returning to normal. [COLOR_POSITIVE_TEXT]Coups[ENDCOLOR] are once again possible against this City-State.</Text>
+		</Row>
+		
+		<Row Tag="TXT_KEY_NOTIFICATION_SPY_STAGE_COUP_UNKNOWN_SUCCESS_S">
+			<Text>Foreign Coup in {1_CityName}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_SPY_STAGE_COUP_UNKNOWN_SUCCESS">
+			<Text>An unknown civilization staged a coup in {1_CityName}, ousted the {2_CivAdj} supporters, and installed their own supporters in the government to become the new ally of the city-state.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_SPY_STAGE_COUP_UNKNOWN_FAILURE_S">
+			<Text>Foreign Coup in {1_CityName} Failed</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_SPY_STAGE_COUP_UNKNOWN_FAILURE">
+			<Text>An unknown civilization attempted a coup in {1_CityName} but failed to overthrow the {2_CivAdj} supporters that have an alliance with the city-state.</Text>
 		</Row>
 
 		<!-- Text for 3rd Party Brokering -->
@@ -6691,39 +6725,12 @@
 		<Row Tag="TXT_KEY_POP_CSTATE_RECENTLY_LIBERATED">
 			<Text>Recently liberated</Text>
 		</Row>
-		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_CANCELLED">
-			<Text>After due consideration and plenty of warnings, {1_CSName} believes that your military is no longer capable of fulfilling the [COLOR_POSITIVE_TEXT]Pledge of Protection[ENDCOLOR] you promised. As a result, your Pledge of Protection to {1_CSName} was [COLOR_NEGATIVE_TEXT]annulled[ENDCOLOR].</Text>
-		</Row>
-		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_CANCELLED_SHORT">
-			<Text>Pledge of Protection annulled by {1_CSName}!</Text>
-		</Row>
-
-		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING">
-			<Text>Your Military Advisor warns that the [COLOR_POSITIVE_TEXT]Pledge of Protection[ENDCOLOR] you made to {1_CSName} is in danger of being annulled due to your weakening military power. Increase your Military Ranking by {3_Num}% within [COLOR_NEGATIVE_TEXT]{2_Num}[ENDCOLOR] turns to maintain this promise!</Text>
-		</Row>
-		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_SHORT">
-			<Text>Pledge of Protection warning!</Text>
-		</Row>
-
-		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_TIMER">
-			<Text>If you do not improve your Military Ranking by {3_Num}% within {2_Num} turns, the [COLOR_POSITIVE_TEXT]Pledge of Protection[ENDCOLOR] you made to {1_CSName} will be annulled!</Text>
-		</Row>
-		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_TIMER_SHORT">
-			<Text>Pledge of Protection in jeopardy!</Text>
-		</Row>
-
-		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_TIMER_STOPPED">
-			<Text>Your military status in the world and/or alliance and/or trade connection to {1_CSName} has been restored, thus your [COLOR_POSITIVE_TEXT]Pledge of Protection[ENDCOLOR] to {1_CSName} is once again secure.</Text>
-		</Row>
-		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_TIMER_STOPPED_SHORT">
-			<Text>Pledge of Protection secured.</Text>
-		</Row>
 
 		<Row Tag="TXT_KEY_POP_CSTATE_PLEDGE_DISABLED_RECENT_BROKEN_TT">
-			<Text>[NEWLINE][COLOR_WARNING_TEXT][ICON_BULLET]Because you broke a previous promise, you must wait {1_Turns} more turn(s) to pledge.[ENDCOLOR]</Text>
+			<Text>[NEWLINE][COLOR_WARNING_TEXT][ICON_BULLET] Because you broke a previous promise, you must wait {1_Turns} more turn(s) to pledge.[ENDCOLOR]</Text>
 		</Row>
 		<Row Tag="TXT_KEY_POP_CSTATE_PLEDGE_NEED_MORE_MILITARY_TT">
-			<Text>[NEWLINE][COLOR_WARNING_TEXT][ICON_BULLET] Must have at least 60% of the world's highest Military Power. Your military is ranked at {1_Num}% of the highest Military Power.[ENDCOLOR]</Text>
+			<Text>[NEWLINE][COLOR_WARNING_TEXT][ICON_BULLET] Must have at least the median Military Power. Your military needs to be {1_Num}% stronger to pledge.[ENDCOLOR]</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_POP_CSTATE_PLEDGE_NEED_ALLIES_TT">
@@ -6749,36 +6756,57 @@
 			<Text>[ENDCOLOR][NEWLINE][NEWLINE]One of these attributes must have a [ICON_CHECKBOX] next to it:</Text>
 		</Row>
 
+		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_TIMER_STOPPED">
+			<Text>Your military status in the world and/or alliance and/or trade connection to {1_CSName} has been restored, thus your [COLOR_POSITIVE_TEXT]Pledge of Protection[ENDCOLOR] to {1_CSName} is once again secure.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_TIMER_STOPPED_SHORT">
+			<Text>Pledge of Protection secured.</Text>
+		</Row>
+
+		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_CANCELLED_SHORT">
+			<Text>Pledge of Protection annulled by {1_CSName}!</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_SHORT">
+			<Text>Pledge of Protection warning!</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_TIMER_SHORT">
+			<Text>Pledge of Protection in jeopardy!</Text>
+		</Row>
 
 		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_CANCELLED_INFLUENCE">
 			<Text>Because of {1_CSName}'s anger with you, they no longer value your [COLOR_POSITIVE_TEXT]Pledge of Protection[ENDCOLOR] to them. As a result, your Pledge of Protection to {1_CSName} was [COLOR_NEGATIVE_TEXT]annulled[ENDCOLOR].</Text>
 		</Row>
-		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_CANCELLED_SHORT_INFLUENCE">
-			<Text>Pledge of Protection annulled by {1_CSName}!</Text>
+
+		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_CANCELLED_MILITARY_AND_DISTANCE">
+			<Text>After due consideration and plenty of warnings, {1_CSName} believes that long distances and your weakening Military Power render you incapable of fulfilling the [COLOR_POSITIVE_TEXT]Pledge of Protection[ENDCOLOR] you promised. As a result, your Pledge of Protection to {1_CSName} was [COLOR_NEGATIVE_TEXT]annulled[ENDCOLOR].</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_MILITARY_AND_DISTANCE">
+			<Text>Your Military Advisor warns that the [COLOR_POSITIVE_TEXT]Pledge of Protection[ENDCOLOR] you made to {1_CSName} is in danger of being annulled, both due to distance and your weakening Military Power. Ally {1_CSName} or make sure you are within Trade Route range AND increase your Military Power by {3_Num}% within [COLOR_NEGATIVE_TEXT]{2_Num}[ENDCOLOR] turns to maintain this promise!</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_TIMER_MILITARY_AND_DISTANCE">
+			<Text>If you do not ally {1_CSName} or make sure your cities are within Trade Route range AND increase your Military Power by {3_Num}% before {2_Num} turns pass, the [COLOR_POSITIVE_TEXT]Pledge of Protection[ENDCOLOR] you made to {1_CSName} will be annulled!</Text>
 		</Row>
 
-		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_CANCELLED_OPTIONAL">
+		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_CANCELLED_MILITARY">
+			<Text>After due consideration and plenty of warnings, {1_CSName} believes that your military is no longer capable of fulfilling the [COLOR_POSITIVE_TEXT]Pledge of Protection[ENDCOLOR] you promised. As a result, your Pledge of Protection to {1_CSName} was [COLOR_NEGATIVE_TEXT]annulled[ENDCOLOR].</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_MILITARY">
+			<Text>Your Military Advisor warns that the [COLOR_POSITIVE_TEXT]Pledge of Protection[ENDCOLOR] you made to {1_CSName} is in danger of being annulled due to your weakening Military Power. Increase your Military Power by {3_Num}% within [COLOR_NEGATIVE_TEXT]{2_Num}[ENDCOLOR] turns to maintain this promise!</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_TIMER_MILITARY">
+			<Text>If you do not improve your Military Power by {3_Num}% within {2_Num} turns, the [COLOR_POSITIVE_TEXT]Pledge of Protection[ENDCOLOR] you made to {1_CSName} will be annulled!</Text>
+		</Row>
+
+		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_CANCELLED_DISTANCE">
 			<Text>After due consideration and plenty of warnings, {1_CSName} believes that long distances render you incapable of fulfilling the [COLOR_POSITIVE_TEXT]Pledge of Protection[ENDCOLOR] you promised. As a result, your Pledge of Protection to {1_CSName} was [COLOR_NEGATIVE_TEXT]annulled[ENDCOLOR].</Text>
 		</Row>
-		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_CANCELLED_SHORT_OPTIONAL">
-			<Text>Pledge of Protection annulled by {1_CSName}!</Text>
-		</Row>
-
-		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_OPTIONAL">
+		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_DISTANCE">
 			<Text>Your Military Advisor warns that the [COLOR_POSITIVE_TEXT]Pledge of Protection[ENDCOLOR] you made to {1_CSName} is in danger of being annulled due to distance. Ally {1_CSName} or make sure you are within Trade Route range within [COLOR_NEGATIVE_TEXT]{2_Num}[ENDCOLOR] turns to maintain this promise!</Text>
 		</Row>
-		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_SHORT_OPTIONAL">
-			<Text>Pledge of Protection warning!</Text>
-		</Row>
-
-		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_TIMER_OPTIONAL">
+		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_TIMER_DISTANCE">
 			<Text>If you do not ally {1_CSName} or make sure your cities are within Trade Route range before {2_Num} turns pass, the [COLOR_POSITIVE_TEXT]Pledge of Protection[ENDCOLOR] you made to {1_CSName} will be annulled!</Text>
 		</Row>
-		<Row Tag="TXT_KEY_NOTIFICATION_CITY_STATE_PTP_WARNING_TIMER_SHORT_OPTIONAL">
-			<Text>Pledge of Protection in jeopardy!</Text>
-		</Row>
 
-		
 
 		<!-- LUA for Warscore -->
 		<Row Tag="TXT_KEY_WAR_SCORE">
@@ -6983,6 +7011,9 @@
 		</Row>
 		<Row Tag="TXT_KEY_PEDIA_NUM_POPULATION_LOCAL_NEEDED_LABEL">
 			<Text>Local Population Required: [COLOR_POSITIVE_TEXT]{1_Num}[ENDCOLOR] (Have: {2_Num})</Text>
+		</Row>
+		<Row Tag="TXT_KEY_PEDIA_DAMAGE_REDUCTION_LABEL">
+			<Text>Damage Reduction:</Text>
 		</Row>
 
 		<!-- Great Person Progress -->
@@ -7487,15 +7518,22 @@
 			<Text>[NEWLINE] [ICON_BULLET] Requires a Counterspy in the city.</Text>
 		</Row>
 
-		<Row Tag="TXT_KEY_EVENT_SPY_DURATION_SCALED">
-			<Text>[NEWLINE]Chance to be [ICON_VIEW_CITY] Identified: [COLOR_NEGATIVE_TEXT]{2_ID}%[ENDCOLOR][NEWLINE]Chance to be [ICON_PIRATE] Killed (Counterspy): [COLOR_NEGATIVE_TEXT]{3_Death}%[ENDCOLOR][NEWLINE][NEWLINE]</Text>
+		<Row Tag="TXT_KEY_EVENT_SPY_KILL_CHANCE">
+			<Text>[NEWLINE]Chance to be [ICON_VIEW_CITY] Identified: [COLOR_NEGATIVE_TEXT]{1_ID}%[ENDCOLOR][NEWLINE]Chance to be [ICON_PIRATE] Killed (Counterspy): [COLOR_NEGATIVE_TEXT]{2_Death}%[ENDCOLOR]</Text>
+		</Row>
+		
+		<Row Tag="TXT_KEY_EO_SPY_RIGGING_ELECTIONS_SHORT_TT">
+			<Text>{1_RankName} {2_SpyName} is attempting to rig the election in {3_CityName} to increase our influence there.</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_EO_OWN_CITY_POTENTIAL_SHORT_TT">
 			<Text>The Security Level of {1_CityName} is [COLOR_POSITIVE_TEXT]{2_Num}[ENDCOLOR].</Text>
 		</Row>
+		<Row Tag="TXT_KEY_EO_ENEMY_CITY_POTENTIAL_SHORT_TT">
+			<Text>The Security Level of {1_CityName} is [COLOR_NEGATIVE_TEXT]{2_Num}[ENDCOLOR].</Text>
+		</Row>
 		<Row Tag="TXT_KEY_EO_CITY_ONCE_KNOWN_POTENTIAL_TT_SHORT">
-			<Text>The Security Level of {1_CityName} is believed to be {2_Num}. Send a [ICON_SPY] Spy to learn more.</Text>
+			<Text>The Security Level of {1_CityName} is believed to be [COLOR_NEGATIVE_TEXT]{2_Num}[ENDCOLOR]. Send a [ICON_SPY] Spy to learn more.</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_POTENTIAL_CALCULATION">
@@ -7509,28 +7547,11 @@
 			<Text>[COLOR_POSITIVE_TEXT]Positive Modifiers[ENDCOLOR][NEWLINE]  [ICON_BULLET] [ICON_CULTURE] Policies and Wonders (+{1_Num}%)[NEWLINE]  [ICON_BULLET] [ICON_CITIZEN] Local Buildings (+{2_Num}%)[NEWLINE]  [ICON_BULLET] [ICON_SPY] Counter-Espionage (+{3_Num}%)</Text>
 		</Row>
 		
-		<Row Tag="TXT_KEY_CITY_DEFENSIVE_BONUSES_AGAINST">
-			<Text>[NEWLINE]  [ICON_BULLET]Our [ICON_SPY] Spies operate: [COLOR_POSITIVE_TEXT]{1_Num}[ENDCOLOR]% more slowly.</Text>
-		</Row>
-
 		<Row Tag="TXT_KEY_EO_INCREASED_CHANCE_TO_CATCH_SPY">
-			<Text>[NEWLINE]  [ICON_BULLET]Policies: {1_Num}% increased chance in catching enemy spies.</Text>
+			<Text>[COLOR_POSITIVE_TEXT][NEWLINE]Chance of catching enemy spies increased by {1_Num}% because of Policies.[ENDCOLOR]</Text>
 		</Row>
 		<Row Tag="TXT_KEY_EO_INCREASED_CHANCE_TO_CATCH_SPY_AGAINST">
-			<Text>[NEWLINE]  [ICON_BULLET]Policies: {1_Num}% increased chance in catching our spies.</Text>
-		</Row>
-
-		<Row Tag="TXT_KEY_DEFENSIVE_SPY_POTENTIAL">
-			<Text>Possible outcomes while defending:</Text>
-		</Row>
-		<Row Tag="TXT_KEY_DEFENSIVE_SPY_POTENTIAL_AA">
-			<Text>Possible outcomes while defending against Spy Events:</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_RISKS">
-			<Text>Possible outcomes from Espionage:</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_RISKS_AA">
-			<Text>Possible outcomes from Spy Events:</Text>
+			<Text>[COLOR_NEGATIVE_TEXT][NEWLINE]Chance of catching our spies increased by {1_Num}% because of Policies.[ENDCOLOR]</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_SPY_INTRIGUE_DISCOVERED">
@@ -7538,98 +7559,22 @@
 		</Row>
 
 
-		
-
 		<Row Tag="TXT_KEY_DEFENSIVE_SPY_BONUSES_KILL">
 			<Text>[ICON_BULLET] Chance to kill [ICON_SPY] Spies: [COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR].</Text>
 		</Row>
 		<Row Tag="TXT_KEY_DEFENSIVE_SPY_BONUSES_CATCH">
 			<Text>[ICON_BULLET] Chance to identify [ICON_SPY] Spies: [COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR].</Text>
 		</Row>
-		<Row Tag="TXT_KEY_DEFENSIVE_SPY_BONUSES_DETECT">
-			<Text>[ICON_BULLET] Chance to detect [ICON_SPY] Spies: [COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR].</Text>
-		</Row>
-
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_DANGER_KILL">
-			<Text>[ICON_BULLET] Chance to be killed (Counterspy): [COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR].</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_DANGER_CATCH">
-			<Text>[ICON_BULLET] Chance to be caught: [COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR].</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_DANGER_DETECT">
-			<Text>[ICON_BULLET] Chance to be detected: [COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR].</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_DANGER_UNDETECTED">
-			<Text>[ICON_BULLET] Chance to remain undetected: [COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR].</Text>
-		</Row>
-
-		<Row Tag="TXT_KEY_CITY_ESPIONAGE_RATIO">
-			<Text>Your current Spy Power: [COLOR_POSITIVE_TEXT]{3_Num}[ENDCOLOR].[NEWLINE]Security Threshold for City: [COLOR_NEGATIVE_TEXT]{1_Num}[ENDCOLOR].[NEWLINE][NEWLINE]Your Spy earns [COLOR_POSITIVE_TEXT]+{2_Num}[ENDCOLOR] Spy Power each turn.[NEWLINE][NEWLINE]When it exceeds the Security Threshold, the [COLOR_POSITIVE_TEXT]Spy Event[ENDCOLOR] will occur.</Text>
-		</Row>
 
 		<Row Tag="TXT_KEY_ESPIONAGE_CURRENT_MISSION">
 			<Text>[COLOR_POSITIVE_TEXT]Current Mission:[ENDCOLOR] {1_Mission}</Text>
 		</Row>
-
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_BONUSES_BASE_POWER">
-			<Text>Base Spy Power: [COLOR_POSITIVE_TEXT]{1_Num}[ENDCOLOR]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_BONUSES">
-			<Text>Spy Speed Modifier: [COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_BONUSES_DETAIL_OUR_MOD">
-			<Text>[NEWLINE]  [ICON_BULLET] [ICON_STAR] Policies and Wonders: [COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_BONUSES_DETAIL_SPY_MOD">
-			<Text>[NEWLINE]  [ICON_BULLET] [ICON_SPY] Spy Rank Modifier: [COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_BONUSES_DETAIL_SPY_MOD_OB">
-			<Text>[NEWLINE]  [ICON_BULLET] [ICON_INTERNATIONAL_TRADE] Open Borders: [COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_BONUSES_DETAIL_SPY_MOD_INFLUENCE">
-			<Text>[NEWLINE]  [ICON_BULLET] [ICON_TOURISM] Cultural Influence over them: [COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR]</Text>
+		<Row Tag="TXT_KEY_ESPIONAGE_TURNS_COMPLETED">
+			<Text>({1_Turns} completed)</Text>
 		</Row>
 
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_BONUSES_BASE_DEFENSE">
-			<Text>Mission Duration Modifiers: [COLOR_NEGATIVE_TEXT]{1_Num}[ENDCOLOR]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_DEFENSIVE_SPY_BONUSES">
-			<Text>[NEWLINE]Mission Duration Modifier: [COLOR_NEGATIVE_TEXT]{1_Num}%[ENDCOLOR]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_BONUSES_DETAIL_THEIR_MOD">
-			<Text>[NEWLINE]  [ICON_BULLET] [ICON_STAR] Policies and Wonders: [COLOR_NEGATIVE_TEXT]{1_Num}%[ENDCOLOR]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_BONUSES_DETAIL_CITY_MOD">
-			<Text>[NEWLINE]  [ICON_BULLET] [ICON_CITIZEN] Local Buildings: [COLOR_NEGATIVE_TEXT]{1_Num}%[ENDCOLOR]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_BONUSES_DETAIL_SPY_MOD_POLICY">
-			<Text>[NEWLINE]  [ICON_BULLET] [ICON_CULTURE] Policy Difference: [COLOR_NEGATIVE_TEXT]{1_Num}%[ENDCOLOR]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_BONUSES_DETAIL_SPY_MOD_TECH">
-			<Text>[NEWLINE]  [ICON_BULLET] [ICON_RESEARCH] Tech Difference: [COLOR_NEGATIVE_TEXT]{1_Num}%[ENDCOLOR]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_BONUSES_DETAIL_SPY_MOD_REPEAT">
-			<Text>[NEWLINE]  [ICON_BULLET] [ICON_SPY] Spy Events Against Civ: [COLOR_NEGATIVE_TEXT]{1_Num}%[ENDCOLOR]</Text>
-		</Row>
-		
-		<!-- Spy Focus -->
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_FOCUS_ECONOMIC">
-			<Text>Current Focus: [COLOR_POSITIVE_TEXT]Economics and Industry[ENDCOLOR]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_FOCUS_MILITARY">
-			<Text>Current Focus: [COLOR_POSITIVE_TEXT]Military Infiltration[ENDCOLOR]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_FOCUS_SCIENTIFIC">
-			<Text>Current Focus: [COLOR_POSITIVE_TEXT]Research and Development[ENDCOLOR]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_FOCUS_URBAN">
-			<Text>Current Focus: [COLOR_POSITIVE_TEXT]Embedding in the Citizenry[ENDCOLOR]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_FOCUS_ALL">
-			<Text>Current Focus: [COLOR_POSITIVE_TEXT]All Opportunities[ENDCOLOR]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_FOCUS_NONE">
-			<Text>Current Focus: [COLOR_POSITIVE_TEXT]No Focus[ENDCOLOR]</Text>
+		<Row Tag="TXT_KEY_ESPIONAGE_MISSION_BASE_DURATION">
+			<Text>Base Mission Duration: {1_Num} Turns</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_OFFENSIVE_SPY_RELIGOUS_PRESSURE">
@@ -7641,14 +7586,6 @@
 		</Row>
 		<Row Tag="TXT_KEY_OFFENSIVE_COUP_CHANCE_ALLIES">
 			<Text>[NEWLINE][ICON_BULLET]   Reason: already Allies!</Text>
-		</Row>
-
-		<Row Tag="TXT_KEY_OFFENSIVE_RIG_CHANCE">
-			<Text>Current chance to Rig Election here: [COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR].</Text>
-		</Row>
-
-		<Row Tag="TXT_KEY_OFFENSIVE_SPY_COUNTERSPY_POSSIBLY_PRESENT">
-			<Text>Foreign [ICON_SPY] Counterspies are rumored to be in the City - be careful!</Text>
 		</Row>
 		
 		<Row Tag="TXT_KEY_NOTIFICATION_SUMMARY_DIPLOMATIC_REQUEST">

@@ -1179,7 +1179,7 @@ public:
 	void DoRelationshipPairing();
 	void DoUpdatePlanningExchanges();
 	void DoUpdatePrimeLeagueAlly();
-	bool AvoidExchangesWithPlayer(PlayerTypes ePlayer, bool bWarOnly = false) const;
+	bool AvoidExchangesWithPlayer(PlayerTypes ePlayer, bool bWarOnly = false, bool bIgnoreSelfApproach = false) const;
 	bool IsGoodChoiceForDoF(PlayerTypes ePlayer);
 	bool IsGoodChoiceForDefensivePact(PlayerTypes ePlayer);
 	bool IsGoodChoiceForResearchAgreement(PlayerTypes ePlayer);
@@ -1269,9 +1269,9 @@ public:
 	// Planning Exchanges
 	/////////////////////////////////////////////////////////
 
-	bool IsPhonyWar(PlayerTypes ePlayer, bool bFromApproachSelection = false) const;
+	bool IsPhonyWar(PlayerTypes ePlayer, bool bIgnoreCurrentApproach = false) const;
 	bool IsWantsToConquer(PlayerTypes ePlayer) const;
-	bool IsPotentialMilitaryTargetOrThreat(PlayerTypes ePlayer, bool bFromApproachSelection = false) const;
+	bool IsPotentialMilitaryTargetOrThreat(PlayerTypes ePlayer, bool bFromApproachSelection) const;
 
 	/////////////////////////////////////////////////////////
 	// Issues of Dispute
@@ -1581,7 +1581,7 @@ public:
 	// Opinion modifiers
 	/////////////////////////////////////////////////////////
 
-	int AdjustModifierDuration(bool bGood, int iDuration, int iFlavorValue = 0, bool bGamespeed = true) const;
+	int AdjustModifierDuration(int iDuration, int iFlavorValue, bool bInvertModifier = false, bool bGamespeed = true) const;
 	int AdjustModifierValue(int iValue, int iDuration, int iTurn, ModifierTypes eModifierType, int iStacks = 1, int iFirstStackValue = 0);
 	void DoTestOpinionModifiers();
 	int GetBaseOpinionScore(PlayerTypes ePlayer);

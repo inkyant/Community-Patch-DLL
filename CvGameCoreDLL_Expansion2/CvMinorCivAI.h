@@ -601,6 +601,7 @@ public:
 
 	void DoSetBonus(PlayerTypes ePlayer, bool bAdd, bool bFriends, bool bAllies, bool bSuppressNotifications = false, bool bPassedBySomeone = false, PlayerTypes eNewAlly = NO_PLAYER);
 
+	void DoUpdateNumThreateningBarbarians();
 	void DoIntrusion();
 
 	void SetReadyForTakeOver();
@@ -619,7 +620,7 @@ public:
 #endif
 	// Protection
 	void DoChangeProtectionFromMajor(PlayerTypes eMajor, bool bProtect, bool bPledgeNowBroken = false);
-	bool CanMajorProtect(PlayerTypes eMajor);
+	bool CanMajorProtect(PlayerTypes eMajor, bool bIgnoreMilitaryRequirement);
 	bool CanMajorStartProtection(PlayerTypes eMajor);
 	bool CanMajorWithdrawProtection(PlayerTypes eMajor);
 	bool IsProtectedByMajor(PlayerTypes eMajor) const;
@@ -694,9 +695,9 @@ public:
 	bool IsUnitSpawningAllowed(PlayerTypes ePlayer);
 	bool IsUnitSpawningDisabled(PlayerTypes ePlayer) const;
 	void SetUnitSpawningDisabled(PlayerTypes ePlayer, bool bValue);
-	CvUnit* DoSpawnUnit(PlayerTypes eMajor, bool bLocal = false, bool bExplore = false);
+	CvUnit* DoSpawnUnit(PlayerTypes eMajor, bool bLocal = false, bool bExplore = false, bool bCityStateAnnexed = false);
 	void DoUnitSpawnTurn();
-	int GetSpawnBaseTurns(PlayerTypes ePlayer);
+	int GetSpawnBaseTurns(PlayerTypes ePlayer, bool bCityStateAnnexed = false);
 	int GetCurrentSpawnEstimate(PlayerTypes ePlayer);
 
 	// Austria UA Stuff
@@ -713,14 +714,14 @@ public:
 	int GetBuyoutCost(PlayerTypes eMajor);
 
 	void DoBuyout(PlayerTypes eMajor);
-	int TransferUnitsAndCitiesToMajor(PlayerTypes eMajor); // also used by Merchant of Venice
+	int TransferUnitsAndCitiesToMajor(PlayerTypes eMajor, bool bForced = false); // also used by Merchant of Venice and Rome
 
 	// ************************************
 	// ***** Bullying *****
 	// ************************************
 
 	const ReachablePlots& GetBullyRelevantPlots();
-	int GetBullyGoldAmount(PlayerTypes eBullyPlayer, bool bIgnoreScaling = false);
+	int GetBullyGoldAmount(PlayerTypes eBullyPlayer, bool bIgnoreScaling = false, bool bForUnit = false);
 
 	int CalculateBullyScore(PlayerTypes eBullyPlayer, bool bForUnit, CvString* sTooltipSink = NULL);
 
@@ -731,12 +732,18 @@ public:
 	bool CanMajorBullyUnit(PlayerTypes ePlayer);
 	bool CanMajorBullyUnit(PlayerTypes ePlayer, int iSpecifiedBullyMetric);
 	CvString GetMajorBullyUnitDetails(PlayerTypes ePlayer);
+#if defined(MOD_BALANCE_CORE_AFRAID_ANNEX)
+	CvString GetMajorBullyAnnexDetails(PlayerTypes ePlayer);
+#endif
 
 	void DoMajorBullyGold(PlayerTypes eBully, int iGold);
 	void DoMajorBullyUnit(PlayerTypes eBully, UnitTypes eUnitType);
 
+#if defined(MOD_BALANCE_CORE_AFRAID_ANNEX)
+	void DoMajorBullyAnnex(PlayerTypes eBully);
+#endif
 #if defined(MOD_BALANCE_CORE)
-	int GetYieldTheftAmount(PlayerTypes eBully, YieldTypes eYield, bool bIgnoreScaling = false);
+	int GetYieldTheftAmount(PlayerTypes eBully, bool bIgnoreScaling = false);
 #endif
 	
 	void DoBulliedByMajorReaction(PlayerTypes eBully, int iInfluenceChangeTimes100);
@@ -811,6 +818,12 @@ public:
 	bool IsSiphoned(PlayerTypes ePlayer) const;
 	void SetSiphoned(PlayerTypes ePlayer, bool bValue);
 #endif
+	int GetRiggingCoupChanceIncrease(PlayerTypes ePlayer) const;
+	void ChangeRiggingCoupChanceIncrease(PlayerTypes ePlayer, int iChange);
+	void ResetRiggingCoupChanceIncrease(PlayerTypes ePlayer);
+
+	int GetRestingPointChange(PlayerTypes ePlayer) const;
+	void ChangeRestingPointChange(PlayerTypes ePlayer, int iChange);
 
 	const CvMinorCivIncomingUnitGift& getIncomingUnitGift(PlayerTypes eMajor) const;
 	CvMinorCivIncomingUnitGift& getIncomingUnitGift(PlayerTypes eMajor);
@@ -901,6 +914,8 @@ private:
 	bool m_abPledgeToProtect[MAX_MAJOR_CIVS];
 	bool m_abPermanentWar[MAX_CIV_TEAMS];
 	bool m_abWaryOfTeam[MAX_CIV_TEAMS];
+	int m_aiRiggingCoupChanceIncrease[MAX_MAJOR_CIVS];
+	int m_aiRestingPointChange[MAX_MAJOR_CIVS];
 
 	bool m_bDisableNotifications;
 

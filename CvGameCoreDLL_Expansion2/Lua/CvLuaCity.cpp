@@ -183,6 +183,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(IsCapital);
 	Method(IsOriginalCapital);
 	Method(IsOriginalMajorCapital);
+	Method(GetOwnerForDominationVictory);
 	Method(IsCoastal);
 	Method(IsAddsFreshWater);
 	Method(FoodConsumptionSpecialistTimes100);
@@ -249,6 +250,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(ChangeBaseGreatPeopleRate);
 	Method(GetGreatPeopleRateModifier);
 
+	Method(GetBorderGrowthRateIncreaseTotal);
 	Method(GetJONSCultureStored);
 	Method(SetJONSCultureStored);
 	Method(ChangeJONSCultureStored);
@@ -695,6 +697,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 #if defined(MOD_BALANCE_CORE_EVENTS)
 	Method(GetDisabledTooltip);
 	Method(GetScaledEventChoiceValue);
+	Method(GetSpyMissionOutcome);
 	Method(IsCityEventChoiceActive);
 	Method(DoCityEventChoice);
 	Method(DoCityStartEvent);
@@ -1185,7 +1188,7 @@ int CvLuaCity::lGetPurchaseUnitTooltip(lua_State* L)
 			{
 				BuildingTypes ePrereqBuilding = NO_BUILDING;
 
-				if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || GET_PLAYER(pkCity->getOwner()).GetPlayerTraits()->IsKeepConqueredBuildings())
+				if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
 				{
 					if (pkCity->HasBuildingClass(eBuildingClass))
 					{
@@ -2327,6 +2330,12 @@ int CvLuaCity::lIsOriginalMajorCapital(lua_State* L)
 	return BasicLuaMethod(L, &CvCity::IsOriginalMajorCapital);
 }
 //------------------------------------------------------------------------------
+//PlayerTypes GetOwnerForDominationVictory();
+int CvLuaCity::lGetOwnerForDominationVictory(lua_State* L)
+{
+	return BasicLuaMethod(L, &CvCity::GetOwnerForDominationVictory);
+}
+//------------------------------------------------------------------------------
 //bool isCoastal(int iMinWaterSize);
 int CvLuaCity::lIsCoastal(lua_State* L)
 {
@@ -2452,7 +2461,7 @@ int CvLuaCity::lGetNumBuildingClass(lua_State* L)
 		const CvCivilizationInfo& playerCivilizationInfo = GET_PLAYER(pkCity->getOwner()).getCivilizationInfo();
 		BuildingTypes eBuilding = NO_BUILDING;
 		int iResult = 0;
-		if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || GET_PLAYER(pkCity->getOwner()).GetPlayerTraits()->IsKeepConqueredBuildings())
+		if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
 		{
 			iResult = pkCity->GetCityBuildings()->GetNumBuildingClass(eBuildingClassType);
 		}
@@ -2477,7 +2486,7 @@ int CvLuaCity::lIsHasBuildingClass(lua_State* L)
 	const BuildingClassTypes eBuildingClassType = (BuildingClassTypes)lua_tointeger(L, 2);
 	if(eBuildingClassType != NO_BUILDINGCLASS)
 	{
-		if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || GET_PLAYER(pkCity->getOwner()).GetPlayerTraits()->IsKeepConqueredBuildings())
+		if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
 		{
 			const bool bResult = pkCity->HasBuildingClass(eBuildingClassType);
 			lua_pushboolean(L, bResult);
@@ -2899,6 +2908,12 @@ int CvLuaCity::lChangeBaseGreatPeopleRate(lua_State* L)
 int CvLuaCity::lGetGreatPeopleRateModifier(lua_State* L)
 {
 	return BasicLuaMethod(L, &CvCity::getGreatPeopleRateModifier);
+}
+//------------------------------------------------------------------------------
+//int GetBorderGrowthRateIncreaseTotal() const;
+int CvLuaCity::lGetBorderGrowthRateIncreaseTotal(lua_State* L)
+{
+	return BasicLuaMethod(L, &CvCity::GetBorderGrowthRateIncreaseTotal);
 }
 //------------------------------------------------------------------------------
 //int GetJONSCultureStored() const;
@@ -6227,6 +6242,21 @@ int CvLuaCity::lGetScaledEventChoiceValue(lua_State* L)
 	if(eEventChoice != NO_EVENT_CHOICE_CITY)
 	{
 		CoreYieldTip = pkCity->GetScaledHelpText(eEventChoice, bYieldsOnly, iSpyID, eSpyOwner);
+	}
+
+	lua_pushstring(L, CoreYieldTip.c_str());
+	return 1;
+}
+int CvLuaCity::lGetSpyMissionOutcome(lua_State* L)
+{
+	CvString CoreYieldTip = "";
+	CvCity* pkCity = GetInstance(L);
+	const CityEventChoiceTypes eEventChoice = (CityEventChoiceTypes)lua_tointeger(L, 2);
+	const int iSpyID = luaL_optint(L, 3, -1);
+	const PlayerTypes eSpyOwner = (PlayerTypes)luaL_optint(L, 4, NO_PLAYER);
+	if (eEventChoice != NO_EVENT_CHOICE_CITY)
+	{
+		CoreYieldTip = pkCity->GetSpyMissionOutcome(eEventChoice, iSpyID, eSpyOwner);
 	}
 
 	lua_pushstring(L, CoreYieldTip.c_str());

@@ -119,7 +119,10 @@ void CvPlayerAI::AI_doTurnPre()
 	{
 		bool operator()(const CvUnit* a, const CvUnit* b)
 		{
-			return ( a->GetPower() > b->GetPower() );
+			if (a->GetPower() != b->GetPower())
+				return a->GetPower() > b->GetPower();
+			else //tiebreak
+				return a->GetID() < b->GetID();
 		}
 	};
 
@@ -292,7 +295,7 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity, PlayerTypes ePlayerToLiberate, bo
 		return;
 
 	// What are our options for this city?
-	bool bCanLiberate = ePlayerToLiberate != NO_PLAYER;
+	bool bCanLiberate = ePlayerToLiberate != NO_PLAYER && !bGift; //shouldn't liberate cities you bought (exploitable)
 	bool bCanRaze = canRaze(pCity) && !bGift; //shouldn't raze cities you bought
 	bool bCanAnnex = !GetPlayerTraits()->IsNoAnnexing();
 
@@ -304,7 +307,7 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity, PlayerTypes ePlayerToLiberate, bo
 		// They will liberate their ally's team and no one else
 		if (bCanLiberate && eAlly != NO_PLAYER && GET_PLAYER(eAlly).getTeam() == GET_PLAYER(ePlayerToLiberate).getTeam())
 		{
-			DoLiberatePlayer(ePlayerToLiberate, pCity->GetID());
+			DoLiberatePlayer(ePlayerToLiberate, pCity->GetID(), false, false);
 			return;
 		}
 
@@ -315,7 +318,7 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity, PlayerTypes ePlayerToLiberate, bo
 	// If we have been actively trying to liberate this city, liberate it! (note - some more liberation checks are later in this method)
 	if (bCanLiberate && GetDiplomacyAI()->IsTryingToLiberate(pCity, ePlayerToLiberate))
 	{
-		DoLiberatePlayer(ePlayerToLiberate, pCity->GetID());
+		DoLiberatePlayer(ePlayerToLiberate, pCity->GetID(), false, false);
 		return;
 	}
 
@@ -325,15 +328,6 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity, PlayerTypes ePlayerToLiberate, bo
 		pCity->doTask(TASK_RAZE);
 		return;
 	}
-
-	// City has a courthouse (possible with Rome). Should annex.
-	BuildingClassTypes iCourthouse = (BuildingClassTypes)GC.getInfoTypeForString("BUILDINGCLASS_COURTHOUSE");
-	if (iCourthouse != -1 && pCity->HasBuildingClass(iCourthouse))
-	{
-		pCity->DoAnnex();
-		return;
-	}
-
 
 	// What is our happiness situation?
 	bool bUnhappy = false;
@@ -406,6 +400,7 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity, PlayerTypes ePlayerToLiberate, bo
 		if (bCanAnnex)
 		{
 			// If we have a unique courthouse, use it!
+			BuildingClassTypes iCourthouse = (BuildingClassTypes)GC.getInfoTypeForString("BUILDINGCLASS_COURTHOUSE");
 			if (iCourthouse != -1 && getCivilizationInfo().isCivilizationBuildingOverridden(iCourthouse))
 			{
 				pCity->DoAnnex();
@@ -435,12 +430,19 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity, PlayerTypes ePlayerToLiberate, bo
 		{
 			if (GET_PLAYER(ePlayerToLiberate).isMinorCiv())
 			{
-				DoLiberatePlayer(ePlayerToLiberate, pCity->GetID());
+				DoLiberatePlayer(ePlayerToLiberate, pCity->GetID(), false, false);
 				return;
 			}
 
 			if (GetDiplomacyAI()->DoPossibleMajorLiberation(pCity, ePlayerToLiberate))
 				return;
+		}
+
+		// If we have bonuses for liberating cities, remove Sphere of Influence if possible
+		if (bAllowSphereRemoval && GetPlayerPolicies()->GetNumericModifier(POLICYMOD_LIBERATION_BONUS) > 0)
+		{
+			DoLiberatePlayer(ePlayerToLiberate, pCity->GetID(), false, true);
+			return;
 		}
 
 		// If the city is of ok-ish value and we're not too unhappy, let's puppet
@@ -460,10 +462,10 @@ void CvPlayerAI::AI_conquerCity(CvCity* pCity, PlayerTypes ePlayerToLiberate, bo
 			}
 		}
 
-		// Remove sphere of influence? AI will only do this as a last resort.
+		// Remove sphere of influence?
 		if (bAllowSphereRemoval)
 		{
-			DoLiberatePlayer(pCity->getPreviousOwner(), pCity->GetID(), true);
+			DoLiberatePlayer(pCity->getPreviousOwner(), pCity->GetID(), false, true);
 			return;
 		}
 
@@ -689,6 +691,7 @@ void CvPlayerAI::AI_considerAnnex()
 	ReligionTypes eOurReligion = GetReligions()->GetStateReligion(false);
 
 	vector<OptionWithScore<CvCity*>> options;
+	vector<PlayerTypes> vUnfriendlyMajors = GetUnfriendlyMajors();
 	for (CvCity* pCity = firstCity(&iLoop); pCity != NULL; pCity = nextCity(&iLoop))
 	{
 		//simple check to stop razing "good" cities
@@ -722,7 +725,7 @@ void CvPlayerAI::AI_considerAnnex()
 			iWeight += (iBonus > 0) ? iBonus : 0;
 		}
 
-		if (pCity->isBorderCity() || pCity->isCoastal())
+		if (pCity->isCoastal() || (!vUnfriendlyMajors.empty() && pCity->isBorderCity(vUnfriendlyMajors)))
 			iWeight += 1;
 
 		// Add weight for each World Wonder in the city - cities with Wonders should be annexed quickly so we can benefit from their bonuses
@@ -750,7 +753,7 @@ void CvPlayerAI::AI_considerAnnex()
 	if (!options.empty())
 	{
 		//descending by default
-		sort(options.begin(), options.end());
+		std::stable_sort(options.begin(), options.end());
 
 		CvCity* pTargetCity = options.front().option;
 		if (pTargetCity)
@@ -820,7 +823,7 @@ void CvPlayerAI::AI_DoEventChoice(EventTypes eChosenEvent)
 			if(flavorChoices.size() > 0)
 			{
 				//sort em!
-				flavorChoices.SortItems();
+				flavorChoices.StableSortItems();
 				
 				//And grab the top selection.
 				EventChoiceTypes eBestEventChoice = (EventChoiceTypes)flavorChoices.GetElement(0);
@@ -874,7 +877,7 @@ void CvPlayerAI::AI_DoEventChoice(EventTypes eChosenEvent)
 					}
 				}
 			}
-			randomChoices.SortItems();
+			randomChoices.StableSortItems();
 				
 			//And grab the top selection.
 			EventChoiceTypes eBestEventChoice = (EventChoiceTypes)randomChoices.GetElement(0);
@@ -982,13 +985,20 @@ bool CvPlayerAI::AI_DoEspionageEventChoice(CityEventTypes eEvent, int uiSpyIndex
 											iOurFlavor *= 10;
 									}
 
+									if (pkEventChoiceInfo->isSurveillance())
+									{
+										CvCity* pCity = GetEspionage()->GetCityWithSpy(uiSpyIndex);
+										if (pCity && pCity->IsResistance())
+											iOurFlavor *= 10;
+									}
+
 									//counterspy filter selection
 									if (pCity->getOwner() == GetID())
 									{
 										if (pCity->getHappinessDelta() < 0 && pkEventChoiceInfo->getCityHappiness() > 0)
 											iOurFlavor *= 2;
 
-										if (pCity->isBorderCity() && IsAtWarAnyMajor() && pkEventChoiceInfo->getCityDefenseModifier() > 0)
+										if (pkEventChoiceInfo->getCityDefenseModifier() > 0 && IsAtWarAnyMajor() && pCity->isBorderCity())
 											iOurFlavor *= 2;
 									}
 									flavorChoices.push_back(eEventChoice, iOurFlavor);
@@ -1001,7 +1011,7 @@ bool CvPlayerAI::AI_DoEspionageEventChoice(CityEventTypes eEvent, int uiSpyIndex
 			if (flavorChoices.size() > 0)
 			{
 				//sort em!
-				flavorChoices.SortItems();
+				flavorChoices.StableSortItems();
 
 				//And grab the top selection.
 				CityEventChoiceTypes eBestEventChoice = (CityEventChoiceTypes)flavorChoices.GetElement(0);
@@ -1054,7 +1064,7 @@ bool CvPlayerAI::AI_DoEspionageEventChoice(CityEventTypes eEvent, int uiSpyIndex
 					}
 				}
 			}
-			randomChoices.SortItems();
+			randomChoices.StableSortItems();
 			if (randomChoices.size() <= 0)
 				return false;
 
@@ -1926,7 +1936,7 @@ CvPlot* CvPlayerAI::FindBestMerchantTargetPlotForCash(CvUnit* pMerchant)
 		}
 	}
 
-	sort(vCandidates.begin(), vCandidates.end());
+	std::stable_sort(vCandidates.begin(), vCandidates.end());
 
 	int iFlags = CvUnit::MOVEFLAG_NO_ENEMY_TERRITORY | CvUnit::MOVEFLAG_APPROX_TARGET_RING1 | CvUnit::MOVEFLAG_APPROX_TARGET_NATIVE_DOMAIN;
 	for (size_t i = 0; i < vCandidates.size(); i++)
@@ -2007,7 +2017,7 @@ CvCity* CvPlayerAI::FindBestMessengerTargetCity(CvUnit* pUnit, const vector<int>
 	//highest score first ..
 	if(vTargets.size() > 0)
 	{
-		vTargets.SortItems();
+		vTargets.StableSortItems();
 
 		//check if we can actually go there only if the city is promising
 		for (int i = 0; i < vTargets.size(); ++i )
@@ -2031,7 +2041,9 @@ int CvPlayerAI::ScoreCityForMessenger(CvCity* pCity, CvUnit* pUnit)
 
 	//Initializations...
 	CvPlot* pPlot = pCity->plot();
+	CvUnitEntry *pkUnitEntry = GC.getUnitInfo(pUnit->getUnitType());
 	int iFriendshipFromUnit = pUnit->getTradeInfluence(pPlot);
+	int iRestingPointChange = pkUnitEntry->GetRestingPointChange();
 
 	CvPlayer& kMinor = GET_PLAYER(pCity->getOwner());
 	CvMinorCivAI* pMinorCivAI = kMinor.GetMinorCivAI();
@@ -2264,6 +2276,12 @@ int CvPlayerAI::ScoreCityForMessenger(CvCity* pCity, CvUnit* pUnit)
 	if (pMinorCivAI->IsActiveQuestForPlayer(GetID(), MINOR_CIV_QUEST_INFLUENCE))
 	{
 		iScore *= 5;
+	}
+
+	// Resting point increase, and our resting point isn't enough for perma-friendship yet?
+	if (iRestingPointChange > 0 && pMinorCivAI->GetFriendshipAnchorWithMajor(GetID()) < pMinorCivAI->GetFriendsThreshold(GetID()))
+	{
+		iScore += (100 * iRestingPointChange) / max(pMinorCivAI->GetFriendsThreshold(GetID()), 1);
 	}
 
 	// **************************

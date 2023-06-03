@@ -232,11 +232,13 @@ public:
 	bool IsGGFromBarbarians() const;
 #endif
 	bool IsRoughTerrainEndsTurn() const;
+	bool IsCapturedUnitsConscripted() const;
 	bool IsHoveringUnit() const;
 	bool IsFlatMovementCost() const;
 	bool IsCanMoveImpassable() const;
 	bool IsNoCapture() const;
 	bool IsOnlyDefensive() const;
+	bool IsNoAttackInOcean() const;
 	bool IsNoDefensiveBonus() const;
 	bool IsNukeImmune() const;
 	bool IsHiddenNationality() const;
@@ -319,10 +321,12 @@ public:
 	int GetFortificationYield(int i) const;
 	int GetUnitCombatModifierPercent(int i) const;
 	int GetUnitClassModifierPercent(int i) const;
-	int GetDomainModifierPercent(int i) const;
-	int GetFeaturePassableTech(int i) const;
 	int GetUnitClassAttackModifier(int i) const;
 	int GetUnitClassDefenseModifier(int i) const;
+	int GetDomainModifierPercent(int i) const;
+	int GetDomainAttackPercent(int i) const;
+	int GetDomainDefensePercent(int i) const;
+	int GetFeaturePassableTech(int i) const;
 
 #if defined(MOD_BALANCE_CORE)
 	int GetCombatModPerAdjacentUnitCombatModifierPercent(int i) const;
@@ -546,11 +550,13 @@ protected:
 	bool m_bGGFromBarbarians;
 #endif
 	bool m_bRoughTerrainEndsTurn;
+	bool m_bCapturedUnitsConscripted;
 	bool m_bHoveringUnit;
 	bool m_bFlatMovementCost;
 	bool m_bCanMoveImpassable;
 	bool m_bNoCapture;
 	bool m_bOnlyDefensive;
+	bool m_bNoAttackInOcean;
 	bool m_bNoDefensiveBonus;
 	bool m_bNukeImmune;
 	bool m_bHiddenNationality;
@@ -633,10 +639,11 @@ protected:
 	int* m_piFortificationYield;
 	int* m_piUnitCombatModifierPercent;
 	int* m_piUnitClassModifierPercent;
-	int* m_piDomainModifierPercent;
-
 	int* m_piUnitClassAttackModifier;
 	int* m_piUnitClassDefenseModifier;
+	int* m_piDomainModifierPercent;
+	int* m_piDomainAttackPercent;
+	int* m_piDomainDefensePercent;
 
 #if defined(MOD_BALANCE_CORE)
 	int* m_piCombatModPerAdjacentUnitCombatModifierPercent;

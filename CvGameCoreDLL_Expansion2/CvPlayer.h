@@ -72,6 +72,18 @@ typedef std::vector< std::pair<CivilizationTypes, LeaderHeadTypes> > CivLeaderAr
 
 const size_t INSTANT_YIELD_HISTORY_LENGTH = 30u;
 
+
+struct SPlayerActiveEspionageEvent
+{
+	PlayerTypes eOtherPlayer;
+	bool bIncoming;
+	bool bIdentified;
+	int iStartTurn;
+	int iEndTurn;
+	YieldTypes eYield;
+	int iAmount;
+};
+
 class CvPlayer
 {
 	friend class CvPlayerPolicies;
@@ -162,7 +174,7 @@ public:
 	bool IsEventFired(EventTypes eEvent) const;
 	void SetEventFired(EventTypes eEvent, bool bValue);
 #endif
-	void DoLiberatePlayer(PlayerTypes ePlayer, int iOldCityID, bool bForced = false);
+	void DoLiberatePlayer(PlayerTypes ePlayer, int iOldCityID, bool bForced, bool bSphereRemoval);
 	bool CanLiberatePlayer(PlayerTypes ePlayer);
 	bool CanLiberatePlayerCity(PlayerTypes ePlayer);
 
@@ -792,6 +804,10 @@ public:
 	// Espionage
 	int GetEspionageModifier() const;
 	void ChangeEspionageModifier(int iChange);
+	int GetEspionageTurnsModifierFriendly() const;
+	void ChangeEspionageTurnsModifierFriendly(int iChange);
+	int GetEspionageTurnsModifierEnemy() const;
+	void ChangeEspionageTurnsModifierEnemy(int iChange);
 	int GetStartingSpyRank() const;
 	void ChangeStartingSpyRank(int iChange);
 	// END Espionage
@@ -800,6 +816,22 @@ public:
 	int GetConversionModifier() const;
 	void ChangeConversionModifier(int iChange);
 #endif
+
+	// Extra Yields from Annexed Minors
+	int GetFoodInCapitalPerTurnFromAnnexedMinors() const;
+	void UpdateFoodInCapitalPerTurnFromAnnexedMinors();
+	int GetFoodInOtherCitiesPerTurnFromAnnexedMinors() const;
+	void UpdateFoodInOtherCitiesPerTurnFromAnnexedMinors();
+	int GetGoldPerTurnFromAnnexedMinors() const;
+	void UpdateGoldPerTurnFromAnnexedMinors();
+	int GetCulturePerTurnFromAnnexedMinors() const;
+	void UpdateCulturePerTurnFromAnnexedMinors();
+	int GetSciencePerTurnFromAnnexedMinors() const;
+	void UpdateSciencePerTurnFromAnnexedMinors();
+	int GetFaithPerTurnFromAnnexedMinors() const;
+	void UpdateFaithPerTurnFromAnnexedMinors();
+	int GetHappinessFromAnnexedMinors() const;
+	void UpdateHappinessFromAnnexedMinors();
 
 	int GetExtraLeagueVotes() const;
 	int GetImprovementLeagueVotes() const;
@@ -1852,6 +1884,11 @@ public:
 	int getGoldenAgeYieldMod(YieldTypes eIndex)	const;
 	void changeGoldenAgeYieldMod(YieldTypes eIndex, int iChange);
 
+	std::vector<SPlayerActiveEspionageEvent> CvPlayer::GetActiveEspionageEventsList() const;
+
+	int GetNumAnnexedCityStates(MinorCivTraitTypes eIndex)	const;
+	void ChangeNumAnnexedCityStates(MinorCivTraitTypes eIndex, int iChange);
+
 	int getYieldFromNonSpecialistCitizens(YieldTypes eIndex)	const;
 	void changeYieldFromNonSpecialistCitizens(YieldTypes eIndex, int iChange);
 
@@ -1973,8 +2010,15 @@ public:
 	void ChangeIsNoCSDecayAtWar(int iValue);
 	bool IsNoCSDecayAtWar() const;
 
+	void ChangeMinimumAllyInfluenceIncreaseAtWar(int iValue);
+
+	int GetMinimumAllyInfluenceIncreaseAtWar() const;
+
 	void ChangeCanBullyFriendlyCS(int iValue);
 	bool IsCanBullyFriendlyCS() const;
+
+	void ChangeKeepConqueredBuildings(int iValue);
+	bool IsKeepConqueredBuildings() const;
 
 	void ChangeBullyGlobalCSReduction(int iValue);
 	int GetBullyGlobalCSReduction() const;
@@ -2359,6 +2403,9 @@ public:
 	const CvUnit* nextUnit(int* pIterIdx, bool bRev=false) const;
 	CvUnit* firstUnit(int* pIterIdx, bool bRev=false);
 	CvUnit* nextUnit(int* pIterIdx, bool bRev=false);
+
+	CvUnit* firstUnitInSquad(int* pIterIdx, int iSquadNum);
+	CvUnit* nextUnitInSquad(int* pIterIdx, int iSquadNum);
 #if defined(MOD_BALANCE_CORE)
 	CvUnit* nextUnit(const CvUnit* pCurrent, bool bRev);
 	const CvUnit* nextUnit(const CvUnit* pCurrent, bool bRev) const;
@@ -2433,6 +2480,17 @@ public:
 	int getUnitExtraCost(UnitClassTypes eUnitClass) const;
 	void setUnitExtraCost(UnitClassTypes eUnitClass, int iCost);
 
+	void addAnnexedMilitaryCityStates(PlayerTypes eMinor);
+	void removeAnnexedMilitaryCityStates(PlayerTypes eMinor);
+	void updateTimerAnnexedMilitaryCityStates();
+
+	void UpdateEspionageYields(bool bIncoming);
+	void AddEspionageEvent(PlayerTypes eOtherPlayer, bool bIncoming, bool bIdentified, int iStartTurn, int iEndTurn, YieldTypes eYield, int iAmount);
+	void RemoveEspionageEventsForPlayer(PlayerTypes ePlayer);
+	void ProcessEspionageEvents();
+
+	int GetYieldPerTurnFromEspionageEvents(YieldTypes eYield, bool bIncoming) const;
+
 	void launch(VictoryTypes victoryType);
 
 	void invalidatePopulationRankCache();
@@ -2478,6 +2536,9 @@ public:
 	int GetCityAutomatonWorkersChange() const;
 	void ChangeCityAutomatonWorkersChange(int iChange);
 #endif
+
+	int GetBorderGrowthRateIncreaseGlobal() const;
+	void ChangeBorderGrowthRateIncreaseGlobal(int iChange);
 
 	int GetPlotCultureCostModifier() const;
 	void ChangePlotCultureCostModifier(int iChange);
@@ -2542,7 +2603,6 @@ public:
 
 	//to check whether peace is a good idea
 	bool HasCityInDanger(bool bAboutToFall, int iMinDanger) const;
-	bool IsPlotUnsafe(CvPlot* pPlot);
 
 	int GetExtraSupplyPerPopulation() const;
 	void ChangeExtraSupplyPerPopulation(int iValue);
@@ -2748,6 +2808,7 @@ public:
 	bool IsAtWarAnyMinor() const;
 	bool IsAtWarWith(PlayerTypes iPlayer) const;
 	vector<PlayerTypes> GetWarAllies(PlayerTypes ePlayer) const;
+	vector<PlayerTypes> GetUnfriendlyMajors() const;
 	int CountNumDangerousMajorsAtWarWith(bool bExcludePhonyWars, bool bExcludeIfNoTarget) const;
 	bool HasPantheon() const;
 	bool HasAnyReligion() const;
@@ -2870,6 +2931,8 @@ public:
 
 	void setUnlockedGrowthAnywhereThisTurn(bool bValue);
 	bool unlockedGrowthAnywhereThisTurn() const;
+
+	bool IsEarlyExpansionPhase() const;
 
 protected:
 	class ConqueredByBoolField
@@ -3003,7 +3066,9 @@ protected:
 	int m_iHappinessFromMinorCivs;
 	int m_iPositiveWarScoreTourismMod;
 	int m_iIsNoCSDecayAtWar;
+	int m_iMinimumAllyInfluenceIncreaseAtWar;
 	int m_iCanBullyFriendlyCS;
+	int m_iKeepConqueredBuildings;
 	int m_iBullyGlobalCSReduction;	
 #endif
 	int m_iIsVassalsNoRebel;
@@ -3019,10 +3084,19 @@ protected:
 	int m_iExtraHappinessPerXPoliciesFromPolicies;
 	int m_iHappinessPerXGreatWorks;
 	int m_iEspionageModifier;
+	int m_iEspionageTurnsModifierFriendly;
+	int m_iEspionageTurnsModifierEnemy;
 	int m_iSpyStartingRank;
 #if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
 	int m_iConversionModifier;
 #endif
+	int m_iFoodInCapitalFromAnnexedMinors;
+	int m_iFoodInOtherCitiesFromAnnexedMinors;
+	int m_iGoldPerTurnFromAnnexedMinors;
+	int m_iCulturePerTurnFromAnnexedMinors;
+	int m_iSciencePerTurnFromAnnexedMinors;
+	int m_iFaithPerTurnFromAnnexedMinors;
+	int	m_iHappinessFromAnnexedMinors;
 	int m_iExtraLeagueVotes;
 	int m_iImprovementLeagueVotes;
 	int m_iFaithToVotes;
@@ -3253,7 +3327,7 @@ protected:
 	int m_iOnlyTradeSameIdeology;
 #if defined(MOD_BALANCE_CORE)
 	int m_iSupplyFreeUnits; //military units which don't count against the supply limit
-	std::vector<CvString> m_aistrInstantYield;
+	std::vector<CvString> m_aistrInstantYield; // not serialized
 	std::map<int, CvString> m_aistrInstantGreatPersonProgress;
 	std::vector<bool> m_abActiveContract;
 	int m_iJFDReformCooldownRate;
@@ -3357,6 +3431,7 @@ protected:
 	int m_iCityAutomatonWorkersChange;
 #endif
 	int m_iCachedGoldRate;
+	int m_iBorderGrowthRateIncreaseGlobal;
 	int m_iPlotCultureCostModifier;
 	int m_iPlotCultureExponentModifier;
 	int m_iNumCitiesPolicyCostDiscount;
@@ -3388,7 +3463,7 @@ protected:
 	int m_iNumFreePoliciesEver; 
 	int m_iNumFreeTenets;
 
-	int m_iLastSliceMoved;
+	int m_iLastSliceMoved; // not serialized
 
 
 	uint m_uiStartTime;  // XXX save these?
@@ -3449,6 +3524,11 @@ protected:
 	std::vector<int> m_aiRelicYieldBonus;
 	std::vector<int> m_aiReligionYieldRateModifier;
 	std::vector<int> m_aiGoldenAgeYieldMod;
+	std::vector<int> m_aiNumAnnexedCityStates;
+	std::vector< std::pair<PlayerTypes, int> > m_AnnexedMilitaryCityStatesUnitSpawnTurns;
+	std::vector<SPlayerActiveEspionageEvent> m_vActiveEspionageEventsList;
+	std::vector<int> m_aiIncomingEspionageYields;
+	std::vector<int> m_aiOutgoingEspionageYields;
 	std::vector<int> m_aiYieldFromNonSpecialistCitizens;
 	std::vector<int> m_aiYieldModifierFromGreatWorks;
 	std::vector<int> m_aiYieldModifierFromActiveSpies;
@@ -3825,7 +3905,9 @@ SYNC_ARCHIVE_VAR(int, m_iXCSAlliesLowersPolicyNeedWonders)
 SYNC_ARCHIVE_VAR(int, m_iHappinessFromMinorCivs)
 SYNC_ARCHIVE_VAR(int, m_iPositiveWarScoreTourismMod)
 SYNC_ARCHIVE_VAR(int, m_iIsNoCSDecayAtWar)
+SYNC_ARCHIVE_VAR(int, m_iMinimumAllyInfluenceIncreaseAtWar)
 SYNC_ARCHIVE_VAR(int, m_iCanBullyFriendlyCS)
+SYNC_ARCHIVE_VAR(int, m_iKeepConqueredBuildings)
 SYNC_ARCHIVE_VAR(int, m_iBullyGlobalCSReduction)
 SYNC_ARCHIVE_VAR(int, m_iIsVassalsNoRebel)
 SYNC_ARCHIVE_VAR(int, m_iVassalYieldBonusModifier)
@@ -3840,8 +3922,17 @@ SYNC_ARCHIVE_VAR(int, m_iHappinessPerXPolicies)
 SYNC_ARCHIVE_VAR(int, m_iExtraHappinessPerXPoliciesFromPolicies)
 SYNC_ARCHIVE_VAR(int, m_iHappinessPerXGreatWorks)
 SYNC_ARCHIVE_VAR(int, m_iEspionageModifier)
+SYNC_ARCHIVE_VAR(int, m_iEspionageTurnsModifierFriendly)
+SYNC_ARCHIVE_VAR(int, m_iEspionageTurnsModifierEnemy)
 SYNC_ARCHIVE_VAR(int, m_iSpyStartingRank)
 SYNC_ARCHIVE_VAR(int, m_iConversionModifier)
+SYNC_ARCHIVE_VAR(int, m_iFoodInCapitalFromAnnexedMinors)
+SYNC_ARCHIVE_VAR(int, m_iFoodInOtherCitiesFromAnnexedMinors)
+SYNC_ARCHIVE_VAR(int, m_iGoldPerTurnFromAnnexedMinors)
+SYNC_ARCHIVE_VAR(int, m_iCulturePerTurnFromAnnexedMinors)
+SYNC_ARCHIVE_VAR(int, m_iSciencePerTurnFromAnnexedMinors)
+SYNC_ARCHIVE_VAR(int, m_iFaithPerTurnFromAnnexedMinors)
+SYNC_ARCHIVE_VAR(int, m_iHappinessFromAnnexedMinors)
 SYNC_ARCHIVE_VAR(int, m_iExtraLeagueVotes)
 SYNC_ARCHIVE_VAR(int, m_iImprovementLeagueVotes)
 SYNC_ARCHIVE_VAR(int, m_iFaithToVotes)
@@ -4044,7 +4135,6 @@ SYNC_ARCHIVE_VAR(int, m_iMinorResourceBonusCount)
 SYNC_ARCHIVE_VAR(int, m_iAbleToAnnexCityStatesCount)
 SYNC_ARCHIVE_VAR(int, m_iOnlyTradeSameIdeology)
 SYNC_ARCHIVE_VAR(int, m_iSupplyFreeUnits)
-SYNC_ARCHIVE_VAR(std::vector<CvString>, m_aistrInstantYield)
 SYNC_ARCHIVE_VAR(std::vector<bool>, m_abActiveContract)
 SYNC_ARCHIVE_VAR(int, m_iJFDReformCooldownRate)
 SYNC_ARCHIVE_VAR(int, m_iJFDGovernmentCooldownRate)
@@ -4137,6 +4227,7 @@ SYNC_ARCHIVE_VAR(int, m_iPlotGoldCostMod)
 SYNC_ARCHIVE_VAR(int, m_iCityWorkingChange)
 SYNC_ARCHIVE_VAR(int, m_iCityAutomatonWorkersChange)
 SYNC_ARCHIVE_VAR(int, m_iCachedGoldRate)
+SYNC_ARCHIVE_VAR(int, m_iBorderGrowthRateIncreaseGlobal)
 SYNC_ARCHIVE_VAR(int, m_iPlotCultureCostModifier)
 SYNC_ARCHIVE_VAR(int, m_iPlotCultureExponentModifier)
 SYNC_ARCHIVE_VAR(int, m_iNumCitiesPolicyCostDiscount)
@@ -4166,7 +4257,6 @@ SYNC_ARCHIVE_VAR(int, m_iMedianTechPercentage)
 SYNC_ARCHIVE_VAR(int, m_iNumFreePolicies)
 SYNC_ARCHIVE_VAR(int, m_iNumFreePoliciesEver)
 SYNC_ARCHIVE_VAR(int, m_iNumFreeTenets)
-SYNC_ARCHIVE_VAR(int, m_iLastSliceMoved)
 SYNC_ARCHIVE_VAR(uint, m_uiStartTime)
 SYNC_ARCHIVE_VAR(bool, m_bHasUUPeriod)
 SYNC_ARCHIVE_VAR(bool, m_bNoNewWars)
@@ -4221,6 +4311,9 @@ SYNC_ARCHIVE_VAR(std::vector<int>, m_aiFilmYieldBonus)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiRelicYieldBonus)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiReligionYieldRateModifier)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiGoldenAgeYieldMod)
+SYNC_ARCHIVE_VAR(std::vector<int>, m_aiNumAnnexedCityStates)
+SYNC_ARCHIVE_VAR(std::vector<int>, m_aiIncomingEspionageYields)
+SYNC_ARCHIVE_VAR(std::vector<int>, m_aiOutgoingEspionageYields)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromNonSpecialistCitizens)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldModifierFromGreatWorks)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldModifierFromActiveSpies)
@@ -4303,5 +4396,9 @@ SYNC_ARCHIVE_VAR(int, m_iMilitarySeaMight)
 SYNC_ARCHIVE_VAR(int, m_iMilitaryAirMight)
 SYNC_ARCHIVE_VAR(int, m_iMilitaryLandMight)
 SYNC_ARCHIVE_END()
+
+
+FDataStream& operator>>(FDataStream& loadFrom, SPlayerActiveEspionageEvent& writeTo);
+FDataStream& operator<<(FDataStream& saveTo, const SPlayerActiveEspionageEvent& readFrom);
 
 #endif

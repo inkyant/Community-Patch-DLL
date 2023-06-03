@@ -348,9 +348,6 @@ void CvCityCitizens::DoTurn()
 				}
 			}
 
-			EconomicAIStrategyTypes eEarlyExpand = (EconomicAIStrategyTypes)GC.getInfoTypeForString("ECONOMICAISTRATEGY_EARLY_EXPANSION");
-			bool bWantSettlers = thisPlayer.GetEconomicAI()->IsUsingStrategy(eEarlyExpand);
-
 			int iPotentialUnhappiness = m_pCity->getPotentialUnhappinessWithGrowthVal() - m_pCity->GetPotentialHappinessWithGrowthVal();
 			if (iPotentialUnhappiness > 0 && thisPlayer.IsEmpireUnhappy())
 			{
@@ -358,7 +355,7 @@ void CvCityCitizens::DoTurn()
 				int iLockThreshold = -20;
 				if (MOD_BALANCE_CORE_HAPPINESS)
 				{
-					if (bWantSettlers)
+					if (thisPlayer.IsEarlyExpansionPhase())
 						//if we fall below this threshold the early expansion strategy will be disabled and we leave good city sites to our enemies
 						iLockThreshold = /*50*/ GD_INT_GET(UNHAPPY_THRESHOLD);
 					else
@@ -663,14 +660,22 @@ int CvCityCitizens::GetYieldModForFocus(YieldTypes eYield, CityAIFocusTypes eFoc
 
 	if (eYield == YIELD_FOOD)
 	{
-		if (eFocus == CITY_AI_FOCUS_TYPE_FOOD || bEmphasizeFood)
+		//close to starving, we really really want food
+		if (bEmphasizeFood)
+			iYieldMod += iDefaultValue * 3;
+
+		if (eFocus == CITY_AI_FOCUS_TYPE_FOOD)
 			iYieldMod += /*12*/ GD_INT_GET(AI_CITIZEN_VALUE_FOOD);
 
 		iYieldMod += std::max(cache.iFamine, cache.iDistress);
 	}
 	else if (eYield == YIELD_PRODUCTION)
 	{
-		if (eFocus == CITY_AI_FOCUS_TYPE_PRODUCTION || bEmphasizeProduction)
+		//building a wonder or project, give it a boost but not so much that we start starving
+		if (bEmphasizeProduction)
+			iYieldMod += iDefaultValue;
+
+		if (eFocus == CITY_AI_FOCUS_TYPE_PRODUCTION)
 			iYieldMod += /*12*/ GD_INT_GET(AI_CITIZEN_VALUE_PRODUCTION);
 
 		iYieldMod += cache.iDistress;
@@ -1137,7 +1142,7 @@ int CvCityCitizens::GetNumUnassignedCitizens() const
 void CvCityCitizens::ChangeNumUnassignedCitizens(int iChange)
 {
 	m_iNumUnassignedCitizens += iChange;
-	FAssertMsg(m_iNumUnassignedCitizens >= 0, "invalid number of unassigned citizens!");
+	CvAssertMsg(m_iNumUnassignedCitizens >= 0, "invalid number of unassigned citizens in CvCityCitizens::ChangeNumUnassignedCitizens!");
 }
 
 /// How many Citizens are working Plots?
@@ -1241,9 +1246,16 @@ bool CvCityCitizens::DoRemoveWorstCitizen(CvCity::eUpdateMode updateMode, bool b
 		}
 		if (GetNumDefaultSpecialists() > iCurrentCityPopulation)
 		{
-			ChangeNumForcedDefaultSpecialists(-1);
-			ChangeNumDefaultSpecialists(-1, updateMode);
-			return true;
+			if (bRemoveForcedStatus)
+			{
+				ChangeNumForcedDefaultSpecialists(-1);
+				ChangeNumDefaultSpecialists(-1, updateMode);
+				return true;
+			}
+			else
+			{
+				return false;
+			}
 		}
 	}
 
@@ -1269,7 +1281,7 @@ bool CvCityCitizens::DoRemoveWorstCitizen(CvCity::eUpdateMode updateMode, bool b
 	// Have to resort to pulling away a good Specialist if we're 
 	else if (!IsNoAutoAssignSpecialists() || bRemoveForcedStatus)
 	{
-		if (DoRemoveWorstSpecialist(eDontChangeSpecialist, NO_BUILDING, updateMode))
+		if (DoRemoveWorstSpecialist(eDontChangeSpecialist, bRemoveForcedStatus, NO_BUILDING, updateMode))
 		{
 			return true;
 		}
@@ -2125,6 +2137,12 @@ void CvCityCitizens::ChangeNumForcedWorkingPlots(int iChange)
 /// Can our City work a particular CvPlot if we override ownership?
 bool CvCityCitizens::IsCanWorkWithOverride(CvPlot* pPlot) const
 {
+	// Cannot work another city center
+	if (pPlot->getPlotCity() != NULL && pPlot->getPlotCity()->GetID() != m_pCity->GetID())
+	{
+		return false;
+	}
+
 	if (pPlot->getOwner() != m_pCity->getOwner())
 	{
 		return false;
@@ -2552,7 +2570,7 @@ void CvCityCitizens::DoAddSpecialistToBuilding(BuildingTypes eBuilding, bool bFo
 			if (GetNumUnassignedCitizens() == 0)
 			{
 				// Still nobody, all the citizens may be assigned to the eSpecialist we are looking for, try again
-				if (!DoRemoveWorstSpecialist(NO_SPECIALIST, eBuilding, updateMode))
+				if (!DoRemoveWorstSpecialist(NO_SPECIALIST, bForced, eBuilding, updateMode))
 				{
 					return; // For some reason we can't do this, we must exit, else we will be going over the population count
 				}
@@ -2612,10 +2630,18 @@ void CvCityCitizens::DoRemoveSpecialistFromBuilding(BuildingTypes eBuilding, boo
 		// Decrease count for the whole city
 		m_aiSpecialistCounts[eSpecialist]--;
 		m_aiNumSpecialistsInBuilding[eBuilding]--;
+		if (m_aiNumSpecialistsInBuilding[eBuilding] < 0)
+		{
+			UNREACHABLE();
+		}
 
 		if (bForced)
 		{
 			m_aiNumForcedSpecialistsInBuilding[eBuilding]--;
+			if (m_aiNumForcedSpecialistsInBuilding[eBuilding] < 0)
+			{
+				UNREACHABLE();
+			}
 		}
 
 		GetCity()->processSpecialist(eSpecialist, -1, updateMode);
@@ -2692,7 +2718,7 @@ void CvCityCitizens::DoRemoveAllSpecialistsFromBuilding(BuildingTypes eBuilding,
 
 
 /// Find the worst Specialist and remove him from duty
-bool CvCityCitizens::DoRemoveWorstSpecialist(SpecialistTypes eDontChangeSpecialist, const BuildingTypes eDontRemoveFromBuilding, CvCity::eUpdateMode updateMode)
+bool CvCityCitizens::DoRemoveWorstSpecialist(SpecialistTypes eDontChangeSpecialist, bool bForced, const BuildingTypes eDontRemoveFromBuilding, CvCity::eUpdateMode updateMode)
 {
 	int iWorstValue = INT_MAX;
 	BuildingTypes eWorstType = NO_BUILDING;
@@ -2730,20 +2756,23 @@ bool CvCityCitizens::DoRemoveWorstSpecialist(SpecialistTypes eDontChangeSpeciali
 
 		if (GetNumSpecialistsInBuilding(eBuilding) > 0)
 		{
-			int iValue = GetSpecialistValue((SpecialistTypes)pkBuildingInfo->GetSpecialistType(), gCachedNumbers);
-			checked[specType] = iValue;
-
-			if (iValue < iWorstValue)
+			if (bForced || GetNumSpecialistsInBuilding(eBuilding) - GetNumForcedSpecialistsInBuilding(eBuilding) > 0)
 			{
-				iWorstValue = iValue;
-				eWorstType = eBuilding;
+				int iValue = GetSpecialistValue((SpecialistTypes)pkBuildingInfo->GetSpecialistType(), gCachedNumbers);
+				checked[specType] = iValue;
+
+				if (iValue < iWorstValue)
+				{
+					iWorstValue = iValue;
+					eWorstType = eBuilding;
+				}
 			}
 		}
 	}
 
 	if (eWorstType != NO_BUILDING)
 	{
-		DoRemoveSpecialistFromBuilding(eWorstType, true, updateMode);
+		DoRemoveSpecialistFromBuilding(eWorstType, bForced, updateMode);
 		return true;
 	}
 

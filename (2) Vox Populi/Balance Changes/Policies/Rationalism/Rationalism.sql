@@ -106,6 +106,7 @@ SET
 	ExtraHappiness = 0,
 	TechCostXCitiesMod = 0,
 	EspionageModifier = -34,
+	EspionageTurnsModifierEnemy = 2,
 	SpecialistFoodChange = -1
 WHERE Type = 'POLICY_SOVEREIGNTY';
 
@@ -121,8 +122,7 @@ WHERE PolicyType = 'POLICY_FREE_THOUGHT' AND YieldType = 'YIELD_SCIENCE';
 UPDATE Policies
 SET
 	GreatEngineerHurryModifier = 0,
-	GreatScientistBeakerModifier = 25,
-	AdmiralLuxuryBonus = 2
+	GreatScientistBeakerModifier = 25
 WHERE Type = 'POLICY_FREE_THOUGHT';
 
 

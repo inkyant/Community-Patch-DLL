@@ -31,7 +31,7 @@
 #define PATH_STEP_WEIGHT										(10)	//relatively small
 #define	PATH_EXPLORE_NON_HILL_WEIGHT							(1000)	//per hill plot we fail to visit
 #define PATH_EXPLORE_NON_REVEAL_WEIGHT							(1000)	//per (neighboring) plot we fail to reveal
-#define PATH_BUILD_ROUTE_REUSE_EXISTING_WEIGHT					(20)	//accept four plots detour to save on maintenance
+#define PATH_BUILD_ROUTE_REUSE_EXISTING_WEIGHT					(40)	//accept two plots detour to save on maintenance
 #define PATH_END_TURN_FOREIGN_TERRITORY							(PATH_BASE_COST*10)		//per turn end plot outside of our territory
 #define PATH_END_TURN_NO_ROUTE									(PATH_BASE_COST*10)		//when in doubt, prefer to end the turn on a plot with a route
 #define PATH_END_TURN_WATER										(PATH_BASE_COST*55)		//embarkation should be avoided (land units only)
@@ -66,7 +66,11 @@ private:
 	SLogNode();
 };
 
-std::vector<SLogNode> svPathLog;
+//debugging
+int g_iInterestingUnitIDa = INT_MAX;
+int g_iInterestingUnitIDb = INT_MAX;
+bool g_bPathFinderLogging = false;
+std::vector<SLogNode> g_svPathLog;
 
 //debugging help
 void DumpNodeList(const std::vector<CvAStarNode*>& nodes)
@@ -249,7 +253,11 @@ void CvAStar::Reset()
 	m_iProcessedNodes = 0;
 	m_iTestedNodes = 0;
 	m_iRounds = 0;
-	svPathLog.clear();
+
+	//will be set multiple times but who cares
+	g_bPathFinderLogging = false;
+	g_svPathLog.clear();
+	g_svPathLog.reserve(10000);
 }
 
 
@@ -369,10 +377,12 @@ bool CvAStar::FindPathWithCurrentConfiguration(int iXstart, int iYstart, int iXd
 #if defined(MOD_CORE_DEBUGGING)
 	cvStopWatch timer("pathfinder",NULL,0,true);
 	timer.StartPerfTest();
-	if (MOD_CORE_DEBUGGING)
+
+	g_bPathFinderLogging = (m_sData.iUnitID == g_iInterestingUnitIDa || m_sData.iUnitID == g_iInterestingUnitIDb);
+	if (g_bPathFinderLogging)
 	{
-		svPathLog.push_back( SLogNode( NS_INITIAL_FINAL, 0, m_iXstart, m_iYstart, 0, 0, 0, 0 ) );
-		svPathLog.push_back( SLogNode( NS_INITIAL_FINAL, 0, m_iXdest, m_iYdest, 0, 0, 0, 0 ) );
+		g_svPathLog.push_back( SLogNode( NS_INITIAL_FINAL, 0, m_iXstart, m_iYstart, 0, 0, 0, 0 ) );
+		g_svPathLog.push_back( SLogNode( NS_INITIAL_FINAL, 0, m_iXdest, m_iYdest, 0, 0, 0, 0 ) );
 	}
 #endif
 
@@ -408,9 +418,12 @@ bool CvAStar::FindPathWithCurrentConfiguration(int iXstart, int iYstart, int iXd
 #if defined(MOD_CORE_DEBUGGING)
 	//debugging!
 	timer.EndPerfTest();
+
+	//statistics
 	int iBin = min(99,int(timer.GetDeltaInSeconds()*1000));
 	saiRuntimeHistogram[iBin]++;
 
+	CvUnit* pUnit = m_sData.iUnitID > 0 ? GET_PLAYER(m_sData.ePlayer).getUnit(m_sData.iUnitID) : NULL;
 	if ( timer.GetDeltaInSeconds()>0.2 && data.ePathType==PT_UNIT_MOVEMENT )
 	{
 		//debug hook
@@ -419,46 +432,55 @@ bool CvAStar::FindPathWithCurrentConfiguration(int iXstart, int iYstart, int iXd
 		if (iStartIndex==giLastStartIndex && iStartIndex>0)
 		{
 			OutputDebugString("Repeated pathfinding start\n");
-			gStackWalker.ShowCallstack();
+			gStackWalker.ShowCallstack(5);
 		}
 #endif
 		giLastStartIndex = iStartIndex;
 
 		int iNumPlots = GC.getMap().numPlots();
-		CvUnit* pUnit = m_sData.iUnitID>0 ? GET_PLAYER(m_sData.ePlayer).getUnit(m_sData.iUnitID) : NULL;
 
 		//in some cases we have no destination plot, so exhaustion is not always a "fail"
-		OutputDebugString( CvString::format("Run %d: Path type %d %s (%s from %d,%d to %d,%d - flags %d), tested %d, processed %d nodes in %d rounds (%d%% of map) in %.2f ms\n", 
-			m_iCurrentGenerationID, m_sData.ePathType, bSuccess?"found":"not found", pUnit ? pUnit->getName().c_str() : "unknown",
-			m_iXstart, m_iYstart, m_iXdest, m_iYdest, m_sData.iFlags, m_iTestedNodes, m_iProcessedNodes, m_iRounds, 
-			(100*m_iProcessedNodes)/iNumPlots, timer.GetDeltaInSeconds()*1000 ).c_str() );
-
-		if (MOD_CORE_DEBUGGING)
-		{
-			CvString fname = CvString::format( "PathfindingRun%06d.txt", m_iCurrentGenerationID );
-			FILogFile* pLog=LOGFILEMGR.GetLog( fname.c_str(), FILogFile::kDontTimeStamp );
-			if (pLog) 
-			{
-				if (pUnit)
-				{
-					pLog->Msg( CvString::format("# %s for %s (%d) from %d,%d to %d,%d for player %d, flags %d\n", 
-						GetName(),pUnit->getName().c_str(),pUnit->GetID(),m_iXstart,m_iYstart,m_iXdest,m_iYdest,pUnit->getOwner(),m_sData.iFlags ).c_str() );
-				}
-				else
-				{
-					pLog->Msg( CvString::format("# %s from %d,%d to %d,%d for player %d, type %d, flags %d\n", 
-						GetName(),m_iXstart,m_iYstart,m_iXdest,m_iYdest,m_sData.ePlayer,m_sData.ePathType,m_sData.iFlags ).c_str() );
-				}
+		CvString msg = CvString::format("Run %d: Path type %d %s (%s from %d,%d to %d,%d - flags %d), tested %d, processed %d nodes in %d rounds (%d%% of map) in %.2f ms\n",
+			m_iCurrentGenerationID, m_sData.ePathType, bSuccess ? "found" : "not found", pUnit ? pUnit->getName().c_str() : "unknown",
+			m_iXstart, m_iYstart, m_iXdest, m_iYdest, m_sData.iFlags, m_iTestedNodes, m_iProcessedNodes, m_iRounds,
+			(100 * m_iProcessedNodes) / iNumPlots, timer.GetDeltaInSeconds() * 1000);
+		OutputDebugString( msg.c_str() );
 
 #ifdef STACKWALKER
-				//gStackWalker.SetLog(pLog);
-				//gStackWalker.ShowCallstack();
+		//FILogFile* pLog = LOGFILEMGR.GetLog("PathfinderLongRun.txt", FILogFile::kDontTimeStamp);
+		//pLog->Msg(msg.c_str());
+		//gStackWalker.SetLog(pLog);
+		//gStackWalker.ShowCallstack(5);
+		//gStackWalker.SetLog(NULL);
+#endif
+	}
+
+	if (g_bPathFinderLogging)
+	{
+		CvString fname = CvString::format("PathfindingRun%06d-u%04d.txt", m_iCurrentGenerationID, m_sData.iUnitID);
+		FILogFile* pLog = LOGFILEMGR.GetLog(fname.c_str(), FILogFile::kDontTimeStamp);
+		if (pLog)
+		{
+			if (pUnit)
+			{
+				pLog->Msg(CvString::format("# %s for %s (%d) from %d,%d to %d,%d for player %d, flags %d\n",
+					GetName(), pUnit->getName().c_str(), pUnit->GetID(), m_iXstart, m_iYstart, m_iXdest, m_iYdest, pUnit->getOwner(), m_sData.iFlags).c_str());
+			}
+			else
+			{
+				pLog->Msg(CvString::format("# %s from %d,%d to %d,%d for player %d, type %d, flags %d\n",
+					GetName(), m_iXstart, m_iYstart, m_iXdest, m_iYdest, m_sData.ePlayer, m_sData.ePathType, m_sData.iFlags).c_str());
+			}
+
+#ifdef STACKWALKER
+			gStackWalker.SetLog(pLog);
+			gStackWalker.ShowCallstack(5);
+			gStackWalker.SetLog(NULL);
 #endif
 
-				for (size_t i=0; i<svPathLog.size(); i++)
-					pLog->Msg( CvString::format("%d,%d,%d,%d,%d,%d,%d,%d\n", svPathLog[i].round,svPathLog[i].type,svPathLog[i].x,svPathLog[i].y,
-						svPathLog[i].kc,svPathLog[i].hc,svPathLog[i].t,svPathLog[i].m ).c_str() );
-			}
+			for (size_t i = 0; i < g_svPathLog.size(); i++)
+				pLog->Msg(CvString::format("%d,%d,%d,%d,%d,%d,%d,%d\n", g_svPathLog[i].round, g_svPathLog[i].type, g_svPathLog[i].x, g_svPathLog[i].y,
+					g_svPathLog[i].kc, g_svPathLog[i].hc, g_svPathLog[i].t, g_svPathLog[i].m).c_str());
 		}
 	}
 #endif
@@ -519,11 +541,8 @@ void CvAStar::PrecalcNeighbors(CvAStarNode* node)
 
 void LogNodeAction(CvAStarNode* node, int iRound, NodeState state)
 {
-	UNUSED_VARIABLE(node); UNUSED_VARIABLE(iRound); UNUSED_VARIABLE(state);
-//#if defined(MOD_CORE_DEBUGGING)
-//	if (MOD_CORE_DEBUGGING && svPathLog.size()<10000)
-//		svPathLog.push_back(SLogNode(state, iRound, node->m_iX, node->m_iY, node->m_iKnownCost, node->m_iHeuristicCost, node->m_iTurns, node->m_iMoves));
-//#endif
+	if (g_bPathFinderLogging)
+		g_svPathLog.push_back(SLogNode(state, iRound, node->m_iX, node->m_iY, node->m_iKnownCost, node->m_iHeuristicCost, node->m_iTurns, node->m_iMoves));
 }
 
 //	--------------------------------------------------------------------------------
@@ -1259,7 +1278,7 @@ int PathEndTurnCost(CvPlot* pToPlot, const CvPathNodeCacheData& kToNodeCacheData
 		//we should give more weight to the first end-turn plot, the danger values for future stops are less concrete
 		int iFutureFactor = std::max(1,4-iTurnsInFuture);
 
-		if (pUnit->IsCombatUnit())
+		if (pUnit->IsCombatUnit() && pUnit->isNativeDomain(pToPlot))
 		{
 			//be extra careful if requested but don't really abort, else we might not find a path at all
 			int iScale = bAbortInDanger ? 2 : 1;
@@ -2073,11 +2092,11 @@ int CityConnectionLandValid(const CvAStarNode* parent, const CvAStarNode* node, 
 	{
 		//what else can count as road depends on the player type
 		if(kPlayer.GetPlayerTraits()->IsRiverTradeRoad() && pNewPlot->isRiver())
-				ePlotRoute = ROUTE_ROAD;
+			ePlotRoute = ROUTE_ROAD;
 		if (kPlayer.GetPlayerTraits()->IsWoodlandMovementBonus() && (pNewPlot->getFeatureType() == FEATURE_FOREST || pNewPlot->getFeatureType() == FEATURE_JUNGLE))
 		{
 			//balance patch does not require plot ownership
-			if (gCustomMods.isBALANCE_CORE() || pNewPlot->getOwner() == data.ePlayer)
+			if (MOD_BALANCE_VP || pNewPlot->getTeam() == GET_PLAYER(ePlayer).getTeam())
 				ePlotRoute = ROUTE_ROAD;
 		}
 	}
@@ -2150,29 +2169,62 @@ int CityConnectionWaterValid(const CvAStarNode* parent, const CvAStarNode* node,
 int BuildRouteCost(const CvAStarNode* /*parent*/, const CvAStarNode* node, const SPathFinderUserData& data, CvAStar*)
 {
 	CvPlot* pPlot = GC.getMap().plotUnchecked(node->m_iX, node->m_iY);
+	CvBuilderTaskingAI* eBuilderTaskingAi = GET_PLAYER(data.ePlayer).GetBuilderTaskingAI();
+	RouteTypes eRouteType = (RouteTypes)data.iTypeParameter;
 
-	if(pPlot->getRouteType() != NO_ROUTE)
-		//do not check if the type matches exactly - put railroads over roads
+	// if we are planning to or have already built a road here, or get a free road here from our trait, provide a discount (cities always have a road)
+	if(pPlot->isCity() || eBuilderTaskingAi->GetRouteTypeWantedAtPlot(pPlot) >= eRouteType || eBuilderTaskingAi->GetRouteTypeNeededAtPlot(pPlot) >= eRouteType || eBuilderTaskingAi->GetSameRouteBenefitFromTrait(pPlot, eRouteType))
 		return PATH_BUILD_ROUTE_REUSE_EXISTING_WEIGHT;
-	else
+
+	// if we are planning to build a lower tier route here, provide a smaller discount
+	if ((eBuilderTaskingAi->WantRouteAtPlot(pPlot) || eBuilderTaskingAi->NeedRouteAtPlot(pPlot)) && !eBuilderTaskingAi->GetSameRouteBenefitFromTrait(pPlot, ROUTE_ROAD))
+		return PATH_BASE_COST / 2;
+
+	// if there is already a route here, also provide a small discount
+	if (pPlot->getRouteType() >= ROUTE_ROAD)
+		return PATH_BASE_COST / 2;
+
+	//should we prefer rough terrain because the gain in movement points is greater?
+	int iCost = PATH_BASE_COST;
+
+	//can't build villages on mountains
+	if (pPlot->isMountain())
+		iCost++;
+
+	//prefer plots without resources so we can build more villages
+	if(pPlot->getResourceType()!=NO_RESOURCE)
+		iCost++;
+
+	return iCost;
+}
+
+bool IsSafeForRoute(CvPlot* pPlot, CvPlayer* ePlayer)
+{
+	// Our plots and surrounding plots are safe
+	if (pPlot->getTeam() == ePlayer->getTeam() || pPlot->isAdjacentTeam(ePlayer->getTeam(), false))
 	{
-		// if the tile already been tagged for building a road, then provide a discount
-		if(GET_PLAYER(data.ePlayer).GetBuilderTaskingAI()->WantRouteAtPlot(pPlot))
-			return PATH_BASE_COST/2;
-
-		//should we prefer rough terrain because the gain in movement points is greater?
-		int iCost = PATH_BASE_COST;
-
-		//can't build anything on mountain
-		if (pPlot->isMountain())
-			iCost++;
-
-		//prefer plots without resources so we can build more villages
-		if(pPlot->getResourceType()!=NO_RESOURCE)
-			iCost++;
-
-		return iCost;
+		return true;
 	}
+
+	// City state plots and surrounding plots are safe
+	if (pPlot->isOwned() && GET_PLAYER(pPlot->getOwner()).isMinorCiv() && !GET_PLAYER(pPlot->getOwner()).GetMinorCivAI()->IsAtWarWithPlayersTeam(ePlayer->GetID()))
+	{
+		return true;
+	}
+	CvPlot** aPlotsToCheck = GC.getMap().getNeighborsUnchecked(pPlot);
+	for (int iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
+	{
+		CvPlot* pAdjacentPlot = aPlotsToCheck[iI];
+		if (pAdjacentPlot != NULL)
+		{
+			if (pAdjacentPlot->isOwned() && GET_PLAYER(pAdjacentPlot->getOwner()).isMinorCiv() && !GET_PLAYER(pAdjacentPlot->getOwner()).GetMinorCivAI()->IsAtWarWithPlayersTeam(ePlayer->GetID()))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 //	--------------------------------------------------------------------------------
@@ -2231,6 +2283,14 @@ int BuildRouteValid(const CvAStarNode* parent, const CvAStarNode* node, const SP
 	//too dangerous, might be severed any time
 	if (ePlotOwnerPlayer == NO_PLAYER && pNewPlot->IsAdjacentOwnedByTeamOtherThan(thisPlayer.getTeam()))
 		return FALSE;
+
+	//if the plot and its parent are both too far from our borders, don't build here
+	if (!IsSafeForRoute(pNewPlot, &thisPlayer))
+	{
+		CvPlot* pFromPlot = GC.getMap().plotUnchecked(parent->m_iX, parent->m_iY);
+		if (!IsSafeForRoute(pFromPlot, &thisPlayer))
+			return FALSE;
+	}
 
 	return TRUE;
 }
@@ -2782,14 +2842,14 @@ ReachablePlots CvPathFinder::GetPlotsInReach(const CvPlot * pStartPlot, const SP
 	return GetPlotsInReach(pStartPlot->getX(),pStartPlot->getY(),data);
 }
 
-map<CvPlot*,SPath> CvPathFinder::GetMultiplePaths(const CvPlot* pStartPlot, vector<CvPlot*> vDestPlots, const SPathFinderUserData& data)
+map<int,SPath> CvPathFinder::GetMultiplePaths(const CvPlot* pStartPlot, vector<CvPlot*> vDestPlots, const SPathFinderUserData& data)
 {
 	//make sure we don't call this from dll and lua at the same time
 	bool bHadLock = gDLL->HasGameCoreLock();
 	if(!bHadLock)
 		gDLL->GetGameCoreLock();
 
-	map<CvPlot*,SPath> result;
+	map<int,SPath> result;
 
 	if (!Configure(data) || !pStartPlot)
 	{
@@ -2803,7 +2863,7 @@ map<CvPlot*,SPath> CvPathFinder::GetMultiplePaths(const CvPlot* pStartPlot, vect
 	{
 		bool operator()(const CvPlot* lhs, const CvPlot* rhs) const { return lhs->GetPlotIndex() < rhs->GetPlotIndex(); }
 	};
-	std::sort( vDestPlots.begin(), vDestPlots.end(), PrSortByPlotIndex() );
+	std::stable_sort( vDestPlots.begin(), vDestPlots.end(), PrSortByPlotIndex() );
 
 	//there is no destination! the return value will always be false
 	CvAStar::FindPathWithCurrentConfiguration(pStartPlot->getX(),pStartPlot->getY(), -1, -1, data);
@@ -2850,7 +2910,8 @@ map<CvPlot*,SPath> CvPathFinder::GetMultiplePaths(const CvPlot* pStartPlot, vect
 				std::reverse(path.vPlots.begin(),path.vPlots.end());
 
 				//store it
-				result[ *bounds.first ] = path;
+				
+				result[ (*bounds.first)->GetPlotIndex() ] = path;
 			}
 
 			//don't need to check this again
@@ -3118,7 +3179,7 @@ int TradePathLandCost(const CvAStarNode* parent, const CvAStarNode* node, const 
 		iRouteFactor = 2;
 	// Iroquois ability
 	else if (((eFeature == FEATURE_FOREST || eFeature == FEATURE_JUNGLE) && pCacheData->IsWoodlandMovementBonus()) && 
-				(gCustomMods.isBALANCE_CORE() || pToPlot->getOwner() == finder->GetData().ePlayer) && 
+				(MOD_BALANCE_VP || pToPlot->getTeam() == GET_PLAYER(finder->GetData().ePlayer).getTeam()) && 
 				!(pFromPlot->isRiverCrossing(directionXY(pFromPlot, pToPlot))))
 		iRouteFactor = 2;
 
@@ -3317,6 +3378,9 @@ int ArmyCheckTerritory(CvPlot* pToPlot, const CvPlayer& kPlayer, PlayerTypes eTa
 	if (pToPlot->getOwner() == eTargetPlayer) //typically the enemy but we may be still at peace
 		return TRUE;
 
+	if (finder->HaveFlag(CvUnit::MOVEFLAG_IGNORE_RIGHT_OF_PASSAGE))
+		return TRUE;
+
 	CvTeam& plotTeam = GET_TEAM(pToPlot->getTeam());
 	if (plotTeam.isAtWar(kPlayer.getTeam()))
 	{
@@ -3324,19 +3388,16 @@ int ArmyCheckTerritory(CvPlot* pToPlot, const CvPlayer& kPlayer, PlayerTypes eTa
 			return TRUE;
 	}
 
-	if (!finder->HaveFlag(CvUnit::MOVEFLAG_IGNORE_RIGHT_OF_PASSAGE))
+	if (plotTeam.isMajorCiv())
 	{
-		if (plotTeam.isMajorCiv())
-		{
-			if (plotTeam.IsAllowsOpenBordersToTeam(kPlayer.getTeam()))
-				return TRUE;
-		}
-		else
-		{
-			CvMinorCivAI* pMinorAI = GET_PLAYER(plotTeam.getLeaderID()).GetMinorCivAI();
-			if (pMinorAI->IsPlayerHasOpenBorders(kPlayer.GetID()))
-				return TRUE;
-		}
+		if (plotTeam.IsAllowsOpenBordersToTeam(kPlayer.getTeam()))
+			return TRUE;
+	}
+	else
+	{
+		CvMinorCivAI* pMinorAI = GET_PLAYER(plotTeam.getLeaderID()).GetMinorCivAI();
+		if (pMinorAI->IsPlayerHasOpenBorders(kPlayer.GetID()))
+			return TRUE;
 	}
 
 	return FALSE;
@@ -3620,7 +3681,7 @@ void ReachablePlots::createIndex()
 	lookup.reserve(storage.size());
 	for (size_t i = 0; i < storage.size(); i++)
 		lookup.push_back( make_pair(storage[i].iPlotIndex,i) );
-	sort(lookup.begin(), lookup.end(), PairCompareFirst());
+	std::stable_sort(lookup.begin(), lookup.end(), PairCompareFirst());
 }
 
 struct EqualRangeComparison
@@ -3659,7 +3720,7 @@ void ReachablePlots::insertWithIndex(const SMovePlot& plot)
 {
 	lookup.push_back( make_pair(plot.iPlotIndex,storage.size()) );
 	storage.push_back(plot);
-	sort(lookup.begin(), lookup.end(), PairCompareFirst());
+	std::stable_sort(lookup.begin(), lookup.end(), PairCompareFirst());
 }
 
 FDataStream & operator >> (FDataStream & kStream, CvPathNode & node)

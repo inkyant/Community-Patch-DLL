@@ -69,15 +69,6 @@ void CvCityAI::AI_reset()
 
 void CvCityAI::AI_doTurn()
 {
-	VALIDATE_OBJECT
-	if(!isHuman())
-	{
-		AI_stealPlots();
-
-		//might want to reconsider our build
-		if (m_iDamageTakenLastTurn > getHealRate())
-			AI_setChooseProductionDirty(true);
-	}
 }
 
 void CvCityAI::AI_chooseProduction(bool bInterruptWonders, bool bInterruptBuildings)
@@ -185,30 +176,6 @@ void CvCityAI::AI_setChooseProductionDirty(bool bNewValue)
 	m_bChooseProductionDirty = bNewValue;
 }
 
-void CvCityAI::AI_stealPlots()
-{
-	VALIDATE_OBJECT
-	CvPlot* pLoopPlot = 0;
-	int iI = 0;
-
-
-	for(iI = 0; iI < GetNumWorkablePlots(); iI++)
-	{
-		pLoopPlot = iterateRingPlots(getX(),getY(),iI);
-
-		if(pLoopPlot != NULL)
-		{
-			if(pLoopPlot->getOwningCityOverride() == this)
-			{
-				if(pLoopPlot->getOwner() != getOwner())
-				{
-					pLoopPlot->setOwningCityOverride(NULL);
-				}
-			}
-		}
-	}
-}
-
 /// How many of our City's plots have been grabbed by someone else?
 int CvCityAI::AI_GetNumPlotsAcquiredByOtherPlayer(PlayerTypes ePlayer) const
 {
@@ -292,7 +259,7 @@ void CvCityAI::AI_DoEventChoice(CityEventTypes eChosenEvent)
 			if(flavorChoices.size() > 0)
 			{
 				//sort em!
-				flavorChoices.SortItems();
+				flavorChoices.StableSortItems();
 				
 				//And grab the top selection.
 				CityEventChoiceTypes eBestEventChoice = (CityEventChoiceTypes)flavorChoices.GetElement(0);
@@ -346,7 +313,7 @@ void CvCityAI::AI_DoEventChoice(CityEventTypes eChosenEvent)
 					}
 				}
 			}
-			randomChoices.SortItems();
+			randomChoices.StableSortItems();
 				
 			//And grab the top selection.
 			CityEventChoiceTypes eBestEventChoice = (CityEventChoiceTypes)randomChoices.GetElement(0);

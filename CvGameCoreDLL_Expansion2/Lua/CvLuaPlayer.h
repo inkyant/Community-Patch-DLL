@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -852,6 +852,7 @@ protected:
 	static int lGetMajorBullyGoldDetails(lua_State* L);
 	static int lCanMajorBullyUnit(lua_State* L);
 	static int lGetMajorBullyUnitDetails(lua_State* L);
+	static int lGetMajorBullyAnnexDetails(lua_State* L);
 	static int lGetMajorBullyValue(lua_State* L);
 	static int lCanMajorBuyout(lua_State* L);
 #if defined(MOD_BALANCE_CORE)
@@ -1168,6 +1169,9 @@ protected:
 	static int lUnitsAux(lua_State* L);
 	static int lUnits(lua_State* L);
 
+	static int lUnitsInSquadAux(lua_State* L);
+	static int lUnitsInSquad(lua_State* L);
+
 	static int lCitiesAux(lua_State* L);
 	static int lCities(lua_State* L);
 
@@ -1191,6 +1195,11 @@ protected:
 	static int lIsCarnaval(lua_State* L);
 	static int lGetTraitConquestOfTheWorldCityAttackMod(lua_State* L);
 #endif
+	static int lGetGoldPerTurnFromAnnexedMinors(lua_State* L);
+	static int lGetCulturePerTurnFromAnnexedMinors(lua_State* L);
+	static int lGetFaithPerTurnFromAnnexedMinors(lua_State* L);
+	static int lGetSciencePerTurnFromAnnexedMinors(lua_State* L);
+	static int lGetHappinessFromAnnexedMinors(lua_State* L);
 	static int lIsUsingMayaCalendar(lua_State* L);
 	static int lGetMayaCalendarString(lua_State* L);
 	static int lGetMayaCalendarLongString(lua_State* L);
@@ -1456,6 +1465,8 @@ protected:
 	static int lGetDisabledTooltip (lua_State* L);
 	static int lGetScaledEventChoiceValue (lua_State* L);
 	static int lGetEspionageValues(lua_State* L);
+	static int lGetYieldPerTurnFromEspionageEvents(lua_State* L);
+	static int lGetActiveEspionageEvents(lua_State* L);
 	static int lIsEventChoiceActive (lua_State* L);
 	static int lDoEventChoice (lua_State* L);
 	static int lDoStartEvent (lua_State* L);

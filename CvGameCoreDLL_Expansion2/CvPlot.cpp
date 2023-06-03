@@ -1,4 +1,4 @@
-﻿/*	-------------------------------------------------------------------------------------------------------
+/*	-------------------------------------------------------------------------------------------------------
 	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
@@ -646,7 +646,7 @@ void CvPlot::updateCenterUnit()
 
 
 //	--------------------------------------------------------------------------------
-void CvPlot::verifyUnitValidPlot()
+void CvPlot::verifyUnitValidPlot(bool bWakeUp)
 {
 	vector<IDInfo> oldUnitList;
 
@@ -666,6 +666,11 @@ void CvPlot::verifyUnitValidPlot()
 			{
 				if(pLoopUnit->atPlot(*this))
 				{
+					//if plot ownership changes we want to make sure that human units
+					//which would suffer attrition or cause annoyance are woken up
+					if (bWakeUp)
+						pLoopUnit->SetActivityType(ACTIVITY_AWAKE);
+
 					if(!(pLoopUnit->isCargo()))
 					{
 						if(!(pLoopUnit->isInCombat()))
@@ -2989,7 +2994,7 @@ CvUnit* CvPlot::getBestGarrison(PlayerTypes eOwner) const
 	CvUnit* pBestUnit = NULL;
 
 	//we don't consider promotions here ...
-	int iBestBaseCS = 0;
+	int iBestBaseCS = -1;
 	while(pUnitNode != NULL)
 	{
 		pLoopUnit = GetPlayerUnit(*pUnitNode);
@@ -2998,9 +3003,9 @@ CvUnit* CvPlot::getBestGarrison(PlayerTypes eOwner) const
 		if(pLoopUnit && (pLoopUnit->getOwner() == eOwner) && pLoopUnit->CanGarrison() && !pLoopUnit->isDelayedDeath())
 		{
 			int iBaseCS = max(pLoopUnit->GetBaseCombatStrength(),pLoopUnit->GetBaseRangedCombatStrength());
-			//naval units considered weaker
+			//naval units are not the best garrison
 			if (!pLoopUnit->isNativeDomain(this))
-				iBaseCS /= 2;
+				iBaseCS = 0;
 
 			if(iBaseCS>iBestBaseCS)
 			{
@@ -3458,6 +3463,69 @@ bool CvPlot::IsAdjacentOwnedByTeamOtherThan(TeamTypes eTeam, bool bAllowNoTeam, 
 	return false;
 }
 
+//	--------------------------------------------------------------------------------
+bool CvPlot::IsAdjacentOwnedByUnfriendly(PlayerTypes ePlayer, vector<PlayerTypes>& vUnfriendlyMajors) const
+{
+	CvPlot** aPlotsToCheck = GC.getMap().getNeighborsUnchecked(this);
+	set<PlayerTypes> adjacentPlayers;
+	for (int iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
+	{
+		CvPlot* pAdjacentPlot = aPlotsToCheck[iI];
+		if (pAdjacentPlot != NULL)
+		{
+			PlayerTypes ePlotOwner = pAdjacentPlot->getOwner();
+			if (ePlotOwner != NO_PLAYER && GET_PLAYER(ePlotOwner).getTeam() != GET_PLAYER(ePlayer).getTeam())
+			{
+				if (pAdjacentPlot->isImpassable(GET_PLAYER(ePlotOwner).getTeam()))
+					continue;
+
+				if (adjacentPlayers.find(ePlotOwner) == adjacentPlayers.end())
+					adjacentPlayers.insert(ePlotOwner);
+			}
+		}
+	}
+
+	if (adjacentPlayers.size() > 0)
+	{
+		if (GET_PLAYER(ePlayer).isBarbarian())
+			return true;
+
+		// Were we already passed a set of players to check? (performance optimization)
+		if (!vUnfriendlyMajors.empty())
+		{
+			for (set<PlayerTypes>::iterator it = adjacentPlayers.begin(); it != adjacentPlayers.end(); ++it)
+			{
+				if (std::find(vUnfriendlyMajors.begin(), vUnfriendlyMajors.end(), *it) != vUnfriendlyMajors.end())
+					return true;
+			}
+		}
+		else
+		{
+			if (GET_PLAYER(ePlayer).isMajorCiv())
+			{
+				for (set<PlayerTypes>::iterator it = adjacentPlayers.begin(); it != adjacentPlayers.end(); ++it)
+				{
+					if (GET_PLAYER(ePlayer).GetDiplomacyAI()->IsPotentialMilitaryTargetOrThreat(*it, false))
+						return true;
+				}
+			}
+			else if (GET_PLAYER(ePlayer).isMinorCiv())
+			{
+				for (set<PlayerTypes>::iterator it = adjacentPlayers.begin(); it != adjacentPlayers.end(); ++it)
+				{
+					TeamTypes eAdjacentTeam = GET_PLAYER(*it).getTeam();
+					if (GET_PLAYER(ePlayer).IsAtWarWith(*it) || GET_PLAYER(ePlayer).GetMinorCivAI()->IsWaryOfTeam(eAdjacentTeam)
+						|| GET_PLAYER(ePlayer).GetMinorCivAI()->GetJerkTurnsRemaining(eAdjacentTeam) > 0)
+					{
+						return true;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
 
 //	--------------------------------------------------------------------------------
 bool CvPlot::IsAdjacentOwnedByEnemy(TeamTypes eTeam) const
@@ -3664,34 +3732,98 @@ int CvPlot::countPassableNeighbors(DomainTypes eDomain, CvPlot** aPassableNeighb
 
 bool CvPlot::IsBorderLand(PlayerTypes eDefendingPlayer) const
 {
+	vector<PlayerTypes> vUnfriendlyMajors;
+
 	//check distance to all major players' cities
 	//if homefront for at least one ...
 	for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
 	{
 		PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
-		if (eLoopPlayer == eDefendingPlayer)
+		if (GET_PLAYER(eLoopPlayer).getTeam() == GET_PLAYER(eDefendingPlayer).getTeam())
 			continue;
 
-		if (!GET_PLAYER(eLoopPlayer).isAlive())
+		if (!GET_PLAYER(eLoopPlayer).isAlive() || GET_PLAYER(eLoopPlayer).getNumCities() <= 0)
 			continue;
 
-		//we trust our friends
-		if (GET_PLAYER(eDefendingPlayer).isMajorCiv() && !GET_PLAYER(eDefendingPlayer).GetDiplomacyAI()->IsPotentialMilitaryTargetOrThreat(eLoopPlayer))
+		if (GET_PLAYER(eDefendingPlayer).isMajorCiv())
 		{
-			continue;
+			if (GET_PLAYER(eDefendingPlayer).GetDiplomacyAI()->IsPotentialMilitaryTargetOrThreat(eLoopPlayer, false))
+				vUnfriendlyMajors.push_back(eLoopPlayer);
+			else
+				continue;
 		}
-		else if (GET_PLAYER(eDefendingPlayer).isMinorCiv() && (GET_PLAYER(eDefendingPlayer).GetMinorCivAI()->IsFriends(eLoopPlayer) || (GET_PLAYER(eDefendingPlayer).GetMinorCivAI()->GetAlly() == eLoopPlayer)))
+		else if (GET_PLAYER(eDefendingPlayer).isMinorCiv())
 		{
-			continue;
+			TeamTypes eLoopTeam = GET_PLAYER(eLoopPlayer).getTeam();
+			if (GET_PLAYER(eDefendingPlayer).IsAtWarWith(eLoopPlayer) || GET_PLAYER(eDefendingPlayer).GetMinorCivAI()->IsWaryOfTeam(eLoopTeam)
+				|| GET_PLAYER(eDefendingPlayer).GetMinorCivAI()->GetJerkTurnsRemaining(eLoopTeam) > 0)
+			{
+				vUnfriendlyMajors.push_back(eLoopPlayer);
+			}
+			else
+				continue;			
 		}
 
 		if (IsCloseToCity(eLoopPlayer))
 			return true;
 	}
 
-	//alternatively see if an adjacent plot is owned by another player
+	//alternatively see if an adjacent plot is owned by an unfriendly player
 	//only check adjacent plots, everything else is too expensive
-	return IsAdjacentOwnedByTeamOtherThan(GET_PLAYER(eDefendingPlayer).getTeam(), true);
+	return IsAdjacentOwnedByUnfriendly(eDefendingPlayer, vUnfriendlyMajors);
+}
+
+bool CvPlot::IsBorderLand(PlayerTypes eDefendingPlayer, vector<PlayerTypes>& vUnfriendlyMajors) const
+{
+	// Were we already passed a set of players to check? (performance optimization)
+	if (!vUnfriendlyMajors.empty())
+	{
+		for (std::vector<PlayerTypes>::iterator it = vUnfriendlyMajors.begin(); it != vUnfriendlyMajors.end(); it++)
+		{
+			if (IsCloseToCity(*it))
+				return true;
+		}
+	}
+	else
+	{
+		//check distance to all major players' cities
+		//if homefront for at least one ...
+		for (int iPlayerLoop = 0; iPlayerLoop < MAX_MAJOR_CIVS; iPlayerLoop++)
+		{
+			PlayerTypes eLoopPlayer = (PlayerTypes)iPlayerLoop;
+			if (GET_PLAYER(eLoopPlayer).getTeam() == GET_PLAYER(eDefendingPlayer).getTeam())
+				continue;
+
+			if (!GET_PLAYER(eLoopPlayer).isAlive() || GET_PLAYER(eLoopPlayer).getNumCities() <= 0)
+				continue;
+
+			if (GET_PLAYER(eDefendingPlayer).isMajorCiv())
+			{
+				if (GET_PLAYER(eDefendingPlayer).GetDiplomacyAI()->IsPotentialMilitaryTargetOrThreat(eLoopPlayer, false))
+					vUnfriendlyMajors.push_back(eLoopPlayer);
+				else
+					continue;
+			}
+			else if (GET_PLAYER(eDefendingPlayer).isMinorCiv())
+			{
+				TeamTypes eLoopTeam = GET_PLAYER(eLoopPlayer).getTeam();
+				if (GET_PLAYER(eDefendingPlayer).IsAtWarWith(eLoopPlayer) || GET_PLAYER(eDefendingPlayer).GetMinorCivAI()->IsWaryOfTeam(eLoopTeam)
+					|| GET_PLAYER(eDefendingPlayer).GetMinorCivAI()->GetJerkTurnsRemaining(eLoopTeam) > 0)
+				{
+					vUnfriendlyMajors.push_back(eLoopPlayer);
+				}
+				else
+					continue;			
+			}
+
+			if (IsCloseToCity(eLoopPlayer))
+				return true;
+		}
+	}
+
+	//alternatively see if an adjacent plot is owned by an unfriendly player
+	//only check adjacent plots, everything else is too expensive
+	return IsAdjacentOwnedByUnfriendly(eDefendingPlayer, vUnfriendlyMajors);
 }
 
 bool CvPlot::IsChokePoint() const
@@ -5843,7 +5975,6 @@ void CvPlot::updatePotentialCityWork()
 //	--------------------------------------------------------------------------------
 void CvPlot::setOwner(PlayerTypes eNewValue, int iAcquiringCityID, bool bCheckUnits, bool)
 {
-	IDInfo* pUnitNode = NULL;
 	CvCity* pOldCity = NULL;
 	CvString strBuffer;
 	int iI = 0;
@@ -6035,6 +6166,10 @@ void CvPlot::setOwner(PlayerTypes eNewValue, int iAcquiringCityID, bool bCheckUn
 							}
 						}
 #endif
+						else if (isCity())
+						{
+							GET_PLAYER(eOldOwner).changeNumResourceTotal(getResourceType(), -getNumResourceForPlayer(eOldOwner));
+						}
 					}
 				}
 			}
@@ -6085,8 +6220,6 @@ void CvPlot::setOwner(PlayerTypes eNewValue, int iAcquiringCityID, bool bCheckUn
 				if (pOldCity)
 					setIsCity(false, pOldCity->GetID(), pOldCity->getWorkPlotDistance());
 			}
-
-			pUnitNode = headUnitNode();
 
 			// if the plot is being worked and the city is about to change then put the citizen somewhere else
 			if (!m_owningCityOverride.isInvalid() && iAcquiringCityID!=m_owningCityOverride.iID)
@@ -6334,8 +6467,6 @@ void CvPlot::setOwner(PlayerTypes eNewValue, int iAcquiringCityID, bool bCheckUn
 				}
 			}
 
-			pUnitNode = headUnitNode();
-
 			for(iI = 0; iI < MAX_TEAMS; ++iI)
 			{
 				if (GET_TEAM((TeamTypes)iI).isObserver() || GET_TEAM((TeamTypes)iI).isAlive())
@@ -6382,7 +6513,7 @@ void CvPlot::setOwner(PlayerTypes eNewValue, int iAcquiringCityID, bool bCheckUn
 
 			if(bCheckUnits)
 			{
-				verifyUnitValidPlot();
+				verifyUnitValidPlot(true);
 			}
 
 			if(GC.getGame().isDebugMode())
@@ -7233,11 +7364,15 @@ ImprovementTypes CvPlot::getImprovementTypeNeededToImproveResource(PlayerTypes e
 		if (bIgnoreSpecialImprovements && (pImprovementInfo->IsCreatedByGreatPerson() || pImprovementInfo->IsAdjacentCity()))
 			continue;
 
-		if(pImprovementInfo->IsWater() != isWater())
+		if (pImprovementInfo->IsWater() != isWater())
 			continue;
 
-		if(pImprovementInfo->IsCoastMakesValid() != (isWater() && !isLake()))
-			continue;
+		bool isCoast = isWater() && !isLake();
+		if (pImprovementInfo->IsCoastMakesValid() && isCoast)
+		{
+			eImprovementNeeded = eImprovement;
+			break;
+		}
 
 		eImprovementNeeded = eImprovement;
 	}
@@ -7347,6 +7482,11 @@ void CvPlot::setImprovementType(ImprovementTypes eNewValue, PlayerTypes eBuilder
 
 	if (eNewValue < NO_IMPROVEMENT) return;
 	if (eNewValue > NO_IMPROVEMENT && GC.getImprovementInfo(eNewValue) == NULL) return;
+
+	// Clear the pillage state if the improvement was replaced by any means
+	bool bPillageStateChanged = IsImprovementPillaged();
+	if (bPillageStateChanged)
+		SetImprovementPillaged(false, false);
 
 	// new farm resources: generic farm textures for asia and american are replaced with rice and maize farm texs. 
 	// when a farm is built on those continents, check for plot's resource. if it's a generic, non-resource farm, change the art to another continent to get diverse generic graphics.
@@ -7591,13 +7731,6 @@ void CvPlot::setImprovementType(ImprovementTypes eNewValue, PlayerTypes eBuilder
 		}
 
 		setUpgradeProgress(0);
-
-		// make sure this plot is not disabled
-#if defined(MOD_EVENTS_TILE_IMPROVEMENTS)
-		SetImprovementPillaged(false, false);
-#else
-		SetImprovementPillaged(false);
-#endif
 
 		for(iI = 0; iI < MAX_TEAMS; ++iI)
 		{
@@ -8314,14 +8447,15 @@ void CvPlot::setImprovementType(ImprovementTypes eNewValue, PlayerTypes eBuilder
 		{
 			setLayoutDirty(true);
 		}
-		
-#if defined(MOD_EVENTS_TILE_IMPROVEMENTS)
+	}
+
+	if (eOldImprovement != eNewValue || bPillageStateChanged)
+	{
 		if (MOD_EVENTS_TILE_IMPROVEMENTS)
 		{
 			GAMEEVENTINVOKE_HOOK(GAMEEVENT_TileImprovementChanged, getX(), getY(), getOwner(), eOldImprovement, eNewValue, IsImprovementPillaged());
 		}
-#endif
-#if defined(MOD_IMPROVEMENTS_EXTENSIONS)
+
 		if (MOD_IMPROVEMENTS_EXTENSIONS && eNewValue != NO_IMPROVEMENT)
 		{
 			// this should be called last
@@ -8330,7 +8464,6 @@ void CvPlot::setImprovementType(ImprovementTypes eNewValue, PlayerTypes eBuilder
 				setImprovementType(NO_IMPROVEMENT);
 			}
 		}
-#endif
 	}
 }
 
@@ -9789,7 +9922,7 @@ int CvPlot::calculateReligionImprovementYield(YieldTypes eYield, PlayerTypes ePl
 	return iReligionChange;
 }
 //	--------------------------------------------------------------------------------
-int CvPlot::calculateImprovementYield(YieldTypes eYield, int iCurrentYield, PlayerTypes ePlayer, ImprovementTypes eImprovement, const CvCity* pOwningCity, bool bOptimal, RouteTypes eAssumeThisRoute) const
+int CvPlot::calculateImprovementYield(YieldTypes eYield, PlayerTypes ePlayer, ImprovementTypes eImprovement, const CvCity* pOwningCity, bool bOptimal, RouteTypes eAssumeThisRoute) const
 {
 	ResourceTypes eResource;
 	int iBestYield = 0;
@@ -9810,19 +9943,17 @@ int CvPlot::calculateImprovementYield(YieldTypes eYield, int iCurrentYield, Play
 	if (ePlayer != NO_PLAYER)
 	{
 		CvPlayerAI& kPlayer = GET_PLAYER(ePlayer);
-		if (iYield > 0 || iCurrentYield > 0)
+
+		int iAdjacentYield = pImprovement->GetYieldAdjacentSameType(eYield);
+		if (iAdjacentYield > 0)
 		{
-			int iAdjacentYield = pImprovement->GetYieldAdjacentSameType(eYield);
-			if (iAdjacentYield > 0)
-			{
-				iYield += ComputeYieldFromAdjacentImprovement(*pImprovement, eImprovement, eYield);
-			}
-	
-			int iTwoAdjacentYield = pImprovement->GetYieldAdjacentTwoSameType(eYield);
-			if (iTwoAdjacentYield > 0)
-			{
-				iYield += ComputeYieldFromTwoAdjacentImprovement(*pImprovement, eImprovement, eYield);
-			}
+			iYield += ComputeYieldFromAdjacentImprovement(*pImprovement, eImprovement, eYield);
+		}
+
+		int iTwoAdjacentYield = pImprovement->GetYieldAdjacentTwoSameType(eYield);
+		if (iTwoAdjacentYield > 0)
+		{
+			iYield += ComputeYieldFromTwoAdjacentImprovement(*pImprovement, eImprovement, eYield);
 		}
 
 		int iYieldChangePerEra = pImprovement->GetYieldChangePerEra(eYield);
@@ -10539,7 +10670,7 @@ int CvPlot::calculateYieldFast(YieldTypes eYield, bool bDisplay, const CvCity* p
 	int iYield = calculateNatureYield(eYield, ePlayer, pOwningCity, false, bDisplay);
 	iYield += calculateReligionImprovementYield(eYield, ePlayer, eImprovement, pOwningCity, pMajorityReligion, pSecondaryPantheon);
 	iYield += calculateReligionNatureYield(eYield, ePlayer, pOwningCity, pMajorityReligion, pSecondaryPantheon);
-	iYield += calculateImprovementYield(eYield, iYield, ePlayer, eImprovement, pOwningCity, false, eRoute);
+	iYield += calculateImprovementYield(eYield, ePlayer, eImprovement, pOwningCity, false, eRoute);
 	iYield += calculatePlayerYield(eYield, iYield, ePlayer, eImprovement, pOwningCity, pMajorityReligion, pSecondaryPantheon, pPlayerPantheon, bDisplay);
 #if defined(MOD_RELIGION_PERMANENT_PANTHEON)
 	if (MOD_RELIGION_PERMANENT_PANTHEON && pPlayerPantheon != NULL)
@@ -13181,7 +13312,7 @@ int CvPlot::getYieldWithBuild(BuildTypes eBuild, YieldTypes eYield, bool bWithUp
 			}
 		}
 
-		iYield += calculateImprovementYield(eYield, iYield, ePlayer, eImprovement, pOwningCity, false, getRouteType()) + calculateReligionImprovementYield(eYield, ePlayer, eImprovement, pOwningCity, pMajorityReligion, pSecondaryPantheon);
+		iYield += calculateImprovementYield(eYield, ePlayer, eImprovement, pOwningCity, false, getRouteType()) + calculateReligionImprovementYield(eYield, ePlayer, eImprovement, pOwningCity, pMajorityReligion, pSecondaryPantheon);
 #if defined(MOD_RELIGION_PERMANENT_PANTHEON)
 		if (MOD_RELIGION_PERMANENT_PANTHEON && pPlayerPantheon != NULL)
 		{
@@ -15110,7 +15241,7 @@ int CvPlot::GetDefenseBuildValue(PlayerTypes eOwner)
 	}
 
 	//only build a fort if it's somewhat close to the enemy and there aren't forts nearby. We shouldn't be spamming them.
-	if (iBadNearby == 0 || iNearbyForts > 2)
+	if (iNearbyForts > 2)
 		return 0;
 
 	//Get score for this fortification

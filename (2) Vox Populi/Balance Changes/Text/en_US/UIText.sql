@@ -84,6 +84,16 @@ UPDATE Language_en_US
 SET Text = 'If they have [COLOR_POSITIVE_TEXT]two[ENDCOLOR] Tier 3 Tenets of an Ideology, and their population is Content, an unmet civilization only needs their culture to become Influential with 2 more civilizations to construct the Citizen Earth Protocol and win a Culture Victory.'
 WHERE Tag = 'TXT_KEY_NOTIFICATION_CULTURE_VICTORY_WITHIN_TWO_UNMET_TT';
 
+-- Healing
+
+UPDATE Language_en_US
+SET Text = 'To heal damage, a unit must remain inactive for a turn. The amount of damage that a unit heals depends upon the unit''s location.[NEWLINE][NEWLINE]In a Friendly City: A unit heals [COLOR_YELLOW]20[ENDCOLOR] HPs per turn.[NEWLINE]In Friendly Territory: [COLOR_YELLOW]15[ENDCOLOR] HP per turn.[NEWLINE]In Neutral Territory: [COLOR_YELLOW]10[ENDCOLOR] HP per turn.[NEWLINE]In Enemy Territory: [COLOR_YELLOW]5[ENDCOLOR] HP per turn.[NEWLINE][NEWLINE][COLOR_YELLOW]Units within the borders of a City that is in Resistance heal only 5HP per turn. Units within the borders of a City that is being razed heal 20HP per turn (looting).[ENDCOLOR][NEWLINE][NEWLINE]Note that certain promotions will accelerate a unit''s healing rate.'
+WHERE Tag = 'TXT_KEY_COMBAT_HEALTINGDAMAGE_HEADING3_BODY';		
+
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Healing[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_COMBAT_HEALTINGDAMAGE_HEADING3_TITLE';
+		
 -- Difficulty Level Tooltips
 UPDATE Language_en_US
 SET Text = 'Beginner. The AI is at a significant disadvantage.'
@@ -143,6 +153,14 @@ SET Text = 'A unit gains XPs for surviving a round of combat (or, if a scout, fr
 WHERE Tag = 'TXT_KEY_COMBAT_ACQUIRINGXP_HEADING3_BODY';
 
 UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Barbarian Units[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_BARBARIAN_UNITS_HEADING2_TITLE';
+
+UPDATE Language_en_US
+SET Text = 'Barbarian encampments can create almost any kind of unit in the game - from warriors and spearmen to cannons and tanks. (They can build units equal to those that the most advanced civilization can create.)[NEWLINE][NEWLINE]Once created the barbarian units will either hang around their encampment or head off toward the nearest civilization or city-state and try to cause trouble. They''ll attack units, destroy improvements and menace cities. [COLOR_YELLOW]Barbarians next to a city without a garrison can steal food, culture, production or science from the owner. They can also conquer a poorly-defended city and turn it into a Barbarian City.[ENDCOLOR][NEWLINE][NEWLINE]This is why it''s important to periodically sweep the countryside around your civilization, destroying encampments before they become a threat.'
+WHERE Tag = 'TXT_KEY_BARBARIAN_UNITS_HEADING2_BODY';
+
+UPDATE Language_en_US
 SET Text = 'Once their civilization has learned certain technologies (see tech tree), workers can remove forests, jungles, and marshes from tiles. Once these features are removed, they are gone forever.'
 WHERE Tag = 'TXT_KEY_WORKERS_CLEARINGLAND_HEADING2_BODY';
 UPDATE Language_en_US
@@ -169,26 +187,105 @@ SET Text = 'You are currently using more {1_Resource:textkey} than you have! All
 WHERE Tag = 'TXT_KEY_NOTIFICATION_OVER_RESOURCE_LIMIT';
 	
 -- Text Changes for Spies in Cities
+
+-- Espionage
+
 UPDATE Language_en_US
-SET Text = '{1_SpyRank} {2_SpyName} cannot steal technologies from, or perform Great Work Heists against {3_CityName}, however they can continue to disrupt the player through additional actions like sabotage.[NEWLINE][NEWLINE]The base Spy Resistance of {4_CityName} is {5_Num}.[NEWLINE][NEWLINE]Security reflects the vulnerability of a city to Espionage. The higher the value, the less vulnerable the city. The base value [COLOR_POSITIVE_TEXT](a scale, from 1 to 10)[ENDCOLOR] is based on the overall prosperity of the city. Spy Resistance may be increased by defensive buildings in the city, such as the Constabulary and the Police Station.'
+SET Text = 'Security Level'
+WHERE Tag = 'TXT_KEY_EO_POTENTIAL';
+
+UPDATE Language_en_US
+SET Text = 'Security Level reflects the difficulty of Espionage in a City. The higher the value, the more time it will take to complete Spy Missions. The base value (from 5 to 50) is based on the overall economic value of the City (relative to all other cities). Security is also affected by Espionage modifiers and buildings in the city, such as the Constabulary and the Police Station. Security also increases when a City has a powerful Counterspy.[NEWLINE][NEWLINE]Click to sort cities by their Security level.'
+WHERE Tag = 'TXT_KEY_EO_POTENTIAL_SORT_TT';
+
+UPDATE Language_en_US
+SET Text = 'If your cities have low Security, you should consider protecting them. There are two ways to do this. You may move your own spies to your cities to act as counterspies that have a chance to catch and kill enemy spies before they steal something. You may also slow down how quickly enemy spies can steal things by constructing buildings like the Constabulary, Police Station, and the Great Firewall.'
+WHERE Tag = 'TXT_KEY_EO_OWN_CITY_POTENTIAL_TT';
+
+UPDATE Language_en_US
+SET Text = '{1_SpyRank} {2_SpyName} is stealing from {3_CityName}.[NEWLINE]The current Security Level of {3_CityName} is {4_Num}.[NEWLINE][NEWLINE]Security reflects the vulnerability of a city to Espionage. The higher the value, the more protected the city. The base value (from 1 to 50) is based on the overall prosperity and happiness of the city (relative to all other cities). Security may be decreased by Policies and Espionage buildings in the city, such as the Constabulary and the Police Station.'
+WHERE Tag = 'TXT_KEY_EO_CITY_POTENTIAL_TT';
+
+UPDATE Language_en_US
+SET Text = '{1_SpyRank} {2_SpyName} cannot steal technologies from {3_CityName}.[NEWLINE][NEWLINE]The Security Level of {4_CityName} is {5_Num}.[NEWLINE][NEWLINE]Security reflects the vulnerability of a city to Espionage. The higher the value, the more protected the city. The base value (from 5 to 50) is based on the overall prosperity and happiness of the city. Security may be decreased by Policies and Espionage buildings in the city, such as the Constabulary and the Police Station..'
 WHERE Tag = 'TXT_KEY_EO_CITY_POTENTIAL_CANNOT_STEAL_TT';
 
 UPDATE Language_en_US
-SET Text = '{1_SpyRank} {2_SpyName} is in {3_CityName}. While {4_SpyRank} {5_SpyName} is in your city, they will perform counter-espionage operations to capture and kill any enemy spies that try to complete Spy Events.'
+SET Text = 'The Security Level of {1_CityName} is believed to be {2_Num}. Send a [ICON_SPY] Spy to this City to learn more about it.[NEWLINE][NEWLINE]Security reflects the vulnerability of a city to Espionage. The higher the value, the more protected the city. The base value (from 5 to 50) is based on the overall prosperity and happiness of the city. Security may be decreased by Policies and Espionage buildings in the city, such as the Constabulary and the Police Station.'
+WHERE Tag = 'TXT_KEY_EO_CITY_ONCE_KNOWN_POTENTIAL_TT';
+
+
+UPDATE Language_en_US
+SET Text = '[ICON_CAPITAL] Security Level: [COLOR_POSITIVE_TEXT]{2_Num}[ENDCOLOR][NEWLINE][ICON_SPY] Spy Resistance: [COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR][NEWLINE][NEWLINE]If [ICON_SPY] Spy Resistance is negative, the City''s Security Level will [COLOR_NEGATIVE_TEXT]fall[ENDCOLOR] towards 5 and enemy Spies will operate more quickly. If positive, it will [COLOR_POSITIVE_TEXT]rise[ENDCOLOR] towards 50 and enemy Spies will operate more slowly. [NEWLINE][NEWLINE]If an enemy Spy completes a Mission in the City, the Security Level is reset to 50.'
+WHERE Tag = 'TXT_KEY_POTENTIAL_CALCULATION';
+UPDATE Language_en_US
+SET Text = '[COLOR_POSITIVE_TEXT]Estimated Duration:[ENDCOLOR] {1_Num} Turns'
+WHERE Tag = 'TXT_KEY_ESPIONAGE_MISSION_DURATION';
+
+UPDATE Language_en_US
+SET Text = 'Conducting Spy Mission'
+WHERE Tag = 'TXT_KEY_SPY_STATE_GATHERING_INTEL';
+
+UPDATE Language_en_US
+SET Text = '{1_RankName} {2_SpyName} is attempting to rig the election in {3_CityName} to increase our influence there. If a coup is possible in the city (ignoring cooldown time), each successfully rigged election increases its success chance. The success chance of a coup is increased by a higher amount for higher ranking spies.'
+WHERE Tag = 'TXT_KEY_EO_SPY_RIGGING_ELECTIONS_SHORT_TT';
+
+UPDATE Language_en_US
+SET Text = '{1_RankName} {2_SpyName} is conducting a Spy Mission in {3_CityName}. If the city''s owner has a spy in the city, your spy has a chance of being discovered and killed when they try to complete their mission!'
+WHERE Tag = 'TXT_KEY_EO_SPY_GATHERING_INTEL_TT';
+
+UPDATE Language_en_US
+SET Text = '{1_RankName} {2_SpyName} is schmoozing in {3_CityName} as a diplomat.[NEWLINE][NEWLINE]A spy can be a diplomat if they are placed in the capital of another civilization you are not at war with. (If war is declared, your spy will escape the city.) A diplomat will not attempt to conduct Spy Missions but will still provide intrigue. Once the World Congress convenes and the diplomat has begun schmoozing, you will be able to determine their opinion on proposals and trade for their support if needed. Diplomats also conduct propaganda that provides a boost to [ICON_TOURISM] Tourism output to the target civilization.'
+WHERE Tag = 'TXT_KEY_SPY_STATE_SCHMOOZING_TT';
+
+UPDATE Language_en_US
+SET Text = '{1_RankName} {2_SpyName} is trying to make all the right connections in  {3_CityName} as a diplomat. After they have made their introductions, they will be able to schmooze.[NEWLINE][NEWLINE]A spy can be a diplomat if they are placed in the capital of another civilization. A diplomat will not attempt to conduct Spy Missions but will still provide intrigue. Once the World Congress convenes and the diplomat has begun schmoozing, you will be able to determine their opinion on proposals and trade for their support if needed.'
+WHERE Tag = 'TXT_KEY_SPY_STATE_MAKING_INTRODUCTIONS_TT';
+
+UPDATE Language_en_US
+SET Text = '{1_RankName} {2_SpyName} is conducting counter-intelligence operations in {3_CityName}.[NEWLINE][NEWLINE]If an enemy spy tries to finish a Spy Mission in the city you have the spy in, your spy will ensure that the theft is detected. It has a chance of determining who stole the information as well as killing the enemy spy outright. The higher rank your spy, the more likely you are to kill the enemy spy.'
+WHERE Tag = 'TXT_KEY_EO_SPY_COUNTER_INTEL_TT';
+
+UPDATE Language_en_US
+SET Text = '{1_SpyRank} {2_SpyName} is in {3_CityName}. While {4_SpyRank} {5_SpyName} is in your city, they will perform counter-espionage operations to capture and kill any enemy spies that try to complete Spy Missions.'
 WHERE Tag = 'TXT_KEY_CITY_SPY_YOUR_CITY_TT';
 
 UPDATE Language_en_US
-SET Text = '{1_SpyRank} {2_SpyName} is in {3_CityName}. While {4_SpyRank} {5_SpyName} is in the city, they establish surveillance and work towards completing Spy Events. {6_SpyRank} {7_SpyName} will also inform you of any intrigue that they discover during their operations.'
+SET Text = '{1_SpyRank} {2_SpyName} is in {3_CityName}. While {4_SpyRank} {5_SpyName} is in the city, they establish surveillance and work towards completing Spy Missions. {6_SpyRank} {7_SpyName} will also inform you of any intrigue that they discover during their operations.'
 WHERE Tag = 'TXT_KEY_CITY_SPY_OTHER_CIV_TT';
 
 UPDATE Language_en_US
-SET Text = 'Options for {1_SpyRank} {2_SpyName}:[NEWLINE][NEWLINE][ICON_BULLET] Move to a City-State and attempt to [COLOR_POSITIVE_TEXT]Rig an Election[ENDCOLOR] or [COLOR_POSITIVE_TEXT]Stage a Coup[ENDCOLOR].[NEWLINE][ICON_BULLET] Move to a non-Capital City owned by a Major Civilization and attempt a [COLOR_POSITIVE_TEXT]Spy Event[ENDCOLOR].[NEWLINE][ICON_BULLET] Move to a Capital City owned by a Major Civilization and attempt a [COLOR_POSITIVE_TEXT]Spy Event[ENDCOLOR], [COLOR_POSITIVE_TEXT]Uncover Intrigue[ENDCOLOR], or [COLOR_POSITIVE_TEXT]Schmooze[ENDCOLOR] as a Diplomat.'
+SET Text = 'Options for {1_SpyRank} {2_SpyName}:[NEWLINE][NEWLINE][ICON_BULLET] Move to a City-State and attempt to [COLOR_POSITIVE_TEXT]Rig an Election[ENDCOLOR] or [COLOR_POSITIVE_TEXT]Stage a Coup[ENDCOLOR].[NEWLINE][ICON_BULLET] Move to a non-Capital City owned by a Major Civilization and attempt to conduct a [COLOR_POSITIVE_TEXT]Spy Mission[ENDCOLOR].[NEWLINE][ICON_BULLET] Move to a Capital City owned by a Major Civilization and attempt to conduct a [COLOR_POSITIVE_TEXT]Spy Mission[ENDCOLOR], [COLOR_POSITIVE_TEXT]Uncover Intrigue[ENDCOLOR], or [COLOR_POSITIVE_TEXT]Schmooze[ENDCOLOR] as a Diplomat.'
 WHERE Tag = 'TXT_KEY_EO_SPY_MOVE_TT';
 
 
 UPDATE Language_en_US
-SET Text = '{1_SpyName} has achieved the rank of {2_RankName}.[NEWLINE][NEWLINE]There are three spy ranks: Recruit, Agent, and Special Agent. Each subsequent level makes the spy more effective. A higher ranking spy will operate faster and kill enemy spies that are trying to work against you more frequently, rig elections in City-States more effectively, and have a greater chance of pulling off a coup in a City-State allied with another civilization.[NEWLINE][NEWLINE]Spies level up when they successfully complete Spy Events, kill an enemy spy, schmooze as as a diplomat, or if they uncover intrigue.'
+SET Text = '{1_SpyName} has achieved the rank of {2_RankName}.[NEWLINE][NEWLINE]There are three spy ranks: Recruit, Agent, and Special Agent. Each subsequent level makes the spy more effective. A higher ranking spy will operate faster and kill enemy spies that are trying to work against you more frequently, rig elections in City-States more effectively, and have a greater chance of pulling off a coup in a City-State allied with another civilization.[NEWLINE][NEWLINE]Spies level up when they successfully complete Spy Missions, kill an enemy spy, schmooze as as a diplomat, or if they uncover intrigue.'
 WHERE Tag = 'TXT_KEY_EO_SPY_RANK_TT';
+
+UPDATE Language_en_US
+SET Text = 'Click to have {1_SpyRank} {2_SpyName} attempt a coup in {3_CityName} to overthrow the {4_CivAdjective} sympathizers there.[NEWLINE][NEWLINE][COLOR_HIGHLIGHT_TEXT]They have a {5_Num}% chance of success (assuming no enemy counterspy is present).[ENDCOLOR] If {6_SpyRank} {7_SpyName} succeeds, you will become allies with {8_CityName} and {9_CivShortDesc} will be lowered to your current influence amount. Then all other players influence will drop. If {10_SpyRank} {11_SpyName} fails, they will be killed and your influence with {12_CityName} will greatly diminish.[NEWLINE][NEWLINE]To increase your chance of success, you may increase your influence over the City-State, rig elections, use a higher ranking spy, or wait for the current ally''s influence to decay.'
+WHERE Tag = 'TXT_KEY_EO_SPY_COUP_ENABLED_TT';
+
+UPDATE Language_en_US
+SET Text = '{1_SpyRank} {2_SpyName} may attempt to stage a coup in {3_CityName}, bringing into power a group that will be our ally. The leading faction of {4_CivShortDesc} supporters will be ousted and their influence diminished.[NEWLINE][NEWLINE][COLOR_HIGHLIGHT_TEXT]This operation has a {5_PERCENT}% chance of success (assuming no enemy counterspy is present).[ENDCOLOR] If successful, you will become allies with {6_CityName} and the {7_CivShortDesc} will have their influence dropped. If you fail, your spy will be killed in the attempt and your influence over {8_CityName} will decrease.[NEWLINE][NEWLINE]Do you want {9_SpyRank} {10_SpyName} to attempt a coup in {11_CityName}?'
+WHERE Tag = 'TXT_KEY_EO_STAGE_COUP_QUESTION';
+
+UPDATE Language_en_US
+SET Text = '{1_RankName} {2_SpyName} is attempting to rig the election in {3_CityName} to increase our influence there.[NEWLINE][NEWLINE]Only one civilization may successfuly rig an election. If more than one spy is in a City-State, the highest ranked spy that has been in that City-State the longest has the greatest chance of successfully rigging the election in its favor. Successfully rigging elections also increases the success chance of a coup in the City-State.'
+WHERE Tag = 'TXT_KEY_EO_SPY_RIGGING_ELECTIONS_TT';
+
+UPDATE Language_en_US
+SET Text = 'Spies can be used to increase your influence with City-States by "rigging" their local elections or staging a coup. To interact with a City-State, first move a spy to a target City-State. Once the spy arrives, there will be a period of time when they are "Establishing Surveillance" (noted in the "Activity" column). Once surveillance is established, your espionage options become available. Rigging an election, a passive ability, occurs every 15 turns while your spy is located within the City-State. If you are the only spy in the City-State, your influence will increase while everyone else''s will drop. The presence of an enemy spy, especially one of a higher rank, can cause this mission to fail. No worries though, failing to rig an election is not dangerous to your spy.[NEWLINE][NEWLINE]Staging a coup is more powerful than rigging an election, but also much riskier. A successful coup essentially allows you to "steal" the allied status from another civiization. To stage a coup, target a City-State that is allied with another player, and place your spy the same way you would with rigging an election. Once surveillance is established, you will have a new button available to you called "Coup". Clicking it will open a pop-up message that gives you the odds of success. The closer you are in influence to the target civilization, the greater your odds. A high-level spy[COLOR_YELLOW] or having succesfully rigged elections in the City-State [ENDCOLOR] also increases your coup chances. The catch? If you fail, your spy is executed.'
+WHERE Tag = 'TXT_KEY_CONCEPT_ESPIONAGE_RIG_ELECTION_SUMMARY';
+UPDATE Language_en_US
+SET Text = '[COLOR_YELLOW]Spies and City-States[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_CONCEPT_ESPIONAGE_RIG_ELECTION_TOPIC';
+
+
+UPDATE Language_en_US
+SET Text = '[NEWLINE][NEWLINE][COLOR_POSITIVE_TEXT]Spy is operating {1_SpyBonus} {1_SpyBonus: plural 1?Rank; other?Ranks;} higher than normal when rigging elections since this city state is allied to a civ over which you have strong cultural influence. The success chance of coups is also increased.[ENDCOLOR]'
+WHERE Tag = 'TXT_KEY_SPY_BONUS_CITY_STATE';
 
 -- Public Opinion
 
@@ -398,7 +495,7 @@ SET Text = '[COLOR_GREEN]The Village[ENDCOLOR]'
 WHERE Tag = 'TXT_KEY_GOLD_TRADINGPOST_HEADING3_TITLE';
 
 UPDATE Language_en_US
-SET Text = 'During a game, you will create "workers" - non-military units who will "improve" the land around your cities, increasing productivity or providing access to a nearby "resource." Improvements include farms, villages, lumber mills, logging camps, quarries, mines, and more. During wartime your enemy may "pillage" (destroy) your improvements. Pillaged improvements are ineffective until a worker has "repaired" them.'
+SET Text = 'During a game, you will create "workers" - non-military units who will "improve" the land around your cities, increasing productivity or providing access to a nearby "resource." Improvements include farms, villages, lumber mills, quarries, mines, and more. During wartime your enemy may "pillage" (destroy) your improvements. Pillaged improvements are ineffective until a worker has "repaired" them.'
 WHERE Tag = 'TXT_KEY_PEDIA_IMPROVEMENT_HELP_TEXT';
 
 UPDATE Language_en_US
@@ -469,11 +566,11 @@ SET Text = 'Sort By Unhappiness'
 WHERE Tag = 'TXT_KEY_EO_SORT_STRENGTH';
 
 UPDATE Language_en_US
-SET Text = 'City will be [ICON_RAZING] Razed to the ground in {1_Num} turn(s)! While being Razed, 100% of the [ICON_CITIZEN] Population will produce [ICON_HAPPINESS_3] Unhappiness!'
+SET Text = 'City will be [ICON_RAZING] Razed to the ground in {1_Num} turn(s)! While the City is being Razed, 100% of its [ICON_CITIZEN] Population will produce [ICON_HAPPINESS_3] Unhappiness, but Units within its borders will heal faster!'
 WHERE Tag = 'TXT_KEY_CITY_BURNING';
 
 UPDATE Language_en_US
-SET Text = 'City is in [ICON_RESISTANCE] Resistance for {1_Num} turn(s)! While in Resistance, a City cannot do anything useful and 100% of the [ICON_CITIZEN] Population will produce [ICON_HAPPINESS_3] Unhappiness!'
+SET Text = 'City is in [ICON_RESISTANCE] Resistance for {1_Num} turn(s)! While in Resistance, a City cannot do anything useful, Units within its borders will heal slower, and 100% of its [ICON_CITIZEN] Population will produce [ICON_HAPPINESS_3] Unhappiness!'
 WHERE Tag = 'TXT_KEY_CITY_RESISTANCE';
 
 UPDATE Language_en_US
@@ -481,7 +578,7 @@ SET Text = '{1_Num} from [ICON_CITIZEN] Population in [ICON_OCCUPIED] Occupied, 
 WHERE Tag = 'TXT_KEY_TP_UNHAPPINESS_OCCUPIED_POPULATION';
 
 UPDATE Language_en_US
-SET Text = '{1_Num : number "#.##"} from [ICON_CITIZEN] Population of [ICON_PUPPET] Puppet Cities.'
+SET Text = '{1_Num : number "#.##"} from [ICON_PUPPET] Puppet Cities.'
 WHERE Tag = 'TXT_KEY_TP_UNHAPPINESS_PUPPET_CITIES';
 
 UPDATE Language_en_US
@@ -668,10 +765,15 @@ UPDATE Language_en_US
 SET Text = 'Found in the Earth''s crust and upper mantle, stone is perhaps the most crucial element in human construction efforts throughout history. There are three major classifications of stone - Sedimentary, Igneous, and Metamorphic - each differing in their origin.[NEWLINE][NEWLINE]+10% [ICON_PRODUCTION] Production when building pre-Renaissance Wonders in the City where it is worked.'
 WHERE Tag = 'TXT_KEY_CIV5_RESOURCE_STONE_TEXT';
 
+-- Lumber Mill
 
 UPDATE Language_en_US
-SET Text = 'A Lumbermill allows you to improve the Production output of forest tiles. Gains additional Production for every two adjacent Lumbermills, so try to build them in clusters of three if possible.'
+SET Text = 'A Lumber Mill allows you to improve the Production and Gold output of forest and jungle tiles. Gains additional Gold and Production for every two adjacent Lumber Mills, so try to build them in clusters of three if possible.'
 WHERE Tag = 'TXT_KEY_CIV5_IMPROVEMENTS_LUMBERMILL_TEXT';
+
+UPDATE Language_en_US
+SET Text = 'It will increase the amount of [ICON_PRODUCTION] Production (Forest) or [ICON_GOLD] Gold (Jungle) provided by this tile, while keeping the Forest/Jungle intact. A Lumber Mill adjacent to two other Lumber Mills gains +1 [ICON_PRODUCTION] Production and [ICON_GOLD] Gold.'
+WHERE Tag = 'TXT_KEY_BUILD_LUMBERMILL_REC';
 
 -- We Love the King Day
 
@@ -847,3 +949,43 @@ WHERE Tag = 'TXT_KEY_POP_CSTATE_BULLY_FACTOR_PLEDGES_TO_PROTECT';
 UPDATE Language_en_US
 SET Text = 'Already bullied this turn'
 WHERE Tag = 'TXT_KEY_POP_CSTATE_BULLY_FACTOR_BULLIED_VERY_RECENTLY';
+
+-- Quest Changes
+UPDATE Language_en_US
+SET Text = 'They want you to start a land or sea trade route to their city.'
+WHERE Tag = 'TXT_KEY_CITY_STATE_QUEST_TRADE_ROUTE_FORMAL';
+
+UPDATE Language_en_US
+SET Text = 'We want you to start a trade route.'
+WHERE Tag = 'TXT_KEY_CITY_STATE_QUEST_TRADE_ROUTE';
+
+-- Victory Panel
+INSERT INTO Language_en_US (Tag, Text)
+VALUES  ('TXT_KEY_VP_DIPLO_TT_OTHER_PLAYER_VASSALIZE_YOU', ' {1_PlayerName} controls you as a Vassal.'),
+	('TXT_KEY_VP_DIPLO_TT_YOU_VASSALIZE_OTHER_PLAYER', ' You control {1_CivName} as a Vassal.'),
+	('TXT_KEY_VP_DIPLO_TT_OTHER_PLAYER_VASSALIZE_OTHER_PLAYER', ' {1_PlayerName} controls {2_CivName} as a Vassal.'),
+	('TXT_KEY_VP_DIPLO_TT_UNMET_PLAYER_VASSALIZE_UNMET_PLAYER', ' An unmet player controls another unmet civilization as a Vassal.'),
+	('TXT_KEY_VP_DIPLO_CAPITALS_TEAM_LEADING_TT', 'Team {1_Team} controls {2_num} original [ICON_CAPITAL] Capitals/Vassals.'),
+	('TXT_KEY_VP_DIPLO_CAPITALS_ACTIVE_PLAYER_LEADING_TT', 'You are leading by controlling {1_num} original [ICON_CAPITAL] Capitals/Vassals.'),
+	('TXT_KEY_VP_DIPLO_CAPITALS_PLAYER_LEADING_TT', '{1_player} controls {2_num} original [ICON_CAPITAL] Capitals/Vassals.'),
+	('TXT_KEY_VP_DIPLO_CAPITALS_UNMET_PLAYER_LEADING_TT', 'An unmet player controls {1_num} original [ICON_CAPITAL] Capitals/Vassals.'),
+	('TXT_KEY_VP_DIPLO_TT_MINOR_PLAYER_CONTROLS_CAPITAL_ALLY', 'The City-State of {1_Name} controls {2_Num}. They contribute the City to their Ally. Break their alliance or take the [ICON_CAPITAL] Capital from them![NEWLINE][NEWLINE]'),
+	('TXT_KEY_VP_DIPLO_TT_MINOR_PLAYER_CONTROLS_CAPITAL_VASSAL_ALLY', 'The City-State of {1_Name} controls {2_Num}. They contribute the City to their Ally''s Master. Break their alliance, liberate their ally, or take the [ICON_CAPITAL] Capital from them![NEWLINE][NEWLINE]'),
+	('TXT_KEY_VP_DIPLO_TT_MINOR_PLAYER_CONTROLS_CAPITAL_NO_ALLY', 'The City-State of {1_Name} controls {2_Num}. They have no current ally. Ally with them or take the [ICON_CAPITAL] Capital from them![NEWLINE][NEWLINE]'),
+	('TXT_KEY_VP_DIPLO_TT_MINOR_VASSAL_CONTROLS_CAPITAL', '{1_Name} controls {2_Num}. They contribute the City to their Master. Liberate them or take the [ICON_CAPITAL] Capital from them![NEWLINE][NEWLINE]');
+
+UPDATE Language_en_US
+SET Text = '{1_Team} needs [COLOR_POSITIVE_TEXT]{2_num}[ENDCOLOR] original [ICON_CAPITAL] Capitals/Vassals to win!'
+WHERE Tag = 'TXT_KEY_VP_DIPLO_CAPITALS_TEAM_LEADING';
+
+UPDATE Language_en_US 
+SET Text = 'Control [COLOR_POSITIVE_TEXT]{1_num}[ENDCOLOR] more original [ICON_CAPITAL] Capitals/Vassals to win!' 
+WHERE Tag = 'TXT_KEY_VP_DIPLO_CAPITALS_ACTIVE_PLAYER_LEADING';
+
+UPDATE Language_en_US 
+SET Text = '{1_player} will need [COLOR_POSITIVE_TEXT]{2_num}[ENDCOLOR] original [ICON_CAPITAL] Capitals/Vassals to win!' 
+WHERE Tag = 'TXT_KEY_VP_DIPLO_CAPITALS_PLAYER_LEADING';
+
+UPDATE Language_en_US 
+SET Text = 'An unmet player needs [COLOR_POSITIVE_TEXT]{1_num}[ENDCOLOR] original [ICON_CAPITAL] Capitals/Vassals to win!.' 
+WHERE Tag = 'TXT_KEY_VP_DIPLO_CAPITALS_UNMET_PLAYER_LEADING';

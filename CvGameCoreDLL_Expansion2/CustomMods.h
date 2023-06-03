@@ -22,8 +22,8 @@
  ****************************************************************************
  ****************************************************************************/
 #define MOD_DLL_GUID {0xbf9bf7f0, 0xe078, 0x4d4e, { 0x8a, 0x3e, 0x84, 0x71, 0x2f, 0x85, 0xaa, 0x2b }} //{BF9BF7F0-E078-4d4e-8A3E-84712F85AA2B}
-#define MOD_DLL_NAME "Community Patch v111 (PNM v51+)"
-#define MOD_DLL_VERSION_NUMBER ((uint) 111)
+#define MOD_DLL_NAME "Community Patch v116 (PNM v51+)"
+#define MOD_DLL_VERSION_NUMBER ((uint) 116)
 #define MOD_DLL_VERSION_STATUS ""			// a (alpha), b (beta) or blank (released)
 #define MOD_DLL_CUSTOM_BUILD_NAME ""
 
@@ -430,7 +430,7 @@
 // Adds support for "local" religions (ie ones that only have influence within the civ's own territory) (v48)
 #define MOD_RELIGION_LOCAL_RELIGIONS                gCustomMods.isRELIGION_LOCAL_RELIGIONS()
 // if true, you need a trade route to get passive religious pressure to a city
-#define MOD_RELIGION_PASSIVE_SPREAD_WITH_TRADE_ONLY gCustomMods.isRELIGION_PASSIVE_SPREAD_WITH_TRADE_ONLY()
+#define MOD_RELIGION_PASSIVE_SPREAD_WITH_CONNECTION_ONLY gCustomMods.isRELIGION_PASSIVE_SPREAD_WITH_CONNECTION_ONLY()
 // Enables several additional tables related to beliefs
 #define MOD_RELIGION_EXTENSIONS						gCustomMods.isRELIGION_EXTENSIONS()
 // Civilizations benefit from their pantheons even after converted to another religion
@@ -460,6 +460,8 @@
 #define MOD_LINKED_MOVEMENT							gCustomMods.isLINKED_MOVEMENT()
 // Era scaling for GE & GM yields
 #define MOD_GP_ERA_SCALING							gCustomMods.isGP_ERA_SCALING()
+// Squads control groups modmod
+#define MOD_SQUADS									gCustomMods.isSQUADS()
 
 //
 //	 GameEvents.TradeRouteCompleted.Add(function( iOriginOwner, iOriginCity, iDestOwner, iDestCity, eDomain, eConnectionTradeType) end)
@@ -1438,7 +1440,7 @@ public:
 	MOD_OPT_DECL(RELIGION_RECURRING_PURCHASE_NOTIFY);
 	MOD_OPT_DECL(RELIGION_POLICY_BRANCH_FAITH_GP);
 	MOD_OPT_DECL(RELIGION_LOCAL_RELIGIONS);
-	MOD_OPT_DECL(RELIGION_PASSIVE_SPREAD_WITH_TRADE_ONLY);
+	MOD_OPT_DECL(RELIGION_PASSIVE_SPREAD_WITH_CONNECTION_ONLY);
 	MOD_OPT_DECL(RELIGION_EXTENSIONS);
 	MOD_OPT_DECL(RELIGION_PERMANENT_PANTHEON);
 
@@ -1530,6 +1532,7 @@ public:
 	MOD_OPT_DECL(CIVILIANS_RETREAT_WITH_MILITARY);
 	MOD_OPT_DECL(LINKED_MOVEMENT);
 	MOD_OPT_DECL(GP_ERA_SCALING);
+	MOD_OPT_DECL(SQUADS);
 
 protected:
 	bool m_bInit;

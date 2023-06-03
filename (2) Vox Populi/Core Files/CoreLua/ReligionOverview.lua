@@ -84,6 +84,15 @@ g_WorldReligionSortOptions = {
 		DefaultDirection = "desc",
 		CurrentDirection = nil,
 	},
+	-- Enginseer: Year Found - add a new column in existing tab for year founded
+	{
+		Button = Controls.WRSortByNumYear,
+		ImageControl = Controls.WRSortByNumYearImage,
+		Column = "NumYears",
+		DefaultDirection = "desc",
+		SortType = "numeric",
+		CurrentDirection = nil,
+	},
 	{
 		Button = Controls.WRSortByNumCities,
 		ImageControl = Controls.WRSortByNumCitiesImage,
@@ -418,11 +427,27 @@ function RefreshYourReligion()
 		elseif (v1 == FaithPurchaseTypes.FAITH_PURCHASE_SAVE_PROPHET) then
 			automaticPurchasePullDown:GetButton():LocalizeAndSetText("TXT_KEY_RO_AUTO_FAITH_PROPHET");		
 		elseif (v1 == FaithPurchaseTypes.FAITH_PURCHASE_UNIT) then
-			local faithCost = capital:GetUnitFaithPurchaseCost(GameInfo.Units[v2].ID, true);
+			local faithCost = capital:GetUnitFaithPurchaseCost(GameInfo.Units[v2].ID, true); --Do a check here, what if Capital has cheaper faith purchases...? If not, iterate again, sadly lol.
+			if (faithCost == 0 and player:DoesUnitPassFaithPurchaseCheck(GameInfo.Units[v2].ID)) then 
+				for pCity in player:Cities() do
+					faithCost = pCity:GetUnitFaithPurchaseCost(GameInfo.Units[v2].ID, true)
+					if (faithCost > 0) then
+						break;
+					end
+				end
+			end
 			local gpString = string.format("%s (%i [ICON_PEACE])", Locale.Lookup(GameInfo.Units[v2].Description), faithCost); 
 			automaticPurchasePullDown:GetButton():LocalizeAndSetText("TXT_KEY_RO_AUTO_FAITH_PURCHASE_GREAT_PERSON", gpString);
 		else
-			local faithCost = capital:GetBuildingFaithPurchaseCost(GameInfo.Buildings[v2].ID, true);
+			local faithCost = capital:GetBuildingFaithPurchaseCost(GameInfo.Buildings[v2].ID, true); --Do a check here, what if Capital has cheaper faith purchases...? If not, iterate again, sadly lol.
+			if (faithCost == 0) then
+				for pCity in player:Cities() do
+					local faithCost = pCity:GetBuildingFaithPurchaseCost(GameInfo.Buildings[v2].ID, true);
+					if (faithCost > 0) then
+						break;
+					end
+				end
+			end
 			local gpString = string.format("%s (%i [ICON_PEACE])", Locale.Lookup(GameInfo.Buildings[v2].Description), faithCost); 
 			automaticPurchasePullDown:GetButton():LocalizeAndSetText("TXT_KEY_RO_AUTO_FAITH_PURCHASE_GREAT_PERSON", gpString);
 		end
@@ -445,19 +470,43 @@ function RefreshYourReligion()
 	if(capital ~= nil) then
 		for unit in GameInfo.Units() do
 			local faithCost = capital:GetUnitFaithPurchaseCost(unit.ID, true);
-			if(faithCost > 0 and player:IsCanPurchaseAnyCity(false, true, unit.ID, -1, YieldTypes.YIELD_FAITH)) then
+			local canBuyAnywhere = player:IsCanPurchaseAnyCity(false, true, unit.ID, -1, YieldTypes.YIELD_FAITH);
+			if(faithCost > 0 and canBuyAnywhere) then
 			    if (player:DoesUnitPassFaithPurchaseCheck(unit.ID)) then
 					local gpString = string.format("%s (%i [ICON_PEACE])", Locale.Lookup(unit.Description), faithCost); 
 					AddToPullDown(Locale.Lookup("TXT_KEY_RO_AUTO_FAITH_PURCHASE_GREAT_PERSON", gpString), "", FaithPurchaseTypes.FAITH_PURCHASE_UNIT, unit.ID);
+				end
+			elseif (canBuyAnywhere) then --but what if the Capital can't buy it, but some city like.. a non-Capital Holy City?
+				--local faithCost = 0;
+				for pCity in player:Cities() do
+					if (pCity:GetUnitFaithPurchaseCost(unit.ID, true) > 0) then
+						local faithCost = pCity:GetUnitFaithPurchaseCost(unit.ID, true);
+						if (player:DoesUnitPassFaithPurchaseCheck(unit.ID)) then
+							local gpString = string.format("%s (%i [ICON_PEACE])", Locale.Lookup(unit.Description), faithCost); 
+							AddToPullDown(Locale.Lookup("TXT_KEY_RO_AUTO_FAITH_PURCHASE_GREAT_PERSON", gpString), "", FaithPurchaseTypes.FAITH_PURCHASE_UNIT, unit.ID);
+							break;
+						end
+					end
 				end
 			end
 		end
 		
 		for building in GameInfo.Buildings() do
-			local faithCost = capital:GetBuildingFaithPurchaseCost(building.ID);
-			if(faithCost > 0 and player:IsCanPurchaseAnyCity(false, true, -1, building.ID, YieldTypes.YIELD_FAITH)) then
+			local faithCost = capital:GetBuildingFaithPurchaseCost(building.ID, true);
+			local canBuyAnywhere = player:IsCanPurchaseAnyCity(false, true, -1, building.ID, YieldTypes.YIELD_FAITH);
+			if(faithCost > 0 and canBuyAnywhere) then
 				local gpString = string.format("%s (%i [ICON_PEACE])", Locale.Lookup(building.Description), faithCost); 
 				AddToPullDown(Locale.Lookup("TXT_KEY_RO_AUTO_FAITH_PURCHASE_GREAT_PERSON", gpString), "", FaithPurchaseTypes.FAITH_PURCHASE_BUILDING, building.ID);
+			elseif (canBuyAnywhere) then --but what if the Capital can't buy it, but some city like.. a non-Capital Holy City?
+				--local faithCost = 0;
+				for pCity in player:Cities() do
+					if (pCity:GetBuildingFaithPurchaseCost(building.ID, true) > 0) then
+						local faithCost = pCity:GetBuildingFaithPurchaseCost(building.ID, true);
+						local gpString = string.format("%s (%i [ICON_PEACE])", Locale.Lookup(building.Description), faithCost); 
+						AddToPullDown(Locale.Lookup("TXT_KEY_RO_AUTO_FAITH_PURCHASE_GREAT_PERSON", gpString), "", FaithPurchaseTypes.FAITH_PURCHASE_BUILDING, building.ID);
+						break;
+					end
+				end
 			end
 		end
 	end
@@ -525,6 +574,9 @@ function RefreshWorldReligions()
 				HolyCity = Locale.Lookup(holyCityName),
 				Founder = Locale.Lookup(civName),
 				NumCities = Game.GetNumCitiesFollowing(eReligion),
+				-- Enginseer: Year Founding
+				NumYears = Game.GetFoundYear(eReligion),
+				ReligionID = eReligion,
 				-- Infixo: Religion Spread - additional info on tab with all religions
 				Colour = {x=tColour.r/255, y=tColour.g/255, z=tColour.b/255, w=tColour.a},
 				NumFollowers = Game.GetNumFollowers(eReligion),
@@ -557,9 +609,28 @@ function RefreshWorldReligions()
 			-- Infixo: Religion Spread
 			entry.HolyCityName:SetText(v.HolyCity);
 			entry.Founder:SetText(v.Founder);
+			-- Enginseer: Year Founding
+			if (Game.GetTurnYear(v.NumYears) ~= nil) then
+				entry.YearFounded:SetText(Game.GetDateString(v.NumYears));
+			else
+				entry.YearFounded:SetText("?"); --Failsafe
+			end
 			entry.NumberOfCities:SetText(v.NumCities);
 			-- Infixo: Religion Spread
 			entry.NumberOfFollowers:SetText(v.NumFollowers);
+			-- Enginseer: Tooltip to see your Followers
+			local iOwnedCities = 0;
+			local iTotalCities = 0;
+			local iOwnedFollowers = 0;
+			for pCity in activePlayer:Cities() do
+				if pCity:GetReligiousMajority() == v.ReligionID then
+					iOwnedCities = iOwnedCities+1;
+				end
+				iTotalCities = iTotalCities+1;
+				iOwnedFollowers = iOwnedFollowers + pCity:GetNumFollowers(v.ReligionID);
+			end
+			entry.NumberOfCities:SetToolTipString(Locale.ConvertTextKey("TXT_KEY_RO_WR_OWNED_CITIES", DisplayPercentage(v.NumCities,Game.GetNumCities()), v.Name, iOwnedCities, v.Name, DisplayPercentage(iOwnedCities,iTotalCities), DisplayPercentage(iOwnedCities,v.NumCities), v.Name)); --It is ok if they don't add up to 100%! We want to round down basically!
+			entry.NumberOfFollowers:SetToolTipString(Locale.ConvertTextKey("TXT_KEY_RO_WR_OWNED_FOLLOWERS", DisplayPercentage(v.NumFollowers,Game.GetTotalPopulation()), v.Name, iOwnedFollowers, v.Name, DisplayPercentage(iOwnedFollowers,activePlayer:GetTotalPopulation()), DisplayPercentage(iOwnedFollowers,v.NumFollowers), v.Name)); --It is ok if they don't add up to 100%! We want to round down basically!
 			-- Infixo: Religion Spread
 			IconHookup(v.ReligionIconIndex, 48, v.ReligionIconAtlas, entry.WorldReligionIcon);
 			CivIconHookup(v.FounderID, 45, entry.FounderIcon, entry.FounderIconBG, entry.FounderIconShadow, true, true );
@@ -696,13 +767,13 @@ function AssignReligionColours()
 		if religion.Type == "RELIGION_PANTHEON" then
 			tColour = GameInfo.Colors["COLOR_PLAYER_GRAY"]
 			--print("Found the pantheon religion.")
-		elseif Game.AnyoneHasReligion(eReligion) then
+		elseif Game.AnyoneHasReligion(eReligion) or Game.GetNumCitiesFollowing(eReligion) > 0 or Game.GetNumFollowers(eReligion) > 0 then
 			pHolyCity = Game.GetHolyCityForReligion(eReligion, -1)
 			if pHolyCity then -- either religion type was not founded, or holy city has been razed
 				--print("Found holy city.")
-				local pPlayer = Players[pHolyCity:GetOwner()]
+				local pPlayer = Players[pHolyCity:GetOriginalOwner()]
 				if pPlayer then
-					--print("Holy city owner: Player", pHolyCity:GetOwner())
+					--print("Holy city owner: Player", pHolyCity:GetOriginalOwner())
 				end
 				--print("Attempting to get player colours for player,")
 				local ePlayerColour = pPlayer:GetPlayerColor()
@@ -720,13 +791,16 @@ function AssignReligionColours()
 				--print("Success.")
 			end
 
-			if tColour == {} then
+			if next(tColour) == nil then
 				tColour = GameInfo.Colors["COLOR_PLAYER_GRAY"]
-				--print("Either holy city not found, or civ did not have a colour assigned in database; assigning grey.")
+				--print("Either holy city not found, or civ did not have a colour assigned in database.")
 			end
-			
+
 			--print("Saving colour to table.")
 			tColours[eReligion] = {r = tColour.Red * 255, g = tColour.Green * 255, b = tColour.Blue * 255, a = 1};
+		else
+			tColour = GameInfo.Colors["COLOR_PLAYER_PEACH"] --if it's peach, it's a backup color in case all hope fail
+			--print("Either holy city not found, or civ did not have a colour assigned in database; assigning peaches.")
 		end
 	end
 end
@@ -932,6 +1006,14 @@ function WorldReligionSortOptionSelected(option)
 	g_WorldReligionSortFunction = GetSortFunction(sortOptions);
 	
 	RefreshWorldReligions();
+end
+
+function DisplayPercentage(firstnumber, secondnumber)
+	if math.floor(firstnumber/secondnumber*1000)/10 % 1 == 0 then
+		return math.floor(firstnumber/secondnumber*100)
+	else
+		return math.floor(firstnumber/secondnumber*1000)/10
+	end
 end
 
 -------------------------------------------------------------------------------

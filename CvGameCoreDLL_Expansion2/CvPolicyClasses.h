@@ -111,6 +111,8 @@ public:
 	int GetTradeRouteLandDistanceModifier() const;
 	int GetTradeRouteSeaDistanceModifier() const;
 	int GetEspionageModifier() const;
+	int GetEspionageTurnsModifierFriendly() const;
+	int GetEspionageTurnsModifierEnemy() const;
 	int GetXCSAlliesLowersPolicyNeedWonders() const;
 	int GetTRSpeedBoost() const;
 	int GetTRVisionBoost() const;
@@ -197,6 +199,7 @@ public:
 	BuildingClassTypes GetAllCityFreeBuilding() const;
 	
 	bool IsNoCSDecayAtWar() const;
+	int GetMinimumAllyInfluenceIncreaseAtWar() const;
 	bool CanBullyFriendlyCS() const;
 	int GetBullyGlobalCSReduction() const;
 #endif
@@ -222,6 +225,7 @@ public:
 	bool IsHalfSpecialistFoodCapital() const;
 	int GetStealGWSlowerModifier() const;
 	int GetStealGWFasterModifier() const;
+	int GetExtraYieldsFromHeavyTribute() const;
 	int GetEventTourism() const;
 	int GetEventTourismCS() const;
 	int GetMonopolyModFlat() const;
@@ -315,6 +319,7 @@ public:
 	bool GetNoUnhappyIsolation() const;
 	bool GetDoubleBorderGrowthGA() const;
 	bool GetDoubleBorderGrowthWLTKD() const;
+	bool IsKeepConqueredBuildings() const;
 	int GetIncreasedQuestInfluence() const;
 	int GetGreatScientistBeakerModifier() const;
 	int GetGreatEngineerHurryModifier() const;
@@ -620,6 +625,7 @@ private:
 	BuildingClassTypes m_eNewFoundCityFreeBuilding;
 #endif
 	bool m_bNoCSDecayAtWar;
+	int m_iMinimumAllyInfluenceIncreaseAtWar;
 	bool m_bBullyFriendlyCS;
 	int m_iBullyGlobalCSReduction;
 	bool m_bVassalsNoRebel;
@@ -650,6 +656,7 @@ private:
 #if defined(MOD_BALANCE_CORE)
 	int m_iStealGWSlowerModifier;
 	int m_iStealGWFasterModifier;
+	int m_iExtraYieldsFromHeavyTribute;
 	bool m_bHalfSpecialistFoodCapital;
 	int m_iEventTourism;
 	int m_iEventTourismCS;
@@ -758,6 +765,7 @@ private:
 	bool m_bNoUnhappyIsolation;
 	bool m_bDoubleBorderGrowthGA;
 	bool m_bDoubleBorderGrowthWLTKD;
+	bool m_bKeepConqueredBuildings;
 	int m_iGreatScientistBeakerModifier;
 	int m_iGreatEngineerHurryModifier;
 	int m_iTechCostXCitiesMod;
@@ -804,6 +812,8 @@ private:
 	int m_iTradeRouteLandDistanceModifier;
 	int m_iTradeRouteSeaDistanceModifier;
 	int m_iEspionageModifier;
+	int m_iEspionageTurnsModifierFriendly;
+	int m_iEspionageTurnsModifierEnemy;
 	int* m_piConquerorYield;
 	int* m_piFounderYield;
 	int* m_piReligionYieldMod;
@@ -971,30 +981,30 @@ private:
 
 enum CLOSED_ENUM PolicyModifierType
 {
-    POLICYMOD_EXTRA_HAPPINESS = 0,
-    POLICYMOD_EXTRA_HAPPINESS_PER_CITY,
+	POLICYMOD_EXTRA_HAPPINESS = 0,
+	POLICYMOD_EXTRA_HAPPINESS_PER_CITY,
 #if defined(HH_MOD_NATURAL_WONDER_MODULARITY)
 	POLICYMOD_EXTRA_NATURALWONDER_HAPPINESS,
 #endif
-    POLICYMOD_GREAT_PERSON_RATE,
-    POLICYMOD_GREAT_GENERAL_RATE,
-    POLICYMOD_DOMESTIC_GREAT_GENERAL_RATE,
-    POLICYMOD_POLICY_COST_MODIFIER,
-    POLICYMOD_WONDER_PRODUCTION_MODIFIER,
-    POLICYMOD_BUILDING_PRODUCTION_MODIFIER,
-    POLICYMOD_FREE_EXPERIENCE,
-    POLICYMOD_EXTRA_CULTURE_FROM_IMPROVEMENTS,
-    POLICYMOD_CULTURE_FROM_KILLS,
-    POLICYMOD_EMBARKED_EXTRA_MOVES,
-    POLICYMOD_CULTURE_FROM_BARBARIAN_KILLS,
-    POLICYMOD_GOLD_FROM_KILLS,
-    POLICYMOD_CULTURE_FROM_GARRISON,
-    POLICYMOD_UNIT_FREQUENCY_MODIFIER,
-    POLICYMOD_TRADE_MISSION_GOLD_MODIFIER,
-    POLICYMOD_FAITH_COST_MODIFIER,
-    POLICYMOD_CULTURAL_PLUNDER_MULTIPLIER,
-    POLICYMOD_STEAL_TECH_SLOWER_MODIFIER,
-    POLICYMOD_CATCH_SPIES_MODIFIER,
+	POLICYMOD_GREAT_PERSON_RATE,
+	POLICYMOD_GREAT_GENERAL_RATE,
+	POLICYMOD_DOMESTIC_GREAT_GENERAL_RATE,
+	POLICYMOD_POLICY_COST_MODIFIER,
+	POLICYMOD_WONDER_PRODUCTION_MODIFIER,
+	POLICYMOD_BUILDING_PRODUCTION_MODIFIER,
+	POLICYMOD_FREE_EXPERIENCE,
+	POLICYMOD_EXTRA_CULTURE_FROM_IMPROVEMENTS,
+	POLICYMOD_CULTURE_FROM_KILLS,
+	POLICYMOD_EMBARKED_EXTRA_MOVES,
+	POLICYMOD_CULTURE_FROM_BARBARIAN_KILLS,
+	POLICYMOD_GOLD_FROM_KILLS,
+	POLICYMOD_CULTURE_FROM_GARRISON,
+	POLICYMOD_UNIT_FREQUENCY_MODIFIER,
+	POLICYMOD_TRADE_MISSION_GOLD_MODIFIER,
+	POLICYMOD_FAITH_COST_MODIFIER,
+	POLICYMOD_CULTURAL_PLUNDER_MULTIPLIER,
+	POLICYMOD_STEAL_TECH_SLOWER_MODIFIER,
+	POLICYMOD_CATCH_SPIES_MODIFIER,
 	POLICYMOD_GREAT_ADMIRAL_RATE,
 	POLICYMOD_GREAT_WRITER_RATE,
 	POLICYMOD_GREAT_ARTIST_RATE,
@@ -1003,6 +1013,7 @@ enum CLOSED_ENUM PolicyModifierType
 #if defined(MOD_BALANCE_CORE)
 	POLICYMOD_STEAL_GW_SLOWER_MODIFIER,
 	POLICYMOD_STEAL_GW_FASTER_MODIFIER,
+	POLICYMOD_EXTRA_YIELDS_FROM_HEAVY_TRIBUTE,
 	POLICYMOD_GREAT_ENGINEER_RATE,
 	POLICYMOD_CITY_DEFENSE_BOOST,
 #endif

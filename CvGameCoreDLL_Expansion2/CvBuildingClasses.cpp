@@ -116,6 +116,7 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_iLocalUnhappinessModifier(0),
 	m_iGlobalBuildingGoldMaintenanceMod(0),
 	m_iBuildingDefenseModifier(0),
+	m_iDamageReductionFlat(0),
 	m_iCitySupplyModifier(0),
 	m_iCitySupplyModifierGlobal(0),
 	m_iCitySupplyFlat(0),
@@ -150,6 +151,9 @@ CvBuildingEntry::CvBuildingEntry(void):
 	m_iReligiousPressureModifier(0),
 	m_iEspionageModifier(0),
 	m_iGlobalEspionageModifier(0),
+	m_iEspionageTurnsModifierFriendly(0),
+	m_iEspionageTurnsModifierEnemyCity(0),
+	m_iEspionageTurnsModifierEnemyGlobal(0),
 	m_iExtraSpies(0),
 	m_iSpyRankChange(0),
 	m_iTradeRouteRecipientBonus(0),
@@ -663,6 +667,7 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_iLocalUnhappinessModifier = kResults.GetInt("LocalUnhappinessModifier");
 	m_iGlobalBuildingGoldMaintenanceMod = kResults.GetInt("GlobalBuildingGoldMaintenanceMod");
 	m_iBuildingDefenseModifier = kResults.GetInt("BuildingDefenseModifier");
+	m_iDamageReductionFlat = kResults.GetInt("DamageReductionFlat");
 	m_iCitySupplyModifier = kResults.GetInt("CitySupplyModifier");
 	m_iCitySupplyModifierGlobal = kResults.GetInt("CitySupplyModifierGlobal");
 	m_iCitySupplyFlat = kResults.GetInt("CitySupplyFlat");
@@ -684,6 +689,8 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_iCityConnectionTradeRouteModifier = kResults.GetInt("CityConnectionTradeRouteModifier");
 	m_iCapturePlunderModifier = kResults.GetInt("CapturePlunderModifier");
 	m_iPolicyCostModifier = kResults.GetInt("PolicyCostModifier");
+	m_iBorderGrowthRateIncrease = kResults.GetInt("BorderGrowthRateIncrease");
+	m_iBorderGrowthRateIncreaseGlobal = kResults.GetInt("BorderGrowthRateIncreaseGlobal");
 	m_iPlotCultureCostModifier = kResults.GetInt("PlotCultureCostModifier");
 	m_iGlobalPlotCultureCostModifier = kResults.GetInt("GlobalPlotCultureCostModifier");
 	m_iPlotBuyCostModifier = kResults.GetInt("PlotBuyCostModifier");
@@ -717,6 +724,9 @@ bool CvBuildingEntry::CacheResults(Database::Results& kResults, CvDatabaseUtilit
 	m_iReligiousPressureModifier = kResults.GetInt("ReligiousPressureModifier");
 	m_iEspionageModifier = kResults.GetInt("EspionageModifier");
 	m_iGlobalEspionageModifier = kResults.GetInt("GlobalEspionageModifier");
+	m_iEspionageTurnsModifierFriendly = kResults.GetInt("EspionageTurnsModifierFriendly");
+	m_iEspionageTurnsModifierEnemyCity = kResults.GetInt("EspionageTurnsModifierEnemyCity");
+	m_iEspionageTurnsModifierEnemyGlobal = kResults.GetInt("EspionageTurnsModifierEnemyGlobal");
 	m_iExtraSpies = kResults.GetInt("ExtraSpies");
 	m_iSpyRankChange = kResults.GetInt("SpyRankChange");
 	m_iTradeRouteRecipientBonus = kResults.GetInt("TradeRouteRecipientBonus");
@@ -2056,6 +2066,18 @@ int CvBuildingEntry::GetPolicyCostModifier() const
 	return m_iPolicyCostModifier;
 }
 
+/// Increase to rate of border growth in city
+int CvBuildingEntry::GetBorderGrowthRateIncrease() const
+{
+	return m_iBorderGrowthRateIncrease;
+}
+
+/// Increase to rate of border growth in all cities
+int CvBuildingEntry::GetBorderGrowthRateIncreaseGlobal() const
+{
+	return m_iBorderGrowthRateIncreaseGlobal;
+}
+
 /// Change in culture cost to earn a new tile
 int CvBuildingEntry::GetPlotCultureCostModifier() const
 {
@@ -2259,6 +2281,10 @@ int CvBuildingEntry::GetBuildingDefenseModifier() const
 {
 	return m_iBuildingDefenseModifier;
 }
+int CvBuildingEntry::GetDamageReductionFlat() const
+{
+	return m_iDamageReductionFlat;
+}
 int CvBuildingEntry::GetCitySupplyModifier() const
 {
 	return m_iCitySupplyModifier;
@@ -2343,6 +2369,23 @@ int CvBuildingEntry::GetGlobalEspionageModifier() const
 {
 	return m_iGlobalEspionageModifier;
 }
+
+/// Modifier to espionage mission durations for all friendly spies
+int CvBuildingEntry::GetEspionageTurnsModifierFriendly() const
+{
+	return m_iEspionageTurnsModifierFriendly;
+}
+/// Modifier to espionage mission durations for all enemy spies in this city
+int CvBuildingEntry::GetEspionageTurnsModifierEnemyCity() const
+{
+	return m_iEspionageTurnsModifierEnemyCity;
+}
+/// Modifier to espionage mission durations for all enemy spies in all cities
+int CvBuildingEntry::GetEspionageTurnsModifierEnemyGlobal() const
+{
+	return m_iEspionageTurnsModifierEnemyGlobal;
+}
+
 
 /// Extra spies after this is built
 int CvBuildingEntry::GetExtraSpies() const
@@ -5355,7 +5398,7 @@ void CvCityBuildings::SetBuildingYieldChange(BuildingClassTypes eBuildingClass, 
 
 				BuildingTypes eBuilding = NO_BUILDING;
 
-				if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || GET_PLAYER(m_pCity->getOwner()).GetPlayerTraits()->IsKeepConqueredBuildings())
+				if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
 				{
 					eBuilding = GetBuildingTypeFromClass(eBuildingClass);
 				}
@@ -5386,7 +5429,7 @@ void CvCityBuildings::SetBuildingYieldChange(BuildingClassTypes eBuildingClass, 
 
 		BuildingTypes eBuilding = NO_BUILDING;
 
-		if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || GET_PLAYER(m_pCity->getOwner()).GetPlayerTraits()->IsKeepConqueredBuildings())
+		if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
 		{
 			eBuilding = GetBuildingTypeFromClass(eBuildingClass);
 		}
@@ -5574,7 +5617,7 @@ bool CvCityBuildings::GetNextAvailableGreatWorkSlot(BuildingClassTypes *eBuildin
 			BuildingClassTypes eLoopBuildingClass = (BuildingClassTypes) iI;
 			BuildingTypes eBuilding = NO_BUILDING;
 
-			if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || GET_PLAYER(m_pCity->getOwner()).GetPlayerTraits()->IsKeepConqueredBuildings())
+			if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
 			{
 				eBuilding = GetBuildingTypeFromClass(eLoopBuildingClass);
 			}
@@ -5614,7 +5657,7 @@ bool CvCityBuildings::GetNextAvailableGreatWorkSlot(GreatWorkSlotType eGreatWork
 			BuildingClassTypes eLoopBuildingClass = (BuildingClassTypes) iI;
 			BuildingTypes eBuilding = NO_BUILDING;
 
-			if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || GET_PLAYER(m_pCity->getOwner()).GetPlayerTraits()->IsKeepConqueredBuildings())
+			if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
 			{
 				eBuilding = GetBuildingTypeFromClass(eLoopBuildingClass);
 			}
@@ -5817,7 +5860,7 @@ int CvCityBuildings::GetNumGreatWorks() const
 			{
 				BuildingTypes eBuilding = NO_BUILDING;
 
-				if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || GET_PLAYER(m_pCity->getOwner()).GetPlayerTraits()->IsKeepConqueredBuildings())
+				if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
 				{
 					eBuilding = GetBuildingTypeFromClass(eBldgClass);
 				}
@@ -5870,7 +5913,7 @@ int CvCityBuildings::GetNumGreatWorks(GreatWorkSlotType eGreatWorkSlot) const
 			{
 				BuildingTypes eBuilding = NO_BUILDING;
 
-				if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || GET_PLAYER(m_pCity->getOwner()).GetPlayerTraits()->IsKeepConqueredBuildings())
+				if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
 				{
 
 					eBuilding = GetBuildingTypeFromClass(eBldgClass);

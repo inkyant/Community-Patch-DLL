@@ -405,6 +405,7 @@ public:
 	int GetSpyPressure(PlayerTypes ePlayer) const;
 	int GetNumForeignCitiesFollowing(ReligionTypes eReligion) const;
 	int GetNumForeignFollowers(bool bAtPeace, ReligionTypes eReligion) const;
+	int GetNumCityStateFollowers(ReligionTypes eReligion) const;
 	int GetNumDomesticFollowers(ReligionTypes eReligion) const;
 	bool ComputeMajority(bool bNotifications = false);
 
@@ -578,6 +579,7 @@ public:
 	CvCity *ChooseProphetConversionCity(CvUnit* pUnit = NULL, int* piTurns = NULL) const;
 	ReligionTypes GetReligionToSpread(bool bConsiderForeign) const;
 	ReligionTypes GetFavoriteForeignReligion(bool bForInternalSpread) const;
+	int ScoreBelief(CvBeliefEntry* pEntry, bool bForBonus = false, bool bConsiderFutureTech = true) const;
 
 private:
 #if defined(MOD_BALANCE_CORE)
@@ -597,7 +599,6 @@ private:
 	bool BuyAnyAvailableNonFaithBuilding();
 	bool BuyAnyAvailableFaithBuilding();
 
-	int ScoreBelief(CvBeliefEntry* pEntry, bool bForBonus = false, bool bConsiderFutureTech = true) const;
 	int ScoreBeliefAtPlot(CvBeliefEntry* pEntry, CvPlot* pPlot, bool bConsiderFutureTech) const;
 	int ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity) const;
 	int ScoreBeliefForPlayer(CvBeliefEntry* pEntry, bool bReturnConquest = false, bool bReturnCulture = false, bool bReturnScience = false, bool bReturnDiplo = false) const;
@@ -605,7 +606,7 @@ private:
 
 	int ScoreCityForMissionary(CvCity* pCity, CvUnit* pUnit, ReligionTypes eReligion) const;
 	int ScoreCityForInquisitorOffensive(CvCity* pCity, CvUnit* pUnit, ReligionTypes eReligion) const;
-	int ScoreCityForInquisitorDefensive(CvCity* pCity, CvUnit* pUnit, ReligionTypes eReligion) const;
+	int ScoreCityForInquisitorDefensive(CvCity* pCity, CvUnit* pUnit, ReligionTypes eReligion, vector<PlayerTypes>& vUnfriendlyMajors) const;
 
 	bool AreAllOurCitiesConverted(ReligionTypes eReligion, bool bIncludePuppets) const;
 	bool AreAllOurCitiesHaveFaithBuilding(ReligionTypes eReligion, bool bIncludePuppets) const;

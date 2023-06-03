@@ -620,6 +620,7 @@ local function GetHelpTextForBuilding( buildingID, bExcludeName, bExcludeHeader,
 	local happinessChange = (tonumber(building.Happiness) or 0) + (tonumber(building.UnmoddedHappiness) or 0)
 	local defenseChange = tonumber(building.Defense) or 0
 	local hitPointChange = tonumber(building.ExtraCityHitPoints) or 0
+	local damageReductionChange = tonumber(building.DamageReductionFlat) or 0
 	local cultureChange = not gk_mode and tonumber(building.Culture) or 0
 	local cultureModifier = tonumber(building.CultureRateModifier) or 0
 
@@ -739,7 +740,13 @@ local function GetHelpTextForBuilding( buildingID, bExcludeName, bExcludeHeader,
 				end
 				-- Events
 				yieldChange = yieldChange + city:GetEventBuildingClassYield(buildingClassID, yieldID);
-				-- End 
+				-- Tech Enhanced Yield
+				for row in GameInfo.Building_TechEnhancedYieldChanges( thisBuildingType ) do
+					if (Teams[city:GetTeam()]:IsHasTech(GameInfoTypes[ building.EnhancedYieldTech ])) and (row.YieldType == yield.Type) then
+						yieldChange = yieldChange + (row.Yield or 0)
+					end
+				end
+				-- End
 -- END CBP
 			end
 		else -- not Game
@@ -852,6 +859,15 @@ local function GetHelpTextForBuilding( buildingID, bExcludeName, bExcludeHeader,
 	end
 	if tips and tip~="" then
 		tips:insert( L"TXT_KEY_PEDIA_DEFENSE_LABEL" .. tip )
+		tip = ""
+	end
+
+	-- Damage Reduction:
+	if damageReductionChange ~=0 then
+		tip = S("%s %+d", tip, damageReductionChange )
+	end
+	if tips and tip~="" then
+		tips:insert( L"TXT_KEY_PEDIA_DAMAGE_REDUCTION_LABEL" .. tip )
 		tip = ""
 	end
 
@@ -2380,10 +2396,8 @@ local function GetCultureTooltip( city )
 	tips:insert( "" )
 	tips:insertLocalized( "TXT_KEY_CULTURE_INFO", "[COLOR_MAGENTA]" .. cultureStored .. "[ICON_CULTURE][ENDCOLOR]", "[COLOR_MAGENTA]" .. cultureNeeded .. "[ICON_CULTURE][ENDCOLOR]" )
 	local borderGrowthRate = culturePerTurn + city:GetBaseYieldRate(YieldTypes.YIELD_CULTURE_LOCAL)
-
-	if ((city:GetWeLoveTheKingDayCounter() > 0 and cityOwner:IsDoubleBorderGrowthWLTKD()) or (cityOwner:IsGoldenAge() and cityOwner:IsDoubleBorderGrowthGA())) then
-		borderGrowthRate = borderGrowthRate * 2
-	end
+	local borderGrowthRateIncrease = city:GetBorderGrowthRateIncreaseTotal()
+	borderGrowthRate = math_floor(borderGrowthRate * (100 + borderGrowthRateIncrease) / 100)
 
 	if borderGrowthRate > 0 then
 		local tipText = ""

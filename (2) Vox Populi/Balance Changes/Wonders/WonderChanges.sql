@@ -35,6 +35,9 @@ WHERE Type = 'BUILDING_STATUE_ZEUS';
 INSERT INTO Building_YieldChanges (BuildingType, YieldType, Yield)
 VALUES ('BUILDING_STATUE_ZEUS' , 'YIELD_FAITH' , '1');
 
+INSERT INTO Building_FreeUnits (BuildingType, UnitType, NumUnits)
+VALUES ('BUILDING_STATUE_ZEUS' , 'UNIT_WORKER' , '1');
+
 -- Stonehenge
 UPDATE Buildings
 SET Cost = '150', PrereqTech = 'TECH_THE_WHEEL', FreeBuildingThisCity = 'BUILDINGCLASS_GROVE', Help = 'TXT_KEY_BUILDING_STONEHENGE_HELP'
@@ -169,6 +172,14 @@ SET ObsoleteTech = 'TECH_GUNPOWDER', CitySupplyFlat = '3'
 WHERE Type = 'BUILDING_GREAT_WALL';
 
 -- Angkor Wat
+
+UPDATE Buildings
+SET GlobalPlotCultureCostModifier = '0'
+WHERE Type = 'BUILDING_ANGKOR_WAT';
+
+UPDATE Buildings
+SET BorderGrowthRateIncreaseGlobal = '50'
+WHERE Type = 'BUILDING_ANGKOR_WAT';
 
 UPDATE Buildings
 SET PrereqTech = 'TECH_CURRENCY', Cost = '250', FreeBuildingThisCity = 'BUILDINGCLASS_MANDIR'

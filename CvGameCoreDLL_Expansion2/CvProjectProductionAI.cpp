@@ -135,7 +135,7 @@ ProjectTypes CvProjectProductionAI::RecommendProject()
 	// Sort items and grab the first one
 	if(m_Buildables.size() > 0)
 	{
-		m_Buildables.SortItems();
+		m_Buildables.StableSortItems();
 		LogPossibleBuilds();
 		return (ProjectTypes)m_Buildables.GetElement(0);
 	}
@@ -160,6 +160,9 @@ int CvProjectProductionAI::CheckProjectBuildSanity(ProjectTypes eProject, int iT
 
 	if(iTempWeight < 1)
 		return SR_IMPOSSIBLE;
+
+	if (m_pCity->isUnderSiege())
+		return SR_STRATEGY;
 
 	//this seems to work well to bring the raw flavor weight into a sensible range [0 ... 200]
 	iTempWeight = sqrti(10 * iTempWeight);

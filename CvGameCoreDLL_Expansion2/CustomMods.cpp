@@ -273,6 +273,7 @@ int CustomMods::getOption(const string& sOption, int defValue) {
 			m_options[string(szName)] = iValue;
 		}
 		MOD_OPT_CACHE(BALANCE_VP);
+		MOD_OPT_CACHE(CORE_DEBUGGING);
 		MOD_OPT_CACHE(ALTERNATIVE_DIFFICULTY);
 		MOD_OPT_CACHE(GLOBAL_STACKING_RULES);
 		MOD_OPT_CACHE(GLOBAL_LOCAL_GENERALS);
@@ -465,7 +466,7 @@ int CustomMods::getOption(const string& sOption, int defValue) {
 		MOD_OPT_CACHE(RELIGION_RECURRING_PURCHASE_NOTIFY);
 		MOD_OPT_CACHE(RELIGION_POLICY_BRANCH_FAITH_GP);
 		MOD_OPT_CACHE(RELIGION_LOCAL_RELIGIONS);
-		MOD_OPT_CACHE(RELIGION_PASSIVE_SPREAD_WITH_TRADE_ONLY);
+		MOD_OPT_CACHE(RELIGION_PASSIVE_SPREAD_WITH_CONNECTION_ONLY);
 		MOD_OPT_CACHE(RELIGION_EXTENSIONS);
 		MOD_OPT_CACHE(RELIGION_PERMANENT_PANTHEON);
 		MOD_OPT_CACHE(CORE_NO_RANGED_ATTACK_FROM_CITIES);
@@ -557,6 +558,7 @@ int CustomMods::getOption(const string& sOption, int defValue) {
 		MOD_OPT_CACHE(CIVILIANS_RETREAT_WITH_MILITARY);
 		MOD_OPT_CACHE(LINKED_MOVEMENT);
 		MOD_OPT_CACHE(GP_ERA_SCALING);
+		MOD_OPT_CACHE(SQUADS);
 
 		m_bInit = true;
 	}
@@ -584,7 +586,8 @@ void CheckSentinel(uint value)
 	if (pLog)
 	{
 		gStackWalker.SetLog(pLog);
-		gStackWalker.ShowCallstack();
+		gStackWalker.ShowCallstack(5);
+		gStackWalker.SetLog(NULL);
 		pLog->Msg("\r\n");
 	}
 #endif

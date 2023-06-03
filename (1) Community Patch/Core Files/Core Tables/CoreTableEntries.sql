@@ -169,6 +169,13 @@ ALTER TABLE Buildings ADD COLUMN 'NoUnhappfromXSpecialistsGlobal' INTEGER DEFAUL
 ALTER TABLE Buildings ADD PlayerBorderGainlessPillage BOOLEAN DEFAULT 0;
 ALTER TABLE Buildings ADD CityGainlessPillage BOOLEAN DEFAULT 0;
 
+
+-- Building, Belief, UA
+-- Increase to border growth expansion rate
+ALTER TABLE Buildings ADD BorderGrowthRateIncrease INTEGER DEFAULT 0; -- For the city
+ALTER TABLE Buildings ADD BorderGrowthRateIncreaseGlobal INTEGER DEFAULT 0; -- For the empire
+ALTER TABLE Beliefs ADD BorderGrowthRateIncreaseGlobal INTEGER DEFAULT 0;
+
 -- Belief requires an improvement on a terrain type to grant its yield.
 
 ALTER TABLE Beliefs ADD COLUMN 'RequiresImprovement' BOOLEAN DEFAULT 0;
@@ -216,6 +223,10 @@ ALTER TABLE Policies ADD COLUMN 'XCSAlliesLowersPolicyNeedWonders' INTEGER DEFAU
 ALTER TABLE Policies ADD COLUMN 'StealGWSlowerModifier' INTEGER DEFAULT 0;
 -- Policy - increase speed of your Great Work theft rate.
 ALTER TABLE Policies ADD COLUMN 'StealGWFasterModifier' INTEGER DEFAULT 0;
+-- Policy - conquered cities keep all their buildings (except for those with NeverCapture==true).
+ALTER TABLE Policies ADD COLUMN 'KeepConqueredBuildings' BOOLEAN DEFAULT 0;
+-- Policy - extra non-gold yields from heavy tribute (in percent).
+ALTER TABLE Policies ADD COLUMN 'ExtraYieldsFromHeavyTribute' INTEGER DEFAULT 0;
 
 -- Policy Branch - number of unlocked policies (finishers excluded) before branch is unlocked.
 ALTER TABLE PolicyBranchTypes ADD COLUMN 'NumPolicyRequirement' INTEGER DEFAULT 100;
@@ -266,6 +277,9 @@ ALTER TABLE Traits ADD COLUMN 'WonderProductionModGA' INTEGER DEFAULT 0;
 
 -- TRAIT: Changes the food (times 100) consumed by each non-specialist citizen. --
 ALTER TABLE Traits ADD COLUMN 'NonSpecialistFoodChange' INTEGER DEFAULT 0;
+
+-- TRAIT: Annexed City States continue to give yields. --
+ALTER TABLE Traits ADD COLUMN 'AnnexedCityStatesGiveYields' BOOLEAN DEFAULT 0;
 
 -- Abnormal scaler. Works for:
 ---- Trait_SpecialistYieldChanges (specialist yield change x2/x3/x4 in medieval/industrial/atomic eras)
@@ -326,9 +340,12 @@ ALTER TABLE Traits ADD COLUMN 'AllianceCSDefense' INTEGER DEFAULT 0;
 
 ALTER TABLE Traits ADD COLUMN 'AllianceCSStrength' INTEGER DEFAULT 0;
 
--- Adds a trait that converts x% of tourism to GAP, where x is the integer below.
+-- Adds a trait that converts x% of tourism from cities to GAP, where x is the integer below.
 
 ALTER TABLE Traits ADD COLUMN 'TourismToGAP' INTEGER DEFAULT 0;
+
+-- Adds a trait that converts x% of GROSS GPT to GAP, where x is the interger below.
+
 ALTER TABLE Traits ADD COLUMN 'GoldToGAP' INTEGER DEFAULT 0;
 
 -- Adds a trait that boosts the value of historic event tourism. 1 = 10%, 2 = 20%, etc.
@@ -629,8 +646,11 @@ ALTER TABLE Policies ADD COLUMN 'CSYieldBonusModifier' INTEGER DEFAULT 0;
 -- Can bully friendly CSs (no penalty)
 ALTER TABLE Policies ADD COLUMN 'CanBullyFriendlyCS' BOOLEAN DEFAULT 0;
 
--- CS influence does not decline at war
+-- Allied CS influence does not decline at war
 ALTER TABLE Policies ADD COLUMN 'NoAlliedCSInfluenceDecayAtWar' BOOLEAN DEFAULT 0;
+
+-- Allied CS influence resting point increases while at war
+ALTER TABLE Policies ADD COLUMN 'MinimumAllyInfluenceIncreaseAtWar' INTEGER DEFAULT 0;
 
 -- Vassals don't rebel and can't be forced out by deals or WC
 ALTER TABLE Policies ADD COLUMN 'VassalsNoRebel' BOOLEAN DEFAULT 0;
@@ -1075,6 +1095,9 @@ ALTER TABLE UnitPromotions ADD 'ChangeDamageValue' INTEGER DEFAULT 0;
 -- A unit cannot be captured by another player (i.e. from prize ships, etc.). Does not apply to civilians.
 ALTER TABLE UnitPromotions ADD 'CannotBeCaptured' BOOLEAN DEFAULT 0;
 
+-- Units captured by a unit with this promotion gain the conscript promotion (don't count for military supply). Only used together with CaptureDefeatedEnemy
+ALTER TABLE UnitPromotions ADD COLUMN 'CapturedUnitsConscripted' BOOLEAN DEFAULT 0;
+
 -- A unit gains a combat bonus VS barbarians
 ALTER TABLE UnitPromotions ADD COLUMN 'BarbarianCombatBonus' INTEGER DEFAULT 0;
 
@@ -1162,6 +1185,10 @@ ALTER TABLE UnitPromotions ADD COLUMN 'MilitaryCapChange' INTEGER DEFAULT 0;
 -- Double Heal in Feature/Terrain
 ALTER TABLE UnitPromotions_Features ADD COLUMN 'DoubleHeal' BOOLEAN DEFAULT 0;
 ALTER TABLE UnitPromotions_Terrains ADD COLUMN 'DoubleHeal' BOOLEAN DEFAULT 0;
+
+-- Allow Attack and Defense specific modifiers VS domain
+ALTER TABLE UnitPromotions_Domains ADD COLUMN 'Attack' INTEGER DEFAULT 0;
+ALTER TABLE UnitPromotions_Domains ADD COLUMN 'Defense' INTEGER DEFAULT 0;
 
 -- Combat Modifier for determined range near a defined UnitClass
 ALTER TABLE UnitPromotions ADD CombatBonusFromNearbyUnitClass INTEGER DEFAULT -1;
@@ -1310,6 +1337,10 @@ ALTER TABLE Policies ADD COLUMN 'TradeRouteSeaDistanceModifier' INTEGER DEFAULT 
 
 --Espionage Modifier for Policies - should be negative for player benefit!
 ALTER TABLE Policies ADD COLUMN 'EspionageModifier' INTEGER DEFAULT 0;
+
+--Espionage Modifier for Policies - changes durations of spy missions by a fixed amount of turns for friendly/enemy spies
+ALTER TABLE Policies ADD COLUMN 'EspionageTurnsModifierFriendly' INTEGER DEFAULT 0;
+ALTER TABLE Policies ADD COLUMN 'EspionageTurnsModifierEnemy' INTEGER DEFAULT 0;
 
 -- C4DF Function
 
@@ -1537,6 +1568,11 @@ ALTER TABLE Traits ADD COLUMN 'TradeRouteMinorInfluenceAP' BOOLEAN DEFAULT 0;
 -- Can this building be built next to any body of water?
 ALTER TABLE Buildings ADD COLUMN 'AnyWater' BOOLEAN DEFAULT 0;
 
+--Espionage Modifier for Policies - changes durations of spy missions by a fixed amount of turns for friendly/enemy spies
+ALTER TABLE Buildings ADD COLUMN 'EspionageTurnsModifierFriendly' INTEGER DEFAULT 0;
+ALTER TABLE Buildings ADD COLUMN 'EspionageTurnsModifierEnemyCity' INTEGER DEFAULT 0;
+ALTER TABLE Buildings ADD COLUMN 'EspionageTurnsModifierEnemyGlobal' INTEGER DEFAULT 0;
+
 -- Promotion grants additional combat strength if on a pillaged improvement
 ALTER TABLE UnitPromotions ADD COLUMN 'PillageBonusStrength' INTEGER DEFAULT 0;
 
@@ -1569,6 +1605,9 @@ ALTER TABLE Units ADD 'GoldenAgeFromBirth' BOOLEAN DEFAULT 0;
 
 -- Define a defense modifier to a building, like GlobalDefenseModifier (but only local).
 ALTER TABLE Buildings ADD 'BuildingDefenseModifier' INTEGER DEFAULT 0;
+
+-- Damage to the city with this building is reduced by this flat amount.
+ALTER TABLE Buildings ADD 'DamageReductionFlat' INTEGER DEFAULT 0;
 
 -- Define a modifier for all tile/building based tourism in all cities.
 ALTER TABLE Buildings ADD 'GlobalLandmarksTourismPercent' INTEGER DEFAULT 0;
@@ -1667,6 +1706,9 @@ ALTER TABLE Buildings ADD COLUMN 'IgnoreDefensivePactLimit' BOOLEAN DEFAULT 0;
 -- Gifting units to City-States awards Influence per turn while the units remain alive
 ALTER TABLE Traits ADD COLUMN 'MinorInfluencePerGiftedUnit' INTEGER DEFAULT 0;
 
+-- Unit can't attack while in ocean tiles
+ALTER TABLE UnitPromotions ADD COLUMN 'NoAttackInOcean' BOOLEAN DEFAULT 0;
+
 -- CSD
 
 -- Insert SQL Rules Here 
@@ -1702,6 +1744,7 @@ ALTER TABLE Buildings ADD COLUMN 'RAToVotes' integer default 0;
 ALTER TABLE Buildings ADD COLUMN 'GPExpendInfluence' integer default 0;
 
 ALTER TABLE Units ADD COLUMN 'NumInfPerEra' integer default 0;
+ALTER TABLE Units ADD COLUMN 'RestingPointChange' integer default 0;
 ALTER TABLE Units ADD COLUMN 'ProductionCostAddedPerEra' integer default 0;
 
 ALTER TABLE Policies ADD COLUMN 'GreatDiplomatRateModifier' integer default 0;

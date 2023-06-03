@@ -203,14 +203,15 @@ void CvGameTrade::UpdateTradePathCache(PlayerTypes ePlayer1)
 		data.iMaxNormalizedDistance = iMaxNormDistSea;
 
 		//get all paths
-		map<CvPlot*,SPath> waterpaths = GC.GetStepFinder().GetMultiplePaths( pOriginCity->plot(), vDestPlots, data );
-		for (map<CvPlot*,SPath>::iterator it=waterpaths.begin(); it!=waterpaths.end(); ++it)
+		map<int,SPath> waterpaths = GC.GetStepFinder().GetMultiplePaths( pOriginCity->plot(), vDestPlots, data );
+		for (map<int,SPath>::iterator it=waterpaths.begin(); it!=waterpaths.end(); ++it)
 		{
+			CvPlot* plot = GC.getMap().plotByIndex(it->first);
 			// if this is the origin city, nothing to do
-			if (pOriginCity->plot() == it->first)
+			if (pOriginCity->plot() == plot)
 				continue;
 
-			CvCity* pDestCity = it->first->getPlotCity();
+			CvCity* pDestCity = plot->getPlotCity();
 			AddTradePathToCache(m_aPotentialTradePathsWater,pOriginCity->plot()->GetPlotIndex(),pDestCity->plot()->GetPlotIndex(),it->second);
 		}
 
@@ -220,14 +221,15 @@ void CvGameTrade::UpdateTradePathCache(PlayerTypes ePlayer1)
 		data.ePathType = PT_TRADE_LAND;
 
 		//get all paths
-		map<CvPlot*,SPath> landpaths = GC.GetStepFinder().GetMultiplePaths( pOriginCity->plot(), vDestPlots, data );
-		for (map<CvPlot*,SPath>::iterator it=landpaths.begin(); it!=landpaths.end(); ++it)
+		map<int,SPath> landpaths = GC.GetStepFinder().GetMultiplePaths( pOriginCity->plot(), vDestPlots, data );
+		for (map<int,SPath>::iterator it=landpaths.begin(); it!=landpaths.end(); ++it)
 		{
+			CvPlot* plot = GC.getMap().plotByIndex(it->first);
 			// if this is the origin city, nothing to do
-			if (pOriginCity->plot() == it->first)
+			if (pOriginCity->plot() == plot)
 				continue;
 
-			CvCity* pDestCity = it->first->getPlotCity();
+			CvCity* pDestCity = plot->getPlotCity();
 			AddTradePathToCache(m_aPotentialTradePathsLand,pOriginCity->plot()->GetPlotIndex(),pDestCity->plot()->GetPlotIndex(),it->second);
 		}
 
@@ -2445,7 +2447,7 @@ void CvPlayerTrade::MoveUnits (void)
 													strMessage << pOriginCity->getNameKey();
 													strMessage << pDestCity->getNameKey();
 													strMessage << GET_PLAYER(pDestCity->getOwner()).getCivilizationShortDescriptionKey();
-													strMessage << (iTourism / 4);
+													strMessage << (iTourism / 3);
 													if (GC.getGame().isGameMultiPlayer() && GET_PLAYER(pDestCity->getOwner()).isHuman())
 													{
 														strMessage << GET_PLAYER(pDestCity->getOwner()).getNickName();
@@ -2507,7 +2509,7 @@ void CvPlayerTrade::MoveUnits (void)
 													strMessage << pOriginCity->getNameKey();
 													strMessage << pDestCity->getNameKey();
 													strMessage << GET_PLAYER(pDestCity->getOwner()).getCivilizationShortDescriptionKey();
-													strMessage << (iTourism / 4);
+													strMessage << (iTourism / 3);
 													strSummary = Localization::Lookup("TXT_KEY_TOURISM_EVENT_SUMMARY_TRADE");
 													pNotification->Add(NOTIFICATION_GENERIC, strMessage.toUTF8(), strSummary.toUTF8(), pOriginCity->getX(), pOriginCity->getY(), pOriginCity->getOwner());
 												}
@@ -2591,7 +2593,7 @@ int CvPlayerTrade::GetTradeConnectionBaseValueTimes100(const TradeConnection& kT
 			if (eYield == YIELD_GOLD)
 			{
 				int iResult = 0;
-				int iBase = /*100*/ GD_INT_GET(INTERNATIONAL_TRADE_BASE) * (m_pPlayer->GetCurrentEra()+2);
+				int iBase = /*100 in CP, 80 in VP*/ GD_INT_GET(INTERNATIONAL_TRADE_BASE) * (m_pPlayer->GetCurrentEra()+2);
 				iResult = iBase;
 				return iResult;
 			}
@@ -2754,7 +2756,7 @@ int CvPlayerTrade::GetTradeConnectionGPTValueTimes100(const TradeConnection& kTr
 					return 0;
 				}
 
-				int iDivisor = /*20 in CP, 65 in VP*/ GD_INT_GET(INTERNATIONAL_TRADE_CITY_GPT_DIVISOR);
+				int iDivisor = /*20 in CP, 80 in VP*/ GD_INT_GET(INTERNATIONAL_TRADE_CITY_GPT_DIVISOR);
 				if (iDivisor == 0)
 				{
 					iDivisor = 1;
@@ -4053,8 +4055,7 @@ int CvPlayerTrade::GetTradeConnectionValueTimes100 (const TradeConnection& kTrad
 			case TRADE_CONNECTION_GOLD_INTERNAL:
 				break;
 			case TRADE_CONNECTION_INTERNATIONAL:
-				break;
-				//UNREACHABLE(); // International trade route types should not be available along this branch. FIXME: This code is reachable, because IsConnectionInternational() returns false for routes between teammates, but the connection type is still TRADE_CONNECTION_INTERNATIONAL
+				UNREACHABLE(); // International trade route types should not be available along this branch.
 			}
 		}
 	}
@@ -4617,7 +4618,7 @@ int CvPlayerTrade::GetNumPotentialConnections (CvCity* pFromCity, DomainTypes eD
 	}
 
 	//this should put the closest cities first
-	vPossibleTargets.SortItems();
+	vPossibleTargets.StableSortItems();
 
 	for (int i = 0; i < vPossibleTargets.size(); i++)
 	{
@@ -5315,7 +5316,7 @@ int CvPlayerTrade::GetTradeRouteTurnMod(CvCity* pOriginCity) const
 		{
 			BuildingTypes eBuilding = NO_BUILDING;
 
-			if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || m_pPlayer->GetPlayerTraits()->IsKeepConqueredBuildings())
+			if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
 			{
 				eBuilding = pLoopCity->GetCityBuildings()->GetBuildingTypeFromClass((BuildingClassTypes)iI);
 			}
@@ -6592,7 +6593,7 @@ CvTradeAI::TRSortElement CvTradeAI::ScoreInternationalTR(const TradeConnection& 
 					{
 						BuildingTypes eOfficeBuilding = NO_BUILDING;
 
-						if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || m_pPlayer->GetPlayerTraits()->IsKeepConqueredBuildings())
+						if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
 						{
 							if (pFromCity->HasBuildingClass(eOffice))
 							{

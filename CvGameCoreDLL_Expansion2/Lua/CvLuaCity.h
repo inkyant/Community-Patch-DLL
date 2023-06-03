@@ -173,6 +173,7 @@ protected:
 	static int lIsCapital(lua_State* L);
 	static int lIsOriginalCapital(lua_State* L);
 	static int lIsOriginalMajorCapital(lua_State* L);
+	static int lGetOwnerForDominationVictory(lua_State* L);
 	static int lIsCoastal(lua_State* L);
 	LUAAPIEXTN(IsAddsFreshWater, bool);
 	LUAAPIEXTN(FoodConsumptionSpecialistTimes100, int);
@@ -241,6 +242,7 @@ protected:
 	static int lChangeBaseGreatPeopleRate(lua_State* L);
 	static int lGetGreatPeopleRateModifier(lua_State* L);
 
+	static int lGetBorderGrowthRateIncreaseTotal(lua_State* L);
 	static int lGetJONSCultureStored(lua_State* L);
 	static int lSetJONSCultureStored(lua_State* L);
 	static int lChangeJONSCultureStored(lua_State* L);
@@ -695,6 +697,7 @@ protected:
 #if defined(MOD_BALANCE_CORE_EVENTS)
 	static int lGetDisabledTooltip(lua_State* L);
 	static int lGetScaledEventChoiceValue(lua_State* L);
+	static int lGetSpyMissionOutcome(lua_State* L);
 	static int lIsCityEventChoiceActive(lua_State* L);
 	static int lDoCityEventChoice(lua_State* L);
 	static int lDoCityStartEvent(lua_State* L);

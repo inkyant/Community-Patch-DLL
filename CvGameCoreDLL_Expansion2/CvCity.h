@@ -155,8 +155,8 @@ public:
 	bool IsCityEventChoiceValidEspionageTest(CityEventChoiceTypes eEventChoice, CityEventTypes eEvent, int iAssumedLevel, PlayerTypes eSpyOwner);
 	void DoCancelEventChoice(CityEventChoiceTypes eEventChoice);
 	void DoStartEvent(CityEventTypes eEvent);
-	void DoEventChoice(CityEventChoiceTypes eEventChoice, CityEventTypes eCityEvent = NO_EVENT_CITY, bool bSendMsg = true, int iEspionageValue = -1, PlayerTypes eSpyOwner = NO_PLAYER, CvCity* pOriginalCity = NULL);
-	CvString GetScaledHelpText(CityEventChoiceTypes eEventChoice, bool bYieldsOnly, int iSpyIndex = -1, PlayerTypes eSpyOwner = NO_PLAYER);
+	void DoEventChoice(CityEventChoiceTypes eEventChoice, CityEventTypes eCityEvent = NO_EVENT_CITY, bool bSendMsg = true, int iEspionageValue = -1, PlayerTypes eSpyOwner = NO_PLAYER);
+	CvString GetScaledHelpText(CityEventChoiceTypes eEventChoice, bool bYieldsOnly, int iSpyIndex = -1, PlayerTypes eSpyOwner = NO_PLAYER, bool bSpyMissionEnd = false);
 	CvString GetDisabledTooltip(CityEventChoiceTypes eEventChoice, int iSpyIndex = -1, PlayerTypes eSpyOwner = NO_PLAYER);
 
 	void SetEventActive(CityEventTypes eEvent, bool bValue);
@@ -222,7 +222,7 @@ public:
 	bool IsIndustrialRouteToCapitalConnected() const;
 	void SetIndustrialRouteToCapitalConnected(bool bValue);
 
-	void SetRouteToCapitalConnected(bool bValue, bool bIgnoreUpdate = false);
+	void SetRouteToCapitalConnected(bool bValue, bool bSuppressReligionYieldUpdate = false);
 	bool IsRouteToCapitalConnected(void) const;
 
 #if defined(MOD_GLOBAL_TRULY_FREE_GP)
@@ -355,7 +355,7 @@ public:
 
 	ResourceTypes GetResourceDemanded(bool bHideUnknown = true) const;
 	void SetResourceDemanded(ResourceTypes eResource);
-	void DoPickResourceDemanded(bool bCurrentResourceInvalid = true);
+	void DoPickResourceDemanded();
 	void DoTestResourceDemanded();
 
 	void DoSeedResourceDemandedCountdown();
@@ -415,6 +415,8 @@ public:
 #if defined(MOD_BALANCE_CORE)
 	void SetBuildingInvestment(BuildingClassTypes eBuildingClass, bool bValue);
 	bool IsBuildingInvestment(BuildingClassTypes eBuildingClass) const;
+
+	bool IsProcessInternationalProject(ProcessTypes eProcess) const;
 
 	void SetUnitInvestment(UnitClassTypes eUnitClass, bool bValue);
 	bool IsUnitInvestment(UnitClassTypes eUnitClass) const;
@@ -727,6 +729,11 @@ public:
 	int getCapturePlunderModifier() const;
 	void changeCapturePlunderModifier(int iChange);
 
+	int GetBorderGrowthRateIncreaseTotal();
+
+	int GetBorderGrowthRateIncrease() const;
+	void ChangeBorderGrowthRateIncrease(int iChange);
+
 	int getPlotCultureCostModifier() const;
 	void changePlotCultureCostModifier(int iChange);
 
@@ -746,6 +753,9 @@ public:
 
 	int GetEspionageModifier() const;
 	void ChangeEspionageModifier(int iChange);
+
+	int GetEspionageTurnsModifierEnemy() const;
+	void ChangeEspionageTurnsModifierEnemy(int iChange);
 
 #if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
 	int GetConversionModifier() const;
@@ -970,6 +980,10 @@ public:
 	//check water or land, no domain for both
 	bool IsBlockaded(DomainTypes eDomain) const;
 
+	int GetResourceDemandedCounter() const;
+	void SetResourceDemandedCounter(int iValue);
+	void ChangeResourceDemandedCounter(int iChange);
+
 	int GetWeLoveTheKingDayCounter() const;
 	void SetWeLoveTheKingDayCounter(int iValue);
 	void ChangeWeLoveTheKingDayCounter(int iChange, bool bUATrigger = false);
@@ -1046,9 +1060,11 @@ public:
 
 	int GetContestedPlotScore(PlayerTypes eOtherPlayer) const;
 
-#if defined(MOD_BALANCE_CORE_SPIES)
+#if defined(MOD_BALANCE_CORE_SPIES_ADVANCED)
 	int GetEspionageRanking() const;
+	CvString GetSpyMissionOutcome(CityEventChoiceTypes eEventChoice, uint iSpyIndex, PlayerTypes ePlayer, bool bOwnSpy = 1, bool bShowPopup = 1);
 	int GetSpyTurnsToCompleteMission(PlayerTypes ePlayer, CityEventChoiceTypes eEventChoice, uint iSpyIndex, int iProgress = 0) const;
+	CvString GetMissionDurationText(PlayerTypes ePlayer, CityEventChoiceTypes eEventChoice, uint iSpyIndex, int iProgress = 0) const;
 	void ChangeEspionageRanking(int iRank, bool bNotify);
 	void ResetEspionageRanking();
 	void InitEspionageRanking();
@@ -1286,6 +1302,7 @@ public:
 	int GetNoUnhappfromXSpecialists() const;
 
 	bool isBorderCity() const;
+	bool isBorderCity(vector<PlayerTypes>& vUnfriendlyMajors) const;
 
 	void DoBarbIncursion();
 #endif
@@ -1577,6 +1594,9 @@ public:
 	int GetExtraHitPoints() const;
 	void ChangeExtraHitPoints(int iValue);
 
+	int getDamageReductionFlat() const;
+	void changeDamageReductionFlat(int iChange);
+
 	int GetMaxHitPoints() const;
 	const CvSyncArchive<CvCity>& getSyncArchive() const;
 	CvSyncArchive<CvCity>& getSyncArchive();
@@ -1593,7 +1613,7 @@ public:
 
 	bool HasBelief(BeliefTypes iBeliefType) const;
 	bool HasBuilding(BuildingTypes iBuildingType) const;
-	bool HasBuildingClass(BuildingClassTypes iBuildingClassType, bool bKeepConqueredBuildings = false) const;
+	bool HasBuildingClass(BuildingClassTypes iBuildingClassType) const;
 	bool HasAnyWonder() const;
 	bool HasWonder(BuildingTypes iBuildingType) const;
 	bool IsBuildingWorldWonder() const;
@@ -1792,12 +1812,14 @@ protected:
 	int m_iNumNationalWonders;
 	int m_iWonderProductionModifier;
 	int m_iCapturePlunderModifier;
+	int m_iBorderGrowthRateIncrease;
 	int m_iPlotCultureCostModifier;
 	int m_iPlotBuyCostModifier;
 #if defined(MOD_BUILDINGS_CITY_WORKING)
 	int m_iCityWorkingChange;
 	int m_iCitySupplyModifier;
 	int m_iCitySupplyFlat;
+	int m_iDamageReductionFlat;
 	bool m_bAllowsProductionTradeRoutes;
 	bool m_bAllowsFoodTradeRoutes;
 	bool m_bAllowPuppetPurchase;
@@ -1834,6 +1856,7 @@ protected:
 	int m_hGarrison;  // unused
 	mutable int m_hGarrisonOverride; //only temporary, not serialized
 	int m_iResourceDemanded;
+	int m_iResourceDemandedCounter;
 	int m_iWeLoveTheKingDayCounter;
 	int m_iLastTurnGarrisonAssigned;
 	int m_iThingsProduced; // total number of units, buildings, wonders, etc. this city has constructed
@@ -1844,6 +1867,7 @@ protected:
 	int m_iCountExtraLuxuries;
 	int m_iCheapestPlotInfluenceDistance;
 	int m_iEspionageModifier;
+	int m_iEspionageTurnsModifierEnemy;
 #if defined(MOD_RELIGION_CONVERSION_MODIFIERS)
 	int m_iConversionModifier;
 #endif
@@ -2191,11 +2215,13 @@ SYNC_ARCHIVE_VAR(int, m_iNumTeamWonders)
 SYNC_ARCHIVE_VAR(int, m_iNumNationalWonders)
 SYNC_ARCHIVE_VAR(int, m_iWonderProductionModifier)
 SYNC_ARCHIVE_VAR(int, m_iCapturePlunderModifier)
+SYNC_ARCHIVE_VAR(int, m_iBorderGrowthRateIncrease)
 SYNC_ARCHIVE_VAR(int, m_iPlotCultureCostModifier)
 SYNC_ARCHIVE_VAR(int, m_iPlotBuyCostModifier)
 SYNC_ARCHIVE_VAR(int, m_iCityWorkingChange)
 SYNC_ARCHIVE_VAR(int, m_iCitySupplyModifier)
 SYNC_ARCHIVE_VAR(int, m_iCitySupplyFlat)
+SYNC_ARCHIVE_VAR(int, m_iDamageReductionFlat)
 SYNC_ARCHIVE_VAR(bool, m_bAllowsProductionTradeRoutes)
 SYNC_ARCHIVE_VAR(bool, m_bAllowsFoodTradeRoutes)
 SYNC_ARCHIVE_VAR(bool, m_bAllowPuppetPurchase)
@@ -2226,6 +2252,7 @@ SYNC_ARCHIVE_VAR(int, m_iDamage)
 SYNC_ARCHIVE_VAR(int, m_iThreatValue)
 SYNC_ARCHIVE_VAR(int, m_hGarrison)
 SYNC_ARCHIVE_VAR(int, m_iResourceDemanded)
+SYNC_ARCHIVE_VAR(int, m_iResourceDemandedCounter)
 SYNC_ARCHIVE_VAR(int, m_iWeLoveTheKingDayCounter)
 SYNC_ARCHIVE_VAR(int, m_iLastTurnGarrisonAssigned)
 SYNC_ARCHIVE_VAR(int, m_iThingsProduced)
@@ -2236,6 +2263,7 @@ SYNC_ARCHIVE_VAR(int, m_iLowestRazingPop)
 SYNC_ARCHIVE_VAR(int, m_iCountExtraLuxuries)
 SYNC_ARCHIVE_VAR(int, m_iCheapestPlotInfluenceDistance)
 SYNC_ARCHIVE_VAR(int, m_iEspionageModifier)
+SYNC_ARCHIVE_VAR(int, m_iEspionageTurnsModifierEnemy)
 SYNC_ARCHIVE_VAR(int, m_iConversionModifier)
 SYNC_ARCHIVE_VAR(bool, m_bNeverLost)
 SYNC_ARCHIVE_VAR(bool, m_bDrafted)

@@ -128,6 +128,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(GetHurryProduction);
 	Method(GetTradeGold);
 	Method(GetTradeInfluence);
+	Method(GetRestingPointChange);
 	Method(CanTrade);
 	Method(CanBuyCityState);
 	Method(CanRepairFleet);
@@ -199,6 +200,12 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(MoveLinkedLeader);
 	Method(DoGroupMovement);
 
+	Method(GetSquadNumber);
+	Method(AssignToSquad);
+	Method(RemoveFromSquad);
+	Method(DoSquadMovement);
+	Method(SetSquadEndMovementType);
+
 	Method(Range);
 	Method(NukeDamageLevel);
 
@@ -215,6 +222,7 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 
 	Method(IsNoBadGoodies);
 	Method(IsOnlyDefensive);
+	Method(IsNoAttackInOcean);
 
 	Method(IsNoCapture);
 	Method(IsRivalTerritory);
@@ -386,6 +394,8 @@ void CvLuaUnit::PushMethods(lua_State* L, int t)
 	Method(BarbarianCombatBonus);
 #endif
 	Method(DomainModifier);
+	Method(DomainAttackPercent);
+	Method(DomainDefensePercent);
 	Method(GetStrategicResourceCombatPenalty);
 	Method(GetUnhappinessCombatPenalty);
 	Method(AirSweepCombatMod);
@@ -1874,6 +1884,21 @@ int CvLuaUnit::lGetTradeInfluence(lua_State* L)
 	return 1;
 }
 //------------------------------------------------------------------------------
+int CvLuaUnit::lGetRestingPointChange(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	CvUnitEntry *pkUnitEntry = GC.getUnitInfo(pkUnit->getUnitType());
+	if (pkUnitEntry == NULL)
+	{
+		lua_pushinteger(L, 0);
+		return 1;
+	}
+
+	const int iResult = pkUnitEntry->GetRestingPointChange();
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
 //bool canBuyCityState(CyPlot* pPlot, bool bTestVisible);
 int CvLuaUnit::lCanBuyCityState(lua_State* L)
 {
@@ -2494,6 +2519,55 @@ int CvLuaUnit::lDoGroupMovement(lua_State* L)
 	return 0;
 }
 //------------------------------------------------------------------------------
+// int  GetSquadNumber()
+int CvLuaUnit::lGetSquadNumber(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+
+	const int iResult = pkUnit->GetSquadNumber();
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+// AssignToSquad(int iNewSquadNumber)
+int CvLuaUnit::lAssignToSquad(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const int iNewValue = lua_tointeger(L, 2);
+
+	pkUnit->AssignToSquad(iNewValue);
+	return 0;
+}
+//------------------------------------------------------------------------------
+// RemoveFromSquad(int iNewSquadNumber)
+int CvLuaUnit::lRemoveFromSquad(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+
+	pkUnit->RemoveFromSquad();
+	return 0;
+}
+//------------------------------------------------------------------------------
+// void DoSquadMovement(CvPlot* pDestPlot)
+int CvLuaUnit::lDoSquadMovement(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	CvPlot* pkDestPlot = CvLuaPlot::GetInstance(L, 2);
+
+	pkUnit->DoSquadMovement(pkDestPlot);
+	return 0;
+}
+//------------------------------------------------------------------------------
+// SetSquadEndMovementType(SquadsEndMovementType endMovementType)
+int CvLuaUnit::lSetSquadEndMovementType(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const SquadsEndMovementType iNewValue = (SquadsEndMovementType)lua_tointeger(L, 2);
+
+	pkUnit->SetSquadEndMovementType(iNewValue);
+	return 0;
+}
+//------------------------------------------------------------------------------
 //int GetRange();
 int CvLuaUnit::lRange(lua_State* L)
 {
@@ -2604,6 +2678,16 @@ int CvLuaUnit::lIsOnlyDefensive(lua_State* L)
 {
 	CvUnit* pkUnit = GetInstance(L);
 	const bool bResult = pkUnit->isOnlyDefensive();
+
+	lua_pushboolean(L, bResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+//bool isNoAttackInOcean();
+int CvLuaUnit::lIsNoAttackInOcean(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const bool bResult = pkUnit->isNoAttackInOcean();
 
 	lua_pushboolean(L, bResult);
 	return 1;
@@ -2984,7 +3068,7 @@ int CvLuaUnit::lIsEnemyInMovementRange(lua_State* L)
 	const bool bOnlyFortified = lua_toboolean(L, 2);
 	const bool bOnlyCities = lua_toboolean(L, 3);
 
-	lua_pushboolean(L, pkUnit->IsEnemyInMovementRange(bOnlyFortified, bOnlyCities));
+	lua_pushboolean(L, pkUnit->GetPlotsWithEnemyInMovementRange(bOnlyFortified, bOnlyCities).size()>0);
 	return 1;
 }
 
@@ -4307,6 +4391,26 @@ int CvLuaUnit::lDomainModifier(lua_State* L)
 	const DomainTypes eDomain = (DomainTypes)lua_tointeger(L, 2);
 
 	const int iResult = pkUnit->domainModifier(eDomain);
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+int CvLuaUnit::lDomainAttackPercent(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const DomainTypes eDomain = (DomainTypes)lua_tointeger(L, 2);
+
+	const int iResult = pkUnit->getExtraDomainAttack(eDomain);
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+int CvLuaUnit::lDomainDefensePercent(lua_State* L)
+{
+	CvUnit* pkUnit = GetInstance(L);
+	const DomainTypes eDomain = (DomainTypes)lua_tointeger(L, 2);
+
+	const int iResult = pkUnit->getExtraDomainDefense(eDomain);
 	lua_pushinteger(L, iResult);
 	return 1;
 }

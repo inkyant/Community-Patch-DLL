@@ -36,6 +36,7 @@ public:
 	int GetRiverHappiness() const;
 	int GetHappinessPerCity() const;
 	int GetHappinessPerXPeacefulForeignFollowers() const;
+	int GetBorderGrowthRateIncreaseGlobal() const;
 	int GetPlotCultureCostModifier() const;
 	int GetCityRangeStrikeModifier() const;
 	int GetCombatModifierEnemyCities() const;
@@ -149,6 +150,7 @@ public:
 	int GetHolyCityYieldChange(int i) const;
 	int GetYieldChangePerForeignCity(int i) const;
 	int GetYieldChangePerXForeignFollowers(int i) const;
+	int GetYieldChangePerXCityStateFollowers(int i) const;
 	int GetYieldPerFollowingCity(int i) const;
 	int GetYieldPerXFollowers(int i) const;
 	int GetYieldPerOtherReligionFollower(int i) const;
@@ -208,6 +210,7 @@ protected:
 	int m_iRiverHappiness;
 	int m_iHappinessPerCity;
 	int m_iHappinessPerXPeacefulForeignFollowers;
+	int m_iBorderGrowthRateIncreaseGlobal;
 	int m_iPlotCultureCostModifier;
 	int m_iCityRangeStrikeModifier;
 	int m_iCombatModifierEnemyCities;
@@ -273,6 +276,7 @@ protected:
 	int* m_paiHolyCityYieldChange;
 	int* m_paiYieldChangePerForeignCity;
 	int* m_paiYieldChangePerXForeignFollowers;
+	int* m_paiYieldChangePerXCityStateFollowers;
 	int* m_piYieldPerFollowingCity;
 	int* m_piYieldPerXFollowers;
 	int* m_piYieldPerOtherReligionFollower;
@@ -435,6 +439,7 @@ public:
 
 	int GetFaithFromDyingUnits(PlayerTypes ePlayer = NO_PLAYER, bool bHolyCityOnly = false) const;
 	int GetRiverHappiness(PlayerTypes ePlayer = NO_PLAYER, const CvCity* pCity = NULL, bool bHolyCityOnly = false) const;
+	int GetBorderGrowthRateIncreaseGlobal(PlayerTypes ePlayer = NO_PLAYER, const CvCity* pCity = NULL, bool bHolyCityOnly = false) const;
 	int GetPlotCultureCostModifier(PlayerTypes ePlayer = NO_PLAYER, const CvCity* pCity = NULL, bool bHolyCityOnly = false) const;
 	int GetCityRangeStrikeModifier(PlayerTypes ePlayer = NO_PLAYER, const CvCity* pCity = NULL, bool bHolyCityOnly = false) const;
 	int GetCombatModifierEnemyCities(PlayerTypes ePlayer = NO_PLAYER, const CvCity* pCity = NULL, bool bHolyCityOnly = false) const;
@@ -490,6 +495,7 @@ public:
 	int GetHolyCityYieldChange(YieldTypes eYield, PlayerTypes ePlayer = NO_PLAYER, const CvCity* pCity = NULL, bool bHolyCityOnly = false) const;
 	int GetYieldChangePerForeignCity(YieldTypes eYield, PlayerTypes ePlayer = NO_PLAYER, const CvCity* pCity = NULL, bool bHolyCityOnly = false) const;
 	int GetYieldChangePerXForeignFollowers(YieldTypes eYield, PlayerTypes ePlayer = NO_PLAYER, const CvCity* pCity = NULL, bool bHolyCityOnly = false) const;
+	int GetYieldChangePerXCityStateFollowers(YieldTypes eYield, PlayerTypes ePlayer = NO_PLAYER, const CvCity* pCity = NULL, bool bHolyCityOnly = false) const;
 	int GetYieldPerFollowingCity(YieldTypes eYield, PlayerTypes ePlayer = NO_PLAYER, const CvCity* pCity = NULL, bool bHolyCityOnly = false) const;
 	int GetYieldPerXFollowers(YieldTypes eYield, PlayerTypes ePlayer = NO_PLAYER, const CvCity* pCity = NULL, bool bHolyCityOnly = false) const;
 	int GetYieldPerOtherReligionFollower(YieldTypes eYield, PlayerTypes ePlayer = NO_PLAYER, const CvCity* pCity = NULL, bool bHolyCityOnly = false) const;
@@ -604,11 +610,7 @@ FDataStream& operator>>(FDataStream&, CvReligionBeliefs&);
 
 namespace CvBeliefHelpers
 {
-#if defined(MOD_EVENTS_UNIT_CAPTURE)
 	bool ConvertBarbarianUnit(const CvUnit *pByUnit, CvUnit* pUnit);
-#else
-	bool ConvertBarbarianUnit(CvPlayer *pPlayer, CvUnit* pUnit);
-#endif
 }
 
 #endif //CIV5_BELIEF_CLASSES_H

@@ -131,6 +131,7 @@ protected:
 	static int lGetHurryProduction(lua_State* L);
 	static int lGetTradeGold(lua_State* L);
 	static int lGetTradeInfluence(lua_State* L);
+	static int lGetRestingPointChange(lua_State* L);
 	static int lCanTrade(lua_State* L);
 	static int lCanBuyCityState(lua_State* L);
 	static int lCanRepairFleet(lua_State* L);
@@ -201,6 +202,12 @@ protected:
 	static int lMoveLinkedLeader(lua_State* L);
 	static int lDoGroupMovement(lua_State* L);
 
+	static int lGetSquadNumber(lua_State* L);
+	static int lAssignToSquad(lua_State* L);
+	static int lRemoveFromSquad(lua_State* L);
+	static int lDoSquadMovement(lua_State* L);
+	static int lSetSquadEndMovementType(lua_State* L);
+
 	static int lRange(lua_State* L);
 	static int lNukeDamageLevel(lua_State* L);
 
@@ -217,6 +224,7 @@ protected:
 
 	static int lIsNoBadGoodies(lua_State* L);
 	static int lIsOnlyDefensive(lua_State* L);
+	static int lIsNoAttackInOcean(lua_State* L);
 
 	static int lIsNoCapture(lua_State* L);
 	static int lIsRivalTerritory(lua_State* L);
@@ -395,6 +403,8 @@ protected:
 	static int lGetMultiAttackBonusCity(lua_State* L);
 #endif
 	static int lDomainModifier(lua_State* L);
+	static int lDomainAttackPercent(lua_State* L);
+	static int lDomainDefensePercent(lua_State* L);
 	static int lGetStrategicResourceCombatPenalty(lua_State* L);
 	static int lGetUnhappinessCombatPenalty(lua_State* L);
 	static int lAirSweepCombatMod(lua_State* L);

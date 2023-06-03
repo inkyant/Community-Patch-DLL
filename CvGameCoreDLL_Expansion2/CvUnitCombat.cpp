@@ -171,6 +171,11 @@ void CvUnitCombat::GenerateMeleeCombatInfo(CvUnit& kAttacker, CvUnit* pkDefender
 		}
 #endif
 
+		// City can have flat damage reduction
+		if (pkCity->getDamageReductionFlat() != 0) {
+			iAttackerDamageInflicted = std::max(0, iAttackerDamageInflicted - pkCity->getDamageReductionFlat());
+		}
+
 		int iAttackerTotalDamageInflicted = iAttackerDamageInflicted + pkCity->getDamage();
 		int iDefenderTotalDamageInflicted = iDefenderDamageInflicted + kAttacker.getDamage();
 
@@ -354,7 +359,7 @@ void CvUnitCombat::GenerateMeleeCombatInfo(CvUnit& kAttacker, CvUnit* pkDefender
 		}
 		else if (iAttackerTotalDamageInflicted >= iDefenderMaxHP && kAttacker.IsCaptureDefeatedEnemy() && kAttacker.getDomainType()==pkDefender->getDomainType())
 		{
-			int iCaptureRoll = GC.getGame().getSmallFakeRandNum(50, plot) + GC.getGame().getSmallFakeRandNum(50, pkDefender->GetID());
+			int iCaptureRoll = GC.getGame().getSmallFakeRandNum(100, pkDefender->GetID(), plot);
 
 			if (iCaptureRoll < kAttacker.GetCaptureChance(pkDefender))
 			{
@@ -556,6 +561,10 @@ void CvUnitCombat::ResolveMeleeCombat(const CvCombatInfo& kCombatInfo, uint uiPa
 			{
 				pkDefender->setCapturingPlayer(pkAttacker->getOwner());
 				pkDefender->SetCapturedAsIs(true);
+				if (pkAttacker->GetCapturedUnitsConscriptedCount() > 0)
+				{
+					pkDefender->SetCapturedAsConscript(true);
+				}
 			}
 		}
 		// Nobody died
@@ -638,29 +647,8 @@ void CvUnitCombat::ResolveMeleeCombat(const CvCombatInfo& kCombatInfo, uint uiPa
 
 					pkAttacker->PublishQueuedVisualizationMoves();
 
-					if (pkAttacker->getAOEDamageOnKill() != 0 && bDefenderDead)
-					{
-						CvPlot* pAdjacentPlot = NULL;
-						CvPlot* pPlot = GC.getMap().plot(pkAttacker->getX(), pkAttacker->getY());
-
-						for (int iI = 0; iI < NUM_DIRECTION_TYPES; iI++)
-						{
-							pAdjacentPlot = plotDirection(pPlot->getX(), pPlot->getY(), ((DirectionTypes)iI));
-
-							if (pAdjacentPlot != NULL)
-							{
-								for (int iUnitLoop = 0; iUnitLoop < pAdjacentPlot->getNumUnits(); iUnitLoop++)
-								{
-									CvUnit* pEnemyUnit = pAdjacentPlot->getUnitByIndex(iUnitLoop);
-									if (pEnemyUnit != NULL && pEnemyUnit->isEnemy(pkAttacker->getTeam()))
-									{
-										CvString strAppendText = GetLocalizedText("TXT_KEY_MISC_YOU_UNIT_WAS_DAMAGED_AOE_STRIKE");
-										pEnemyUnit->changeDamage(pkAttacker->getAOEDamageOnKill(), pkAttacker->getOwner(), 0.0, &strAppendText);
-									}
-								}
-							}
-						}
-					}
+					if (bDefenderDead)
+						pkAttacker->DoAdjacentPlotDamage(pkTargetPlot, pkAttacker->getAOEDamageOnKill(), "TXT_KEY_MISC_YOU_UNIT_WAS_DAMAGED_AOE_STRIKE");
 				}
 				else
 				{
@@ -809,6 +797,11 @@ void CvUnitCombat::GenerateRangedCombatInfo(CvUnit& kAttacker, CvUnit* pkDefende
 			}
 		}
 #endif
+
+		// City can have flat damage reduction
+		if (pCity->getDamageReductionFlat() != 0) {
+			iDamage = std::max(0, iDamage - pCity->getDamageReductionFlat());
+		}
 
 		// Cities can't be knocked to less than 1 HP
 		if(iDamage + pCity->getDamage() >= pCity->GetMaxHitPoints())
@@ -1400,10 +1393,10 @@ void CvUnitCombat::ResolveCityMeleeCombat(const CvCombatInfo& kCombatInfo, uint 
 	CvString strBuffer;
 	int iActivePlayerID = GC.getGame().getActivePlayer();
 
-	// Barbarians don't capture Cities
-	if(pkAttacker && pkDefender)
+	// Barbarians don't capture Cities in Community Patch only
+	if (pkAttacker && pkDefender)
 	{
-		if(pkAttacker->isBarbarian() && (pkDefender->getDamage() >= pkDefender->GetMaxHitPoints()))
+		if (pkAttacker->isBarbarian() && (pkDefender->getDamage() >= pkDefender->GetMaxHitPoints()) && !MOD_BALANCE_VP)
 		{
 			// 1 HP left
 			pkDefender->setDamage(pkDefender->GetMaxHitPoints() - 1);
@@ -1413,7 +1406,7 @@ void CvUnitCombat::ResolveCityMeleeCombat(const CvCombatInfo& kCombatInfo, uint 
 			// City is ransomed for Gold
 			GET_PLAYER(pkDefender->getOwner()).GetTreasury()->ChangeGold(-iNumGoldStolen);
 
-			if(pkDefender->getOwner() == iActivePlayerID)
+			if (pkDefender->getOwner() == iActivePlayerID)
 			{
 				strBuffer = GetLocalizedText("TXT_KEY_MISC_YOU_CITY_RANSOMED_BY_BARBARIANS", pkDefender->getNameKey(), iNumGoldStolen);
 				GC.GetEngineUserInterface()->AddMessage(uiParentEventID, pkDefender->getOwner(), true, /*10*/ GD_INT_GET(EVENT_MESSAGE_TIME), strBuffer/*,GC.getEraInfo(GC.getGame().getCurrentEra())->getAudioUnitDefeatScript(), MESSAGE_TYPE_INFO, NULL, (ColorTypes)GC.getInfoTypeForString("COLOR_RED"), pkPlot->getX(), pkPlot->getY()*/);
@@ -1430,7 +1423,7 @@ void CvUnitCombat::ResolveCityMeleeCombat(const CvCombatInfo& kCombatInfo, uint 
 			pkAttacker->kill(true, NO_PLAYER);
 		}
 		// Attacker died
-		else if(pkAttacker->IsDead())
+		else if (pkAttacker->IsDead())
 		{
 			CvInterfacePtr<ICvUnit1> pAttacker = GC.WrapUnitPointer(pkAttacker);
 			gDLL->GameplayUnitDestroyedInCombat(pAttacker.get());

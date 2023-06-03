@@ -2475,6 +2475,38 @@ int CvDealAI::GetCityValueForDeal(CvCity* pCity, PlayerTypes eAssumedOwner)
 			iItemValue /= 100;
 			break;
 		}
+
+		if (!bPeaceTreatyTrade && !assumedOwner.isHuman())
+		{
+			// don't buy a city we're trying to liberate (exploitable)
+			// this is not an ideal solution - ideally AI would check whether the city is at risk of getting recaptured if liberated ... but will do for now
+			PlayerTypes eOriginalOwner = pCity->getOriginalOwner(), ePreviousOwner = pCity->getPreviousOwner(), ePlayerToLiberate = NO_PLAYER;
+			if (eOriginalOwner != pCity->getOwner() && eOriginalOwner != eAssumedOwner)
+			{
+				ePlayerToLiberate = eOriginalOwner;
+
+				// If we're at war with the original owner and the last owner was a City-State, we'd be liberating them instead
+				if (assumedOwner.IsAtWarWith(ePlayerToLiberate))
+				{
+					if (ePreviousOwner != NO_PLAYER && eOriginalOwner != ePreviousOwner && GET_PLAYER(ePreviousOwner).isMinorCiv())
+					{
+						ePlayerToLiberate = ePreviousOwner;
+					}
+					else
+					{
+						ePlayerToLiberate = NO_PLAYER;
+					}
+				}
+
+				if (ePlayerToLiberate != NO_PLAYER && !assumedOwner.CanLiberatePlayerCity(ePlayerToLiberate))
+				{
+					ePlayerToLiberate = NO_PLAYER;
+				}
+			}
+
+			if (assumedOwner.GetDiplomacyAI()->IsTryingToLiberate(pCity, ePlayerToLiberate))
+				return INT_MAX;
+		}
 	}
 
 	//OutputDebugString(CvString::format("City value for %s from %s to %s is %d\n", pCity->getName().c_str(), sellingPlayer.getName(), buyingPlayer.getName(), iItemValue).c_str());
@@ -3341,18 +3373,6 @@ int CvDealAI::GetThirdPartyWarValue(bool bFromMe, PlayerTypes eOtherPlayer, Team
 		break;
 	}
 
-	// Target is close to winning the game? Halve the value.
-	if (GET_PLAYER(ePlayerDeclaringWar).isHuman() && GET_PLAYER(eWithPlayer).isMajorCiv() && pDiploAI->IsEndgameAggressiveTo(eWithPlayer))
-	{
-		iItemValue /= 2;
-	}
-
-	// Easy target? Halve the value.
-	if (pDiploAI->IsEasyTarget(eWithPlayer))
-	{
-		iItemValue /= 2;
-	}
-
 	return iItemValue;
 }
 
@@ -3656,7 +3676,7 @@ void CvDealAI::DoAddVoteCommitmentToThem(CvDeal* pDeal, PlayerTypes eThem, int& 
 				}
 			}
 			// Sort the vector based on value to get the best possible item to trade.
-			viTradeValues.SortItems();
+			viTradeValues.StableSortItems();
 			if(viTradeValues.size() > 0)
 			{
 				for(int iRanking = 0; iRanking < viTradeValues.size(); iRanking++)
@@ -3739,7 +3759,7 @@ void CvDealAI::DoAddVoteCommitmentToUs(CvDeal* pDeal, PlayerTypes eThem, int& iT
 				}
 			}
 			// Sort the vector based on value to get the best possible item to trade.
-			viTradeValues.SortItems();
+			viTradeValues.StableSortItems();
 			if (viTradeValues.size() > 0)
 			{
 				//reverse!
@@ -3825,7 +3845,7 @@ void CvDealAI::DoAddThirdPartyWarToThem(CvDeal* pDeal, PlayerTypes eThem, int& i
 			}
 		}
 		// Sort the vector based on value to get the best possible item to trade.
-		viTradeValues.SortItems();
+		viTradeValues.StableSortItems();
 		if(viTradeValues.size() > 0)
 		{
 			for(int iRanking = 0; iRanking < viTradeValues.size(); iRanking++)
@@ -3943,7 +3963,7 @@ void CvDealAI::DoAddThirdPartyPeaceToThem(CvDeal* pDeal, PlayerTypes eThem, int&
 			}
 		}
 		// Sort the vector based on value to get the best possible item to trade.
-		viTradeValues.SortItems();
+		viTradeValues.StableSortItems();
 		if(viTradeValues.size() > 0)
 		{
 			for(int iRanking = 0; iRanking < viTradeValues.size(); iRanking++)
@@ -4101,7 +4121,7 @@ void CvDealAI::DoAddLuxuryResourceToThem(CvDeal* pDeal, PlayerTypes eThem, int& 
 			}
 		}
 		// Sort the vector based on value to get the best possible item to trade.
-		viTradeValues.SortItems();
+		viTradeValues.StableSortItems();
 		if (viTradeValues.size() > 0)
 		{
 			for (int iRanking = 0; iRanking < viTradeValues.size(); iRanking++)
@@ -4203,7 +4223,7 @@ void CvDealAI::DoAddLuxuryResourceToUs(CvDeal* pDeal, PlayerTypes eThem, int& iT
 			}
 		}
 
-		viTradeValues.SortItems();
+		viTradeValues.StableSortItems();
 		if(viTradeValues.size() > 0)
 		{
 			//reverse!
@@ -4317,7 +4337,7 @@ void CvDealAI::DoAddStrategicResourceToThem(CvDeal* pDeal, PlayerTypes eThem, in
 		}
 	}
 
-	sort(vOptions.begin(), vOptions.end());
+	std::stable_sort(vOptions.begin(), vOptions.end());
 	for (size_t i=0; i<vOptions.size(); i++)
 	{
 		ResourceTypes eResource = vOptions[i].option.first;
@@ -4406,7 +4426,7 @@ void CvDealAI::DoAddStrategicResourceToUs(CvDeal* pDeal, PlayerTypes eThem, int&
 		}
 	}
 
-	sort(vOptions.begin(), vOptions.end());
+	std::stable_sort(vOptions.begin(), vOptions.end());
 	for (size_t i=0; i<vOptions.size(); i++)
 	{
 		ResourceTypes eResource = vOptions[i].option.first;
@@ -4612,7 +4632,7 @@ void CvDealAI::DoAddCitiesToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValu
 	}
 
 	// Sort the vector based on the price ratio we can achieve
-	viCityPriceRatio.SortItems();
+	viCityPriceRatio.StableSortItems();
 
 	// Loop through sorted Cities
 	int iSortedCityID = 0;
@@ -4692,7 +4712,7 @@ void CvDealAI::DoAddCitiesToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalVa
 	}
 
 	// Sort the vector based on price ratio we can get
-	viCityPriceRatio.SortItems();
+	viCityPriceRatio.StableSortItems();
 
 	// Loop through sorted Cities.
 	int iSortedCityID = 0;
@@ -5384,7 +5404,7 @@ void CvDealAI::DoAddItemsToDealForPeaceTreaty(PlayerTypes eOtherPlayer, CvDeal* 
 		}
 
 		// Sort the vector based on distance from winner's capital
-		viCityValue.SortItems();
+		viCityValue.StableSortItems();
 		int iSortedCityID = 0;
 
 		// Determine the value of Cities to be given up
@@ -5501,7 +5521,7 @@ void CvDealAI::DoAddItemsToDealForPeaceTreaty(PlayerTypes eOtherPlayer, CvDeal* 
 		int iResourceValueToSurrender = (iTotalResourceValue * iGiveUpLuxResources) / 100;
 
 		// Sort the vector based on value
-		viResourceValue.SortItems();
+		viResourceValue.StableSortItems();
 		if(viResourceValue.size() > 0)
 		{
 			// Loop through sorted Cities and add them to the deal if they're under the amount to give up - start from the back of the list, because that's where the CLOSEST cities are
@@ -5577,7 +5597,7 @@ void CvDealAI::DoAddItemsToDealForPeaceTreaty(PlayerTypes eOtherPlayer, CvDeal* 
 		int iResourceValueToSurrender = (iTotalResourceValue * iGiveUpStratResources) / 100;
 
 		// Sort the vector based on distance from winner's capital
-		viResourceValue.SortItems();
+		viResourceValue.StableSortItems();
 		if(viResourceValue.size() > 0)
 		{
 			// Loop through sorted Cities and add them to the deal if they're under the amount to give up - start from the back of the list, because that's where the CLOSEST cities are
@@ -6714,10 +6734,10 @@ DemandResponseTypes CvDealAI::GetRequestForHelpResponse(CvDeal* pDeal)
 		}
 
 		// Give a luxury to this player? (only one)
-		if(iOurTotalHappy > 6 &&											// need to have some spare happiness
-			iTheirTotalHappy < 2 &&											// they need happiness
-			(pDiploAI->GetWarmongerThreat(eFromPlayer) < THREAT_MAJOR &&	// don't give out happiness to warmongers
-			pDiploAI->GetWarmongerHate() > 5) &&							// only if we hate warmongers
+		if(iOurTotalHappy > 60 &&											// need to have some spare happiness
+			iTheirTotalHappy < 50 &&										// they need happiness
+			(pDiploAI->GetWarmongerThreat(eFromPlayer) < THREAT_MAJOR ||	// don't give out happiness to warmongers
+			pDiploAI->GetWarmongerHate() <= 5) &&							// only if we hate warmongers
 			!pDiploAI->IsPlayerRecklessExpander(eFromPlayer))				// don't give out happiness to reckless expanders
 		{
 			bGiveUpOneLuxury = true;
@@ -8128,7 +8148,7 @@ void CvDealAI::DoAddTechToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValu
 				}
 			}
 			// Sort the vector based on value to get the best possible item to trade.
-			viTradeValues.SortItems();
+			viTradeValues.StableSortItems();
 			if(viTradeValues.size() > 0)
 			{
 				for(int iRanking = 0; iRanking < viTradeValues.size(); iRanking++)

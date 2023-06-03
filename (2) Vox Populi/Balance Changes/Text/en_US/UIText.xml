@@ -137,10 +137,10 @@
 	</Concepts_RelatedConcept>
 	<Language_en_US>
 		<Row Tag="TXT_KEY_CONCEPT_CITIES_YIELDS_SCALING_WITH_ERA_TOPIC">
-			<Text>[COLOR_GREEN]Yields Scaling with Era[ENDCOLOR]</Text>
+			<Text>[COLOR_GREEN]Scaling with Era[ENDCOLOR]</Text>
 		</Row>
 		<Row Tag="TXT_KEY_CONCEPT_CITIES_YIELDS_SCALING_WITH_ERA_SUMMARY">
-			<Text>Many Yields, especially those from Policies, Beliefs, and Buildings, state that they [COLOR_POSITIVE_TEXT]''Scale with Era''[ENDCOLOR]. This means that, as the game progresses, indicated Yield values increase in a linear fashion based on the current Era:[NEWLINE]1x in the Ancient and Classical Eras.[NEWLINE]2x in the Medieval Era.[NEWLINE]3x in the Renaissance Era.[NEWLINE]4x in the Industrial Era.[NEWLINE]5x in the Modern Era.[NEWLINE]6x in the Atomic Era.[NEWLINE]7x in the Information Era.</Text>
+			<Text>Many Yields, especially those from Policies, Beliefs, and Buildings, state that they [COLOR_POSITIVE_TEXT]''Scale with Era''[ENDCOLOR]. This means that, as the game progresses, indicated Yield values increase in a linear fashion based on the current Era:[NEWLINE]1x in the Ancient and Classical Eras.[NEWLINE]2x in the Medieval Era.[NEWLINE]3x in the Renaissance Era.[NEWLINE]4x in the Industrial Era.[NEWLINE]5x in the Modern Era.[NEWLINE]6x in the Atomic Era.[NEWLINE]7x in the Information Era.[NEWLINE][NEWLINE]In special cases like Korea, they may scale with Odd Era or skipping an era before scaling and follow a format based on the Current era like:[NEWLINE]1x in the Ancient/Classical Eras.[NEWLINE]2x in the Medieval/Renaissance Eras.[NEWLINE]3x in the Industrial/Modern Eras.[NEWLINE]4x in the Atomic/Information Eras.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_CONCEPT_CITIES_YIELDS_SCALING_WITH_ERA_DESCRIPTION">
 			<Text>{TXT_KEY_CONCEPT_CITIES_YIELDS_SCALING_WITH_ERA_TOPIC}</Text>
@@ -166,7 +166,7 @@
 			<Text>[COLOR_GREEN]Historic Events[ENDCOLOR]</Text>
 		</Row>
 		<Row Tag="TXT_KEY_HISTORIC_EVENT_BODY">
-			<Text>Historic Events represent monumental achievements that may occur during a game. These events require planning or user interaction, and are thus a dynamic part of acquiring cultural influence over other civilizations. When one of the following Historic Events is completed, receive a [ICON_TOURISM] Tourism boost with all known Civs based on your recent [ICON_CULTURE] Culture and [ICON_TOURISM] Tourism output:[NEWLINE][NEWLINE][ICON_BULLET] Earn a [ICON_GREAT_PEOPLE] Great Person[NEWLINE][ICON_BULLET] Build a [ICON_GOLDEN_AGE] World Wonder[NEWLINE][ICON_BULLET] Win a [ICON_WAR] War (Warscore 25+)[NEWLINE][ICON_BULLET] Enter a new [ICON_RESEARCH] Era[NEWLINE][NEWLINE]The amount of Tourism received by these events is based on your culture and tourism per turn over the past few turns. The value of this is also adjusted based on the number of cities in your empire and your tourism modifier with the target civ. Finally, the amount of tourism you receive is also modified by a few social policies and ideological tenets, as well as leader traits, buildings, and the number of cities in your empire.</Text>
+			<Text>Historic Events represent monumental achievements that may occur during a game. These events require planning or user interaction, and are thus a dynamic part of acquiring cultural influence over other civilizations. When one of the following Historic Events is completed, receive a [ICON_TOURISM] Tourism boost with all known Civs based on your recent [ICON_CULTURE] Culture and [ICON_TOURISM] Tourism output:[NEWLINE][NEWLINE][ICON_BULLET] Earn a [ICON_GREAT_PEOPLE] Great Person[NEWLINE][ICON_BULLET] Build a [ICON_WONDER] World Wonder[NEWLINE][ICON_BULLET] Win a [ICON_WAR] War (Warscore 25+)[NEWLINE][ICON_BULLET] Enter a new [ICON_RESEARCH] Era[NEWLINE][ICON_BULLET] Enter a [ICON_GOLDEN_AGE] Golden Age (Artistry)[NEWLINE][ICON_BULLET] Completing an [ICON_RES_ARTIFACTS] / [ICON_RES_HIDDEN_ARTIFACTS]  Archaeological Dig (Artistry)[NEWLINE][ICON_BULLET] [ICON_CARAVAN] Trade with a Major Civilization (Caravansary, etc)[NEWLINE][ICON_BULLET] [ICON_CARGO_SHIP] Trade with a Major Civilization (Harbor, etc)[NEWLINE][ICON_BULLET] [ICON_CARAVAN]/[ICON_CARGO_SHIP] Trade with a [ICON_CITY_STATE] City-State (Policy Only)[NEWLINE][NEWLINE]The amount of Tourism received by these events is based on your culture and tourism per turn over the past few turns. The value of this is also adjusted based on the number of cities in your empire and your tourism modifier with the target civ. Finally, the amount of tourism you receive is also modified by a few social policies and ideological tenets, as well as leader traits, buildings, and the number of cities in your empire.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_HISTORIC_EVENT_QUEST">
 			<Text>What is a Historic Event?</Text>
@@ -344,6 +344,56 @@
 		<Row Tag="TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_TT_YOUR_SCIENCE_GAIN_CS">
 			<Text>Total: {1_Num} [ICON_RESEARCH] Science (due to [ICON_INFLUENCE] Influence over this City-State)</Text>
 		</Row>
+		
+		<!-- Annexed City States -->
+		<Row Tag="TXT_KEY_TP_GOLD_FROM_ANNEXED_MINORS">
+			<Text>{1_Num} from [ICON_CITY_STATE] conquered City-States.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_TP_CULTURE_FROM_ANNEXED_MINORS">
+			<Text>[ICON_BULLET][COLOR_POSITIVE_TEXT]+{1_Num}[ENDCOLOR] from conquered City-States.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_TP_FAITH_FROM_ANNEXED_MINORS">
+			<Text>[ICON_BULLET][COLOR_POSITIVE_TEXT]+{1_Num}[ENDCOLOR] from conquered City-States.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_TP_SCIENCE_FROM_ANNEXED_MINORS">
+			<Text>[ICON_BULLET][COLOR_POSITIVE_TEXT]+{1_Num}[ENDCOLOR] [ICON_RESEARCH] from conquered City-States.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_TP_HAPPINESS_FROM_ANNEXED_MINORS">
+			<Text>{1_Num} from conquered City-States.</Text>
+		</Row>
+		
+		<!-- Espionage Events -->
+		<Row Tag="TXT_KEY_TP_GOLD_FROM_ESPIONAGE_INCOMING">
+			<Text>{1_Num} from [ICON_SPY] Espionage.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_TP_GOLD_FROM_ESPIONAGE_OUTGOING">
+			<Text>{1_Num} from [ICON_SPY] Espionage.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_TP_CULTURE_FROM_ESPIONAGE_POSITIVE">
+			<Text>[ICON_BULLET][COLOR_POSITIVE_TEXT]+{1_Num}[ENDCOLOR] from Espionage.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_TP_CULTURE_FROM_ESPIONAGE_NEGATIVE">
+			<Text>[ICON_BULLET][COLOR_NEGATIVE_TEXT]{1_Num}[ENDCOLOR] from Espionage.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_TP_FAITH_FROM_ESPIONAGE_POSITIVE">
+			<Text>[ICON_BULLET][COLOR_POSITIVE_TEXT]+{1_Num}[ENDCOLOR] from Espionage.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_TP_FAITH_FROM_ESPIONAGE_NEGATIVE">
+			<Text>[ICON_BULLET][COLOR_NEGATIVE_TEXT]{1_Num}[ENDCOLOR] from Espionage.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_TP_SCIENCE_FROM_ESPIONAGE_POSITIVE">
+			<Text>[ICON_BULLET][COLOR_POSITIVE_TEXT]+{1_Num}[ENDCOLOR] [ICON_RESEARCH] from Espionage.</Text>
+		</Row>
+		<Row Tag="TXT_KEY_TP_SCIENCE_FROM_ESPIONAGE_NEGATIVE">
+			<Text>[ICON_BULLET][COLOR_NEGATIVE_TEXT]{1_Num}[ENDCOLOR] [ICON_RESEARCH] from Espionage.</Text>
+		</Row>
+		
+		<Row Tag="TXT_KEY_NOTIFICATION_ANNEXED_CITY_STATE_UNIT_SPAWN">
+			<Text>The conquered City-State of {1_CivName:textkey} has given you a new Unit!</Text>
+		</Row>
+		<Row Tag="TXT_KEY_NOTIFICATION_SUMMARY_ANNEXED_CITY_STATE_UNIT_SPAWN">
+			<Text>New Unit from {1_CivName:textkey}!</Text>
+		</Row>
 
 		<!-- WLTKD LUA -->
 		<Row Tag="TXT_KEY_PRODUCTION_WLTKD_BUILDING">
@@ -386,14 +436,14 @@
 
 		<!-- CSD -->
 		<Row Tag="TXT_KEY_NOTIFICATION_GREAT_DIPLOMAT">
-			<Text>Your {1_UnitType} increased your [ICON_INFLUENCE] Influence in {3_CivShortDesc} by [COLOR_POSITIVE_TEXT]{2_Num}[ENDCOLOR], and reduced the Influence of all Major Civilizations known to the City-State by the same amount!</Text>
+			<Text>Your {1_UnitType} increased your [ICON_INFLUENCE] Influence in {3_CivShortDesc} by [COLOR_POSITIVE_TEXT]{2_Num}[ENDCOLOR], and reduced the Influence of all Major Civilizations known to the City-State by the same amount! Your minimum [ICON_INFLUENCE] Influence with the City-State has also increased by [COLOR_POSITIVE_TEXT]{4_Num}[ENDCOLOR]!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_GREAT_DIPLOMAT_SUMMARY">
 			<Text>Mission of your {1_UnitType} completed!</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_NOTIFICATION_GREAT_DIPLOMAT_OTHER">
-			<Text>A {1_UnitType} increased {4_OwnerAdj} [ICON_INFLUENCE] Influence in {3_CivShortDesc} by [COLOR_POSITIVE_TEXT]{2_Num}[ENDCOLOR], and reduced your [ICON_INFLUENCE] Influence in the City-State by the same amount!</Text>
+			<Text>A {1_UnitType} increased {4_OwnerAdj} [ICON_INFLUENCE] Influence in {3_CivShortDesc} by [COLOR_NEGATIVE_TEXT]{2_Num}[ENDCOLOR], and reduced your [ICON_INFLUENCE] Influence in the City-State by the same amount! Their minimum [ICON_INFLUENCE] Influence with the City-State has also increased by [COLOR_NEGATIVE_TEXT]{5_Num}[ENDCOLOR]!</Text>
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_GREAT_DIPLOMAT_OTHER_SUMMARY">
 			<Text>Foreign {1_UnitType} mission completed!</Text>
@@ -425,12 +475,12 @@
 
 		<!-- City-State Protection Prompt -->
 		<Row Tag="TXT_KEY_CSTATE_CAN_PROTECT">
-			<Text>[COLOR_POSITIVE_TEXT]Pledge of Protection Available![ENDCOLOR].</Text>
+			<Text>[COLOR_POSITIVE_TEXT]Pledge of Protection Available![ENDCOLOR]</Text>
 		</Row>
 
 		<!-- Aesthetics -->
 		<Row Tag="TXT_KEY_CO_CITY_TOURISM_POLICY_AESTHETICS">
-			<Text>{1_Num} [ICON_TOURISM] Tourism from World Wonders</Text>
+			<Text>{1_Num} [ICON_TOURISM] Tourism from [ICON_WONDER] World Wonders</Text>
 		</Row>
 
 		<!--<Row Tag="TXT_KEY_CO_CITY_TOURISM_CAPITAL_PENALTY">
@@ -494,8 +544,47 @@
 
 		<!-- Espionage Tooltip -->
 		<Row Tag="TXT_KEY_EO_SPY_COUP_DISABLED_PERMA_TT">
-			<Text>{1_SpyRank} {2_SpyName} may not attempt a coup in {3_CityName} yet because their current Ally has a Sphere of Influence here.</Text>
+			<Text>{1_SpyRank} {2_SpyName} may not attempt a coup in {3_CityName} because their current Ally has a Sphere of Influence here.</Text>
 		</Row>
+		<Row Tag="TXT_KEY_EO_SPY_RIGGING_COUP_CHANCE_INCREASE">
+			<Text>[COLOR_CYAN]Each successfully rigged election increases the success chance of a coup by {1_CoupChanceIncrease}%.[ENDCOLOR]</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EO_SPY_RIGGING_NO_COUP_POSSIBLE">
+			<Text>[COLOR_NEGATIVE_TEXT]Rigging elections does not increase the success chance of a coup because no coup is possible in this city-state.[ENDCOLOR]</Text>
+		</Row>
+		
+		<Row Tag="TXT_KEY_EO_ACTIVE_SPY_MISSIONS">
+			<Text>Active Spy Effects</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EO_ACTIVE_SPY_MISSIONS_START_TURN">
+			<Text>Start Turn</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EO_ACTIVE_SPY_MISSIONS_END_TURN">
+			<Text>End Turn</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EO_ACTIVE_SPY_MISSIONS_TARGET">
+			<Text>Targeted Player</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EO_ACTIVE_SPY_MISSIONS_SPY_OWNER">
+			<Text>Spy Owner</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EO_ACTIVE_SPY_MISSIONS_EFFECT">
+			<Text>Effect</Text>
+		</Row>
+		<Row Tag="TXT_KEY_EO_NO_SPY_MISSIONS_ACTIVE">
+			<Text>No Active Spy Effects</Text>
+		</Row>
+		
+		<Row Tag="TXT_KEY_SPY_MISSION_TURN_MODIFIER_FRIENDLY">
+			<Text>Our Buildings and Policies: -{1_Num} {1_Num: plural 1?Turn; other?Turns;}</Text>
+		</Row>
+		<Row Tag="TXT_KEY_SPY_MISSION_TURN_MODIFIER_ENEMY">
+			<Text>Enemy Buildings and Policies: +{1_Num} {1_Num: plural 1?Turn; other?Turns;}</Text>
+		</Row>
+		
+		
+		
+		
 
 		<!-- Feitoria Production Tooltip-->
 		<Row Tag="TXT_KEY_CHOOSE_INTERNATIONAL_TRADE_ROUTE_ITEM_TT_YOUR_PRODUCTION">
@@ -752,22 +841,22 @@
 
 		<!-- Bully Metric Values -->
 		<Row Tag="TXT_KEY_POPUP_MINOR_BULLY_FOOD_AMOUNT">
-			<Text>Steal Grain worth {1_Value} [ICON_FOOD] Food (-{2_NumInfluence} [ICON_INFLUENCE])</Text>
+			<Text>Take {1_GoldValue} [ICON_GOLD] Gold and {2_Value} [ICON_FOOD] Food (-{3_NumInfluence} [ICON_INFLUENCE])</Text>
 		</Row>
 		<Row Tag="TXT_KEY_POPUP_MINOR_BULLY_CULTURE_AMOUNT">
-			<Text>Plunder Artifacts worth {1_Value} [ICON_CULTURE] Culture (-{2_NumInfluence} [ICON_INFLUENCE])</Text>
+			<Text>Take {1_GoldValue} [ICON_GOLD] Gold and {2_Value} [ICON_CULTURE] Culture (-{3_NumInfluence} [ICON_INFLUENCE])</Text>
 		</Row>
 		<Row Tag="TXT_KEY_POPUP_MINOR_BULLY_SCIENCE_AMOUNT">
-			<Text>Extract Secrets worth {1_Value} [ICON_RESEARCH] Science (-{2_NumInfluence} [ICON_INFLUENCE])</Text>
+			<Text>Take {1_GoldValue} [ICON_GOLD] Gold and {2_Value} [ICON_RESEARCH] Science (-{3_NumInfluence} [ICON_INFLUENCE])</Text>
 		</Row>
 		<Row Tag="TXT_KEY_POPUP_MINOR_BULLY_PRODUCTION_AMOUNT">
-			<Text>Demand Supplies worth {1_Value} [ICON_PRODUCTION] Production (-{2_NumInfluence} [ICON_INFLUENCE])</Text>
+			<Text>Take {1_GoldValue} [ICON_GOLD] Gold and {2_Value} [ICON_PRODUCTION] Production (-{3_NumInfluence} [ICON_INFLUENCE])</Text>
 		</Row>
 		<Row Tag="TXT_KEY_POPUP_MINOR_BULLY_FAITH_AMOUNT">
-			<Text>Demand Relics worth {1_Value} [ICON_PEACE] Faith (-{2_NumInfluence} [ICON_INFLUENCE])</Text>
+			<Text>Take {1_GoldValue} [ICON_GOLD] Gold and {2_Value} [ICON_PEACE] Faith (-{3_NumInfluence} [ICON_INFLUENCE])</Text>
 		</Row>
 		<Row Tag="TXT_KEY_POP_CSTATE_BULLY_VARIABLE_CBP">
-			<Text>If this City-State is more [COLOR_POSITIVE_TEXT]afraid[ENDCOLOR] of you than they are [COLOR_WARNING_TEXT]resilient[ENDCOLOR], you can take exact heavy tribute from them. Doing so will net you [ICON_CULTURE] Culture, [ICON_RESEARCH] Science, [ICON_PRODUCTION] Production, [ICON_PEACE] Faith, or [ICON_FOOD] Food, depending on the City-State being targeted.[NEWLINE][NEWLINE]The amount you can exact in tribute is based on Game Speed and the Yield output of your Capital. Local Yields, like [ICON_FOOD] Food or [ICON_PRODUCTION] Production, will be delivered to your Capital.[NEWLINE][NEWLINE]{1_FearLevel}{2_FactorDetails}</Text>
+			<Text>If this City-State is more [COLOR_POSITIVE_TEXT]afraid[ENDCOLOR] of you than they are [COLOR_WARNING_TEXT]resilient[ENDCOLOR], you can take heavy tribute from them. Doing so will net you [ICON_GOLD] Gold as well as [ICON_CULTURE] Culture, [ICON_RESEARCH] Science, [ICON_PRODUCTION] Production, [ICON_PEACE] Faith, or [ICON_FOOD] Food, depending on the City-State being targeted.[NEWLINE][NEWLINE]Local Yields, like [ICON_FOOD] Food or [ICON_PRODUCTION] Production, will be delivered to your Capital.[NEWLINE][NEWLINE]{1_FearLevel}{2_FactorDetails}</Text>
 		</Row>
 
 		<!-- City-State Diplo Popup -->
@@ -1020,22 +1109,6 @@
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_CONSCRIPTION_SPAWN_SUMMARY">
 			<Text>{2_Unit} conscripted by {1_CityName:textkey}!</Text>
-		</Row>
-
-		<Row Tag="TXT_KEY_CIV5_IMPROVEMENTS_LUMBERMILL_JUNGLE">
-			<Text>Logging Camp</Text>
-		</Row>
-		<Row Tag="TXT_KEY_CIV5_IMPROVEMENTS_LUMBERMILL_TEXT_JUNGLE">
-			<Text>A Logging Camp allows you to improve the Gold output of Jungle tiles. Gains additional Gold for every two adjacent Logging Camps, so try to build them in clusters of three if possible.</Text>
-		</Row>
-		<Row Tag="TXT_KEY_BUILD_LUMBERMILL_JUNGLE">
-			<Text>Construct a [LINK=IMPROVEMENT_LUMBERMILL]Logging Camp[\LINK]</Text>
-		</Row>
-		<Row Tag="TXT_KEY_BUILD_LUMBERMILL_REC_JUNGLE">
-			<Text>It will increase the amount of [ICON_PRODUCTION] Production provided by this tile, while keeping the Jungle intact.</Text>
-		</Row>
-		<Row Tag="TXT_KEY_IMPROVEMENT_LUMBERMILL_JUNGLE">
-			<Text>Logging Camp</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_SCIENCE_FROM_RELIGION">
@@ -1480,6 +1553,12 @@
 		<Row Tag="TXT_KEY_POLICYSCREEN_POLICIES_NEEDED_UNTIL_IDEOLOGY">
 			<Text>Number of Policies Remaining until Ideologies are unlocked: [COLOR_POSITIVE_TEXT]{1_Num}[ENDCOLOR]</Text>
 		</Row>
+		<Row Tag="TXT_KEY_IDEOLOGY_INFLUENCE_CIVS_WITH_OTHER_IDEOLOGY">
+			<Text>Influenced by the number of civilizations not following our Ideology:</Text>
+		</Row>
+		<Row Tag="TXT_KEY_IDEOLOGY_INFLUENCE_RECENTLY_ADOPTED">
+			<Text>Influence due to only recently adopting/switching Ideologies:</Text>
+		</Row>
 
 		<Row Tag="TXT_KEY_PEDIA_ERA_YIELD">
 			<Text>Yield increase per Era:</Text>
@@ -1580,7 +1659,7 @@
 		</Row>
 
 		<Row Tag="TXT_KEY_BUILD_COST_REDUCTION">
-			<Text>{1_Build} needs {2_Turns} Turn(s) to complete.</Text>
+			<Text>{2_Turns}% Turn(s) to {1_Build}.</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_LEAGUE_OVERVIEW_INVALID_RESOLUTION_ATTEMPTED_LAST_SESSION">
@@ -1716,15 +1795,39 @@
 		</Row>
 		<Row Tag="TXT_KEY_NOTIFICATION_SUMMARY_QUEST_ENDED_REVOKED_WAR">
 			<Text>{1_MinorCivName:textkey} revokes quests</Text>
+		</Row>		
+		<Row Tag="TXT_KEY_VP_VASSALS">
+			<Text>Vassals</Text>
+		</Row>
+		<Row Tag="TXT_KEY_VP_CITYSTATES">
+			<Text>City-State Alliances</Text>
+		</Row>
+		<Row Tag="TXT_KEY_VP_MILITARY">
+			<Text>Military Power</Text>
 		</Row>
 	<!-- UI - Religion Spread -->
-			<Row Tag="TXT_KEY_RO_WR_TOTAL_CITIES">
+		<Row Tag="TXT_KEY_RELIGION_CHOOSER_ADVISOR_RECOMMENDATION">
+			<Text>[COLOR_POSITIVE_TEXT]Your Advisor recommends this belief.[ENDCOLOR]</Text>
+		</Row>
+		<Row Tag="TXT_KEY_RO_WR_TOTAL_CITIES">
 			<Text>Cities</Text>
 		</Row>
 		<Row Tag="TXT_KEY_RO_WR_TOTAL_FOLLOWERS">
 			<Text>Followers</Text>
 		</Row>
 
+		<Row Tag="TXT_KEY_RO_WR_YEAR_FOUNDED">
+			<Text>Founded</Text>
+		</Row>
+		
+		<Row Tag="TXT_KEY_RO_WR_OWNED_CITIES">
+			<Text>[COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR] of all Cities follows {2_Name}.[NEWLINE][NEWLINE]{3_Num} of your Cities have {4_Name} as the [ICON_RELIGION] Majority Religion. They account for [COLOR_POSITIVE_TEXT]{5_Num}%[ENDCOLOR] of the Majority Religion of your Cities. These cities also accounts for [COLOR_POSITIVE_TEXT]{6_Num}%[ENDCOLOR] of {7_Name}'s majority presence.</Text>
+		</Row>
+		
+		<Row Tag="TXT_KEY_RO_WR_OWNED_FOLLOWERS">
+			<Text>[COLOR_POSITIVE_TEXT]{1_Num}%[ENDCOLOR] of the World's Population follows {2_Name}.[NEWLINE][NEWLINE]{3_Num} of your [ICON_CITIZEN] Population follows {4_Name}. They make up [COLOR_POSITIVE_TEXT]{5_Num}%[ENDCOLOR] of your [ICON_CITIZEN] Population. They also make up for [COLOR_POSITIVE_TEXT]{6_Num}%[ENDCOLOR] of {7_Name}'s followers.</Text>
+		</Row>
+		
 		<Row Tag="TXT_KEY_RO_TAB_MAP">
 			<Text>Map</Text>
 		</Row>
@@ -1735,6 +1838,13 @@
 
 		<Row Tag="TXT_KEY_MO_SORT_XP">
 			<Text>Sort By XP</Text>
+		</Row>
+	<!-- City Damage Reduction -->
+		<Row Tag="TXT_KEY_PEDIA_DAMAGE_REDUCTION">
+			<Text>-{1_Num} Damage</Text>
+		</Row>
+		<Row Tag="TXT_KEY_PRODUCTION_BUILDING_DAMAGE_REDUCTION">
+			<Text>Damage Reduction: +{1_Num}</Text>
 		</Row>
 	</Language_en_US>
 	<Civilization_CityNames>

@@ -2526,7 +2526,7 @@ TeamTypes CvTeam::GetTeamVotingForInDiplo() const
 		if (veVoteCandidates.size() > 0)
 		{
 			// Our most favored other team ends up at the top after sorting
-			veVoteCandidates.SortItems();
+			veVoteCandidates.StableSortItems();
 			int iTopWeight = veVoteCandidates.GetWeight(0);
 
 			// If there is a tie at the top, choose randomly from those that tied
@@ -5301,8 +5301,7 @@ void CvTeam::changeProjectCount(ProjectTypes eIndex, int iChange)
 									if(pCapital == NULL)
 										continue;
 
-									bool bRome = GET_PLAYER((PlayerTypes)iJ).GetPlayerTraits()->IsKeepConqueredBuildings();
-									if ((MOD_BUILDINGS_THOROUGH_PREREQUISITES || bRome) && pCapital->HasBuildingClass(eBuildingClass))
+									if ((MOD_BUILDINGS_THOROUGH_PREREQUISITES) && pCapital->HasBuildingClass(eBuildingClass))
 									{
 										eBuilding = pCapital->GetCityBuildings()->GetBuildingTypeFromClass(eBuildingClass);
 									}
@@ -8047,7 +8046,7 @@ void CvTeam::processTech(TechTypes eTech, int iChange)
 								{
 									bool bHasBuildingClass = pLoopCity->HasBuildingClass((BuildingClassTypes)iI);
 									BuildingTypes eReplacedBuilding = eBuilding;
-									if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || kPlayer.GetPlayerTraits()->IsKeepConqueredBuildings())
+									if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
 									{
 										if (bHasBuildingClass)
 										{
@@ -8887,9 +8886,26 @@ void CvTeam::SetCurrentEra(EraTypes eNewValue)
 				//specialist food consumption changed, set all cities dirty
 				for(CvCity* pLoopCity = kPlayer.firstCity(&iLoop); pLoopCity != NULL; pLoopCity = kPlayer.nextCity(&iLoop))
 					pLoopCity->GetCityCitizens()->SetDirty(true);
+
 			}
 		}
 #endif
+		// Update Yields from Annexed City-States (Rome UA)
+		for (int iPlayerLoop = 0; iPlayerLoop < MAX_CIV_PLAYERS; iPlayerLoop++)
+		{
+			ePlayer = (PlayerTypes)iPlayerLoop;
+			CvPlayerAI& kPlayer = GET_PLAYER(ePlayer);
+			if (kPlayer.isAlive() && kPlayer.getTeam() == GetID())
+			{
+				kPlayer.UpdateFoodInCapitalPerTurnFromAnnexedMinors();
+				kPlayer.UpdateFoodInOtherCitiesPerTurnFromAnnexedMinors();
+				kPlayer.UpdateGoldPerTurnFromAnnexedMinors();
+				kPlayer.UpdateCulturePerTurnFromAnnexedMinors();
+				kPlayer.UpdateSciencePerTurnFromAnnexedMinors();
+				kPlayer.UpdateFaithPerTurnFromAnnexedMinors();
+				kPlayer.UpdateHappinessFromAnnexedMinors();
+			}
+		}
 #if defined(MOD_BALANCE_CORE)
 		updateYield();
 		for (int iPlayerLoop = 0; iPlayerLoop < MAX_CIV_PLAYERS; iPlayerLoop++)

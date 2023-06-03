@@ -400,8 +400,8 @@
     <!-- Adds support for "local" religions (ie ones that only have influence within the civ's own territory) (v48) -->
     <!-- See also: "Civilization - Morindim" -->
     <Row Class="5" Name="RELIGION_LOCAL_RELIGIONS" Value="0" DbUpdates="1"/>
-    <!-- disable passive religious pressure without trade routes -->
-    <Row Class="5" Name="RELIGION_PASSIVE_SPREAD_WITH_TRADE_ONLY" Value="0" DbUpdates="1"/>
+    <!-- disable passive religious pressure without trade route or city connection -->
+    <Row Class="5" Name="RELIGION_PASSIVE_SPREAD_WITH_CONNECTION_ONLY" Value="0"/>
     <!-- 
 	Various new tables and logics for beliefs. Currently, this is required to activate:
 		- Table 'Belief_FreePromotions'. Columns are 'BeliefType', 'PromotionType'.
@@ -414,7 +414,7 @@
 	<Row Class="5" Name="RELIGION_PERMANENT_PANTHEON" Value="0"/>
 
     <!-- disable ranged strikes from cities -->
-    <Row Class="5" Name="CORE_NO_RANGED_ATTACK_FROM_CITIES" Value="0" DbUpdates="1"/>
+    <Row Class="5" Name="CORE_NO_RANGED_ATTACK_FROM_CITIES" Value="0"/>
 
     <!-- Enables production to be stockpiled (v28) -->
     <!-- See also: "Buildings - Storage Yard and Stockpile" -->
@@ -439,6 +439,8 @@
    <Row Class="4" Name="LINKED_MOVEMENT" Value="0"/>
     <!-- Era scaling for GE & GM yields -->
    <Row Class="4" Name="GP_ERA_SCALING" Value="0"/>
+   <!-- Enables support for squads modmod -->
+   <Row Class="5" Name="SQUADS" Value="0"/>
 	  
     <!-- Events sent when terraforming occurs (v33) -->
     <!--   GameEvents.TerraformingMap.Add(function(iEvent, iLoad) end) -->
@@ -502,6 +504,7 @@
     <!--   GameEvents.PlayerCanBullyGold.Add(function(iPlayer, iCS) return true end) -->
     <!--   GameEvents.PlayerCanBullyUnit.Add(function(iPlayer, iCS) return true end) -->
     <!--   GameEvents.PlayerBullied.Add(function(iPlayer, iCS, iGold, iUnitType, iPlotX, iPlotY) end) -->
+    <!--   GameEvents.PlayerBullied.Add(function(iPlayer, iCS, iGold, iUnitType, iPlotX, iPlotY, iYield) end) [either works]-->
     <!--   GameEvents.PlayerCanGiftGold.Add(function(iPlayer, iCS) return true end) -->
     <!--   GameEvents.PlayerCanGiftUnit.Add(function(iPlayer, iCS, iUnit) return true end) -->
     <!--   GameEvents.PlayerCanGiftImprovement.Add(function(iPlayer, iCS) return true end) -->

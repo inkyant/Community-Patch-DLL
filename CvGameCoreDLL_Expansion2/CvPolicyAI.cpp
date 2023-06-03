@@ -229,7 +229,7 @@ int CvPolicyAI::ChooseNextPolicy(CvPlayer* pPlayer)
 		}
 	}
 
-	m_AdoptablePolicies.SortItems();
+	m_AdoptablePolicies.StableSortItems();
 	LogPossiblePolicies();
 
 	// Make our policy choice from the top choices
@@ -874,18 +874,17 @@ int CvPolicyAI::GetBranchBuildingHappiness(CvPlayer* pPlayer, PolicyBranchTypes 
 					if (pkPolicyInfo->GetBuildingClassHappiness(eBuildingClass) != 0)
 					{
 						BuildingTypes eBuilding = NO_BUILDING;
-						bool bRome = pPlayer->GetPlayerTraits()->IsKeepConqueredBuildings();
 
-						if (!MOD_BUILDINGS_THOROUGH_PREREQUISITES && !bRome)
+						if (!MOD_BUILDINGS_THOROUGH_PREREQUISITES)
 						{
 							eBuilding = (BuildingTypes)pPlayer->getCivilizationInfo().getCivilizationBuildings(eBuildingClass);
 						}
-						if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || bRome || eBuilding != NO_BUILDING)
+						if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || eBuilding != NO_BUILDING)
 						{
 							int iLoop = 0;
 							for (CvCity* pCity = pPlayer->firstCity(&iLoop); pCity != NULL; pCity = pPlayer->nextCity(&iLoop))
 							{
-								if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || bRome)
+								if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
 								{
 									eBuilding = pCity->GetCityBuildings()->GetBuildingTypeFromClass(eBuildingClass);
 									if (eBuilding == NO_BUILDING)
@@ -2385,6 +2384,17 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 			yield[YIELD_GREAT_GENERAL_POINTS] += 50;
 		}
 	}
+	if (PolicyInfo->GetMinimumAllyInfluenceIncreaseAtWar() > 0)
+	{
+		if (pPlayerTraits->IsWarmonger() || pPlayerTraits->IsDiplomat())
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += (250 * PolicyInfo->GetMinimumAllyInfluenceIncreaseAtWar()) / 100;
+		}
+		else
+		{
+			yield[YIELD_GREAT_GENERAL_POINTS] += (50 * PolicyInfo->GetMinimumAllyInfluenceIncreaseAtWar()) / 100;
+		}
+	}
 	if (PolicyInfo->GetBullyGlobalCSReduction())
 	{
 		if (pPlayerTraits->IsWarmonger() || pPlayerTraits->IsDiplomat())
@@ -2617,6 +2627,18 @@ Firaxis::Array< int, NUM_YIELD_TYPES > CvPolicyAI::WeightPolicyAttributes(CvPlay
 		{
 			yield[YIELD_TOURISM] += PolicyInfo->GetStealGWFasterModifier();
 		}
+	}
+	if (PolicyInfo->GetExtraYieldsFromHeavyTribute() != 0)
+	{
+		int iTraitsModifier = pPlayerTraits->IsWarmonger() ? 4 : 1;
+		iTraitsModifier *= 100 + pPlayerTraits->GetBullyValueModifier();
+		iTraitsModifier /= 100;
+		
+		yield[YIELD_FOOD] += iTraitsModifier * PolicyInfo->GetExtraYieldsFromHeavyTribute() / 20;
+		yield[YIELD_PRODUCTION] += iTraitsModifier * PolicyInfo->GetExtraYieldsFromHeavyTribute() / 20;
+		yield[YIELD_CULTURE] += iTraitsModifier * PolicyInfo->GetExtraYieldsFromHeavyTribute() / 20;
+		yield[YIELD_SCIENCE] += iTraitsModifier * PolicyInfo->GetExtraYieldsFromHeavyTribute() / 20;
+		yield[YIELD_FAITH] += iTraitsModifier * PolicyInfo->GetExtraYieldsFromHeavyTribute() / 20;
 	}
 	if (PolicyInfo->GetEventTourism() != 0)
 	{

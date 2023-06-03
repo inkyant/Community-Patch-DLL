@@ -126,6 +126,9 @@ void CvCityConnections::UpdatePlotsToConnect(void)
 {
 	m_plotIdsToConnect.clear();
 
+	bool bIsIndustrial = GET_TEAM(m_pPlayer->getTeam()).GetBestPossibleRoute() == GC.getGame().GetIndustrialRoute();
+	bool bHaveGoldToSpare = m_pPlayer->GetTreasury()->CalculateBaseNetGoldTimes100() > 1000;
+
 	vector<PlayerTypes> vTeamPlayers = GET_TEAM(m_pPlayer->getTeam()).getPlayers();
 	for (size_t i = 0; i < vTeamPlayers.size(); i++)
 	{
@@ -139,25 +142,49 @@ void CvCityConnections::UpdatePlotsToConnect(void)
 			m_plotIdsToConnect.push_back(iPlotIndex);
 		}
 
-		//citadels etc
+		//select strategically important points
+		//this logic is similar to tactical target selection (AI_TACTICAL_TARGET_DEFENSIVE_BASTION, AI_TACTICAL_TARGET_CITADEL)
+		vector<PlayerTypes> vUnfriendlyMajors = GET_PLAYER(ePlayer).GetUnfriendlyMajors();
 		const PlotIndexContainer& vPlots = GET_PLAYER(ePlayer).GetPlots();
 		for (size_t j=0; j<vPlots.size(); j++)
 		{
 			CvPlot* pLoopPlot = GC.getMap().plotByIndex(vPlots[j]);
-
-			if (pLoopPlot->getImprovementType() == NO_IMPROVEMENT)
+			if (pLoopPlot->isWater())
 				continue;
-						
+
+			if (pLoopPlot->isCity())
+				continue;
+
+			//ignore plots that are owned by a city we are razing
+			if (pLoopPlot->getOwningCity() && pLoopPlot->getOwningCity()->IsRazing())
+				continue;
+
+			if (pLoopPlot->isImpassable(m_pPlayer->getTeam()))
+				continue;
+
 			//ignore plots which are not exposed
-			if (!pLoopPlot->IsBorderLand(m_pPlayer->GetID()))
+			if (vUnfriendlyMajors.empty() || !pLoopPlot->IsBorderLand(m_pPlayer->GetID(), vUnfriendlyMajors))
 				continue;
 
-			CvImprovementEntry* pImprovementInfo = GC.getImprovementInfo(pLoopPlot->getImprovementType());
-			if (pImprovementInfo && pImprovementInfo->GetDefenseModifier() >= 20)
+			//natural defenses
+			if (pLoopPlot->defenseModifier(m_pPlayer->getTeam(), false, false) >= 25 || pLoopPlot->IsChokePoint())
+			{
+				m_plotIdsToConnect.push_back(pLoopPlot->GetPlotIndex());
+			}
+			else if (pLoopPlot->getImprovementType() != NO_IMPROVEMENT)
+			{
+				//citadels and forts
+				CvImprovementEntry* pImprovementInfo = GC.getImprovementInfo(pLoopPlot->getImprovementType());
+				if (pImprovementInfo && pImprovementInfo->GetDefenseModifier() >= 20)
+					m_plotIdsToConnect.push_back(pLoopPlot->GetPlotIndex());
+			}
+
+			//in industrial era, AI becomes much more generous with routes ...
+			if (bIsIndustrial && bHaveGoldToSpare && pLoopPlot->IsAdjacentOwnedByTeamOtherThan(m_pPlayer->getTeam(), false, true))
 				m_plotIdsToConnect.push_back(pLoopPlot->GetPlotIndex());
 		}
 	}
-					
+
 	//quests
 	for (int i=MAX_MAJOR_CIVS; i<MAX_CIV_PLAYERS; i++)
 	{
@@ -564,9 +591,9 @@ bool CvCityConnections::ShouldConnectToOtherPlayer(PlayerTypes eOtherPlayer)
 void CvCityConnections::CheckPlotRouteStateChanges(PlotIndexStore& lastState, PlotIndexStore& newState)
 {
 	//make sure the input is sorted and unique
-	std::sort(lastState.begin(),lastState.end());
+	std::stable_sort(lastState.begin(),lastState.end());
 	lastState.erase( std::unique(lastState.begin(),lastState.end()), lastState.end() );
-	std::sort(newState.begin(),newState.end());
+	std::stable_sort(newState.begin(),newState.end());
 	newState.erase( std::unique(newState.begin(),newState.end()), newState.end() );
 
 	PlotIndexStore addedPlots( newState.size() );

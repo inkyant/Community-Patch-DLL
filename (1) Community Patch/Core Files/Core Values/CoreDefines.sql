@@ -3,6 +3,14 @@
 INSERT INTO Defines(Name, Value) SELECT 'MAJORS_CAN_MOVE_STARTING_SETTLER', '1';
 INSERT INTO Defines(Name, Value) SELECT 'CS_CAN_MOVE_STARTING_SETTLER', '0';
 
+-- Can units that ignore terrain cost (mainly scouts) cross rivers without expending additional movement?
+-- 1 to enable, 0 to disable
+INSERT INTO Defines(Name, Value) SELECT 'IGNORE_TERRAIN_COST_INCLUDES_RIVERS', '1';
+
+-- Victory conditions
+-- Two thirds of original capitals under control is enough
+INSERT INTO Defines (Name, Value) SELECT 'VICTORY_DOMINATION_CONTROL_PERCENT', '100';
+
 -- Number of rings a new city starts with
 INSERT INTO Defines (Name, Value) SELECT 'CITY_STARTING_RINGS', '1';
 INSERT INTO Defines (Name, Value) SELECT 'MAXIMUM_WORK_PLOT_DISTANCE', '3';
@@ -88,6 +96,9 @@ INSERT INTO Defines(Name, Value) SELECT 'COMBAT_AI_DEFENSE_SCORE_BIAS', '200';
 -- City Revolt Timer
 UPDATE Defines SET Value = '10' WHERE Name = 'REVOLT_COUNTER_MIN';
 
+-- WLTKD Reset Timer (<= 0 means disabled); scales with game speed
+INSERT INTO Defines (Name, Value) SELECT 'WLTKD_RESOURCE_RESET_TURNS', '0';
+
 -- Religion Spread Rework
 UPDATE Defines SET Value = '9' WHERE Name = 'RELIGION_ADJACENT_CITY_DISTANCE';
 INSERT INTO Defines(Name, Value) SELECT 'INQUISITION_EFFECTIVENESS', '100'; -- expected value between 1 and 100. percentage of heretics' pressure to be removed by inquisitors. does not affect prophets.
@@ -109,6 +120,7 @@ UPDATE Defines SET Value = '15' WHERE Name = 'PERMANENT_WAR_OTHER_CHANCE_FAR';
 UPDATE Defines SET Value = '20' WHERE Name = 'PERMANENT_WAR_OTHER_CHANCE_CLOSE';
 UPDATE Defines SET Value = '25' WHERE Name = 'PERMANENT_WAR_OTHER_CHANCE_NEIGHBORS';
 UPDATE Defines SET Value = '20' WHERE Name = 'PERMANENT_WAR_OTHER_AT_WAR';
+INSERT INTO Defines (Name, Value) SELECT 'MINOR_REMOVE_SPHERE_FRIENDSHIP', '0';
 
 
 -- Settler Stuff
@@ -501,16 +513,12 @@ INSERT INTO Defines (Name, Value) SELECT 'LOCAL_HAPPINESS_FOOD_MODIFIER', '2'; -
 INSERT INTO Defines (Name, Value) SELECT 'LOCAL_UNHAPPINESS_FOOD_MODIFIER', '10'; -- % penalty to Growth per point of Local Unhappiness above Local Happiness
 
 -- Penalty to Growth if empire is super unhappy
-INSERT INTO Defines (Name, Value) SELECT 'SUPER_UNHAPPY_GROWTH_PENALTY', '-100';
+INSERT INTO Defines (Name, Value) SELECT 'GLOBAL_GROWTH_PENALTY_PER_UNHAPPY', '2.5'; -- Global % penalty to Growth when the empire is unhappy, per approval rating % below 50
 
 -- Production penalties if unhappy
 INSERT INTO Defines (Name, Value) SELECT 'LOCAL_UNHAPPY_SETTLER_PRODUCTION_PENALTY', '-10'; -- Local % penalty to Settler production for each point of Local Unhappiness above Local Happiness
 INSERT INTO Defines (Name, Value) SELECT 'LOCAL_UNHAPPY_COMBAT_UNIT_PRODUCTION_PENALTY', '-10'; -- Local % penalty to combat unit production for each point of Local Unhappiness above Local Happiness
-
-INSERT INTO Defines (Name, Value) SELECT 'UNHAPPY_SETTLER_PRODUCTION_PENALTY', '-25'; -- Global % penalty to Settler production when the empire is unhappy
-INSERT INTO Defines (Name, Value) SELECT 'VERY_UNHAPPY_SETTLER_PRODUCTION_PENALTY', '-50'; -- very unhappy
-INSERT INTO Defines (Name, Value) SELECT 'SUPER_UNHAPPY_SETTLER_PRODUCTION_PENALTY', '-75'; -- super unhappy
-
+INSERT INTO Defines (Name, Value) SELECT 'GLOBAL_SETTLER_PRODUCTION_PENALTY_PER_UNHAPPY', '2.5'; -- Global % penalty to Settler production when the empire is unhappy, per approval rating % below 50
 INSERT INTO Defines (Name, Value) SELECT 'UNHAPPY_MAX_UNIT_PRODUCTION_PENALTY', '-75'; -- Maximum penalty to any kind of unit production from happiness
 
 -- Great Musician Happiness
@@ -683,7 +691,10 @@ INSERT INTO Defines (Name, Value) SELECT 'MINOR_QUEST_REBELLION_BARBS_MIN', '2';
 -- Misc. Defines
 INSERT INTO Defines (Name, Value) SELECT 'RELIGION_MIN_FAITH_SECOND_PROPHET', '600';
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_MARRIAGE_GP_RATE', '15'; -- Austria new UA (VP)
-INSERT INTO Defines (Name, Value) SELECT 'BALANCE_FOLLOWER_GROWTH_BONUS', '2'; -- India Growth (VP)
+INSERT INTO Defines (Name, Value) SELECT 'BALANCE_MARRIAGE_RESTING_POINT_INCREASE', '200'; -- Austria new UA (VP)
+INSERT INTO Defines (Name, Value) SELECT 'BALANCE_FOLLOWER_GROWTH_BONUS', '0'; -- India Growth (VP)
+INSERT INTO Defines (Name, Value) SELECT 'BALANCE_FOLLOWER_FOOD_BONUS', '1'; -- India Food (VP)
+INSERT INTO Defines (Name, Value) SELECT 'RELIGION_FOUND_AUTO_SPREAD_PRESSURE', '1000'; -- India Pressure on Found (VP)
 INSERT INTO Defines (Name, Value) SELECT 'GWAM_THRESHOLD_DECREASE', '0'; -- Great People Rate Mod (Note, this is a subtraction, so positive = negative)
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_BUILDING_INVESTMENT_BASELINE', '-50'; -- Building Investments Base Rate
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_UNIT_INVESTMENT_BASELINE', '-50'; -- Unit Investments Base Rate
@@ -704,7 +715,6 @@ INSERT INTO Defines (Name, Value) SELECT 'BALANCE_SCOUT_XP_BASE', '1';
 
 -- City-States
 INSERT INTO Defines (Name, Value) SELECT 'QUEST_DISABLED_CP_QUESTS', '1'; -- New VP Quests
-INSERT INTO Defines (Name, Value) SELECT 'MOD_BALANCE_CORE_MINIMUM_RANKING_PTP', '60'; -- PTP Military Power Needed
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_CS_WAR_COOLDOWN_RATE', '50'; -- How long till a City-State forgets that a major aggressively attacked it?
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_MINOR_PROTECTION_MINIMUM_DURATION', '10'; -- How long before a major can revoke a PtP to a CS?
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_CS_PLEDGE_TO_PROTECT_DEFENSE_BONUS', '5'; -- Bonus to CS capital's CS for each PtP
@@ -718,6 +728,11 @@ INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_SPY_RESISTANCE_MAXIMUM', '10
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_SPY_SABOTAGE_RATE', '30';
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_SPY_RESPAWN_TIMER', '5';
 INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_GATHERING_INTEL_COST_DIVISOR', '250';
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_COUP_CHANCE_INCREASE_FOR_RIGGED_ELECTION_BASE', 0;  -- VP
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_COUP_CHANCE_INCREASE_FOR_RIGGED_ELECTION_PER_SPY_LEVEL', 0;  -- VP
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_KILL_CHANCE_DECREASE_PER_SPY_LEVEL', 0; -- VP
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_MODIFIER_SPY_LEVEL_AGENT', 0; -- VP
+INSERT INTO Defines (Name, Value) SELECT 'ESPIONAGE_MODIFIER_SPY_LEVEL_SPECIAL_AGENT', 0; -- VP
 
 -- Ideology Unlock via Policies
 INSERT INTO Defines (Name, Value) SELECT 'BALANCE_MOD_POLICY_BRANCHES_NEEDED_IDEOLOGY', '3';

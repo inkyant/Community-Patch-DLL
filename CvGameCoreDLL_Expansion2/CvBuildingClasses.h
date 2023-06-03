@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	ï¿½ 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -203,6 +203,8 @@ public:
 	int GetCityConnectionTradeRouteModifier() const;
 	int GetCapturePlunderModifier() const;
 	int GetPolicyCostModifier() const;
+	int GetBorderGrowthRateIncrease() const;
+	int GetBorderGrowthRateIncreaseGlobal() const;
 	int GetGlobalPlotCultureCostModifier() const;
 	int GetPlotCultureCostModifier() const;
 	int GetGlobalPlotBuyCostModifier() const;
@@ -251,6 +253,7 @@ public:
 	int GetLocalUnhappinessModifier() const;
 	int GetGlobalBuildingGoldMaintenanceMod() const;
 	int GetBuildingDefenseModifier() const;
+	int GetDamageReductionFlat() const;
 	int GetCitySupplyModifier() const;
 	int GetCitySupplyModifierGlobal() const;
 	int GetCitySupplyFlat() const;
@@ -284,6 +287,9 @@ public:
 	int GetReligiousPressureModifier() const;
 	int GetEspionageModifier() const;
 	int GetGlobalEspionageModifier() const;
+	int GetEspionageTurnsModifierFriendly() const;
+	int GetEspionageTurnsModifierEnemyCity() const;
+	int GetEspionageTurnsModifierEnemyGlobal() const;
 	int GetExtraSpies() const;
 	int GetSpyRankChange() const;
 	int GetTradeRouteRecipientBonus() const;
@@ -712,6 +718,8 @@ private:
 	int m_iCityConnectionTradeRouteModifier;
 	int m_iCapturePlunderModifier;
 	int m_iPolicyCostModifier;
+	int m_iBorderGrowthRateIncrease;
+	int m_iBorderGrowthRateIncreaseGlobal;
 	int m_iGlobalPlotCultureCostModifier;
 	int m_iPlotCultureCostModifier;
 	int m_iGlobalPlotBuyCostModifier;
@@ -734,6 +742,7 @@ private:
 	int m_iLocalUnhappinessModifier;
 	int m_iGlobalBuildingGoldMaintenanceMod;
 	int m_iBuildingDefenseModifier;
+	int m_iDamageReductionFlat;
 	int m_iCitySupplyModifier;
 	int m_iCitySupplyModifierGlobal;
 	int m_iCitySupplyFlat;
@@ -768,6 +777,9 @@ private:
 	int m_iReligiousPressureModifier;
 	int m_iEspionageModifier;
 	int m_iGlobalEspionageModifier;
+	int m_iEspionageTurnsModifierFriendly;
+	int m_iEspionageTurnsModifierEnemyCity;
+	int m_iEspionageTurnsModifierEnemyGlobal;
 	int m_iExtraSpies;
 	int m_iSpyRankChange;
 	int m_iInstantSpyRankChange;

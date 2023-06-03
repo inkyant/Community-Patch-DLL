@@ -1693,7 +1693,33 @@ function UpdateCombatOddsUnitVsUnit(pMyUnit, pTheirUnit)
 			iModifier = pMyUnit:DomainModifier(pTheirUnit:GetDomainType());
 			if (iModifier ~= 0 and bonusCount < maxBonusDisplay) then
 				controlTable = g_MyCombatDataIM:GetInstance();
-				controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_BONUS_VS_DOMAIN" );
+				if (iModifier > 0) then
+					controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_BONUS_VS_DOMAIN" );
+				else
+					controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_PENALTY_VS_DOMAIN" );
+				end
+				controlTable.Value:SetText( GetFormattedText(strText, iModifier, true, true) );
+				bonusCount = bonusCount + 1;
+				--CvBaseInfo kDomainInfo;
+				--Database::SingleResult kResult;
+				--DB.SelectAt(kResult, "Domains", pTheirUnit:getDomainType());
+				--kDomainInfo.CacheResult(kResult);
+
+				--strString.append(GetLocalizedText("TXT_KEY_COMBAT_PLOT_MOD_VS_TYPE", iModifier, kDomainInfo.GetDescription()));
+			elseif (iModifier ~= 0) then
+				bonusSum = bonusSum + iModifier;
+				bonusCount = bonusCount + 1;
+			end
+
+			-- DomainAttackPercent
+			iModifier = pMyUnit:DomainAttackPercent(pTheirUnit:GetDomainType());
+			if (iModifier ~= 0 and bonusCount < maxBonusDisplay) then
+				controlTable = g_MyCombatDataIM:GetInstance();
+				if (iModifier > 0) then
+					controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_ATTACK_BONUS_VS_DOMAIN" );
+				else
+					controlTable.Text:LocalizeAndSetText( "TXT_KEY_EUPANEL_ATTACK_PENALTY_VS_DOMAIN" );
+				end
 				controlTable.Value:SetText( GetFormattedText(strText, iModifier, true, true) );
 				bonusCount = bonusCount + 1;
 				--CvBaseInfo kDomainInfo;
@@ -2464,18 +2490,18 @@ function UpdateCombatOddsUnitVsUnit(pMyUnit, pTheirUnit)
 						bonusSum = bonusSum + iModifier;
 						bonusCount = bonusCount + 1;
 					end
-				else
-					iModifier = pTheirUnit:GetDefenseModifier();
-					if (iModifier ~= 0 and bonusCount < maxBonusDisplay) then
-						controlTable = g_TheirCombatDataIM:GetInstance();
-						controlTable.Text:LocalizeAndSetText(  "TXT_KEY_EUPANEL_DEFENSE_BONUS" );
-						controlTable.Value:SetText( GetFormattedText(strText, iModifier, false, true) );
-						bonusCount = bonusCount + 1;
-					elseif (iModifier ~= 0) then
-						bonusSum = bonusSum + iModifier;
-						bonusCount = bonusCount + 1;
-					end
 				end
+				iModifier = pTheirUnit:GetDefenseModifier();
+				if (iModifier ~= 0 and bonusCount < maxBonusDisplay) then
+					controlTable = g_TheirCombatDataIM:GetInstance();
+					controlTable.Text:LocalizeAndSetText(  "TXT_KEY_EUPANEL_DEFENSE_BONUS" );
+					controlTable.Value:SetText( GetFormattedText(strText, iModifier, false, true) );
+					bonusCount = bonusCount + 1;
+				elseif (iModifier ~= 0) then
+					bonusSum = bonusSum + iModifier;
+					bonusCount = bonusCount + 1;
+				end
+				
 
 				-- UnitClassModifier & UnitClassDefenseModifier
 				iModifier = pTheirUnit:GetUnitClassModifier(pMyUnit:GetUnitClassType()) + pTheirUnit:UnitClassDefenseModifier(pMyUnit:GetUnitClassType());
@@ -2559,7 +2585,34 @@ function UpdateCombatOddsUnitVsUnit(pMyUnit, pTheirUnit)
 				iModifier = pTheirUnit:DomainModifier(pMyUnit:GetDomainType());
 				if (iModifier ~= 0 and bonusCount < maxBonusDisplay) then
 					controlTable = g_TheirCombatDataIM:GetInstance();
-					controlTable.Text:LocalizeAndSetText(  "TXT_KEY_EUPANEL_BONUS_VS_DOMAIN" );
+					if (iModifier > 0) then
+						controlTable.Text:LocalizeAndSetText(  "TXT_KEY_EUPANEL_BONUS_VS_DOMAIN" );
+					else
+						controlTable.Text:LocalizeAndSetText(  "TXT_KEY_EUPANEL_PENALTY_VS_DOMAIN" );
+					end
+					controlTable.Value:SetText( GetFormattedText(strText, iModifier, false, true) );
+
+					--CvBaseInfo kDomainInfo;
+					--Database::SingleResult kResult;
+					--DB.SelectAt(kResult, "Domains", pTheirUnit:getDomainType());
+					--kDomainInfo.CacheResult(kResult);
+
+					--strString.append(GetLocalizedText("TXT_KEY_COMBAT_PLOT_MOD_VS_TYPE", iModifier, kDomainInfo.GetDescription()));
+					bonusCount = bonusCount + 1;
+				elseif (iModifier ~= 0) then
+					bonusSum = bonusSum + iModifier;
+					bonusCount = bonusCount + 1;
+				end
+
+				-- DomainDefensePercent
+				iModifier = pTheirUnit:DomainDefensePercent(pMyUnit:GetDomainType());
+				if (iModifier ~= 0 and bonusCount < maxBonusDisplay) then
+					controlTable = g_TheirCombatDataIM:GetInstance();
+					if (iModifier > 0) then
+						controlTable.Text:LocalizeAndSetText(  "TXT_KEY_EUPANEL_DEFENSE_BONUS_VS_DOMAIN" );
+					else
+						controlTable.Text:LocalizeAndSetText(  "TXT_KEY_EUPANEL_DEFENSE_PENALTY_VS_DOMAIN" );
+					end
 					controlTable.Value:SetText( GetFormattedText(strText, iModifier, false, true) );
 
 					--CvBaseInfo kDomainInfo;
@@ -3547,8 +3600,8 @@ function OnMouseOverHex( hexX, hexY )
 								pUnit = pPlot:GetUnit(i);
 								if (pUnit ~= nil and not pUnit:IsInvisible(iTeam, false)) then
 
-									local validLandAttack = (pHeadUnit:GetDomainType() == DomainTypes.DOMAIN_LAND) and (pUnit:GetDomainType() == DomainTypes.DOMAIN_LAND);
-									local validSeaAttack = (pHeadUnit:GetDomainType() == DomainTypes.DOMAIN_SEA) and (pUnit:GetDomainType() == DomainTypes.DOMAIN_SEA or pUnit:IsEmbarked());
+									local validLandAttack = (pHeadUnit:GetDomainType() == DomainTypes.DOMAIN_LAND) and (not pPlot:IsWater() or (pPlot:IsWater() and pPlot:GetImprovementType() ~= -1 and GameInfo.Improvements[pPlot:GetImprovementType()].AllowsWalkWater)); --Observe this if it causes issues.
+									local validSeaAttack = (pHeadUnit:GetDomainType() == DomainTypes.DOMAIN_SEA) and (pUnit:GetDomainType() == DomainTypes.DOMAIN_SEA or pUnit:IsEmbarked() or (pPlot:IsWater() and GameInfo.Improvements[pPlot:GetImprovementType()].AllowsWalkWater)); --The behavior of ship being allowed to attack units on Polders/Pontoon Bridges was always there... except no one wanted to fix the UI? Observe this if it causes issues.
 									local validAirAttack = (pHeadUnit:GetDomainType() == DomainTypes.DOMAIN_AIR);
 
 									-- ranged attacks handled elsewhere!
@@ -3575,7 +3628,7 @@ function OnMouseOverHex( hexX, hexY )
 					end
 				end
 			-- ranged attack, need to check correct domain etc
-			elseif (pHeadUnit:CanEverRangeStrikeAt(pPlot:GetX(), pPlot:GetY())) then
+			elseif (pHeadUnit:CanEverRangeStrikeAt(pPlot:GetX(), pPlot:GetY()) and not pHeadUnit:IsEmbarked()) then
 
 				local iTeam = Game.GetActiveTeam()
 				local pTeam = Teams[iTeam]

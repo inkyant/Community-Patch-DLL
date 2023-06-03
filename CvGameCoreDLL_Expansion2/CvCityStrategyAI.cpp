@@ -27,6 +27,8 @@
 
 #include "CvEnumMapSerialization.h"
 
+#define NO_WORKER_AFTER_DISBAND_DURATION 12
+
 //=====================================
 // CvAICityStrategyEntry
 //=====================================
@@ -672,7 +674,7 @@ void CvCityStrategyAI::PrecalcYieldStats()
 	}
 
 	//this sorts in descending order
-	sort(deviations.begin(), deviations.end());
+	std::stable_sort(deviations.begin(), deviations.end());
 
 	m_eMostAbundantYield = deviations.front().score > 0 ? deviations.front().option : NO_YIELD;
 	m_eMostDeficientYield = deviations.back().score < 0 ? deviations.back().option : NO_YIELD;
@@ -910,7 +912,7 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg, UnitTypes eIg
 		}
 	}
 
-	m_BuildablesPrecheck.SortItems();
+	m_BuildablesPrecheck.StableSortItems();
 
 	LogPossibleBuilds(m_BuildablesPrecheck,"PRE");
 	SPlotStats plotStats = m_pCity->getPlotStats();
@@ -934,6 +936,10 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg, UnitTypes eIg
 					int iNewWeight = GetUnitProductionAI()->CheckUnitBuildSanity(eUnitType, true, m_BuildablesPrecheck.GetWeight(iI), false, false);
 					if (iNewWeight > 0)
 					{
+						//hack, bump up the weight for our very first escort!
+						if (GET_PLAYER(m_pCity->getOwner()).IsEarlyExpansionPhase())
+							iNewWeight *= 3;
+
 						selection.m_iValue = iNewWeight;
 						m_Buildables.push_back(selection, iNewWeight);
 					}
@@ -999,7 +1005,7 @@ void CvCityStrategyAI::ChooseProduction(BuildingTypes eIgnoreBldg, UnitTypes eIg
 
 	ReweightByDuration(m_Buildables);
 
-	m_Buildables.SortItems();
+	m_Buildables.StableSortItems();
 
 	LogPossibleBuilds(m_Buildables,"POST");
 
@@ -1321,7 +1327,7 @@ CvCityBuildable CvCityStrategyAI::ChooseHurry(bool bUnitOnly, bool bFaithPurchas
 			}
 		}
 	}
-	m_BuildablesPrecheck.SortItems();
+	m_BuildablesPrecheck.StableSortItems();
 
 	ReweightByDuration(m_BuildablesPrecheck);
 
@@ -1403,7 +1409,7 @@ CvCityBuildable CvCityStrategyAI::ChooseHurry(bool bUnitOnly, bool bFaithPurchas
 		}
 	}
 
-	m_Buildables.SortItems();
+	m_Buildables.StableSortItems();
 
 	LogPossibleHurries(m_Buildables,"POST");
 
@@ -2437,7 +2443,7 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_NeedTileImprovers(AICityStrategyT
 	int iCurrentNumCities = kPlayer.countCitiesNeedingTerrainImprovements();
 
 	int iLastTurnWorkerDisbanded = kPlayer.GetEconomicAI()->GetLastTurnWorkerDisbanded();
-	if(iLastTurnWorkerDisbanded >= 0 && GC.getGame().getGameTurn() - iLastTurnWorkerDisbanded <= 40)
+	if(iLastTurnWorkerDisbanded >= 0 && GC.getGame().getGameTurn() - iLastTurnWorkerDisbanded <= NO_WORKER_AFTER_DISBAND_DURATION)
 	{
 		return false;
 	}
@@ -2505,7 +2511,7 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_WantTileImprovers(AICityStrategyT
 {
 	CvPlayer& kPlayer = GET_PLAYER(pCity->getOwner());
 	int iLastTurnWorkerDisbanded = kPlayer.GetEconomicAI()->GetLastTurnWorkerDisbanded();
-	if(iLastTurnWorkerDisbanded >= 0 && GC.getGame().getGameTurn() - iLastTurnWorkerDisbanded <= 10)
+	if(iLastTurnWorkerDisbanded >= 0 && GC.getGame().getGameTurn() - iLastTurnWorkerDisbanded <= NO_WORKER_AFTER_DISBAND_DURATION)
 	{
 		return false;
 	}
@@ -2523,12 +2529,6 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_WantTileImprovers(AICityStrategyT
 		return true;
 	}
 
-	int iCurrentNumCities = kPlayer.countCitiesNeedingTerrainImprovements();
-	if(iNumBuilders >= iCurrentNumCities)
-	{
-		return false;
-	}
-
 	// Don't get desperate for training a Builder here unless the City is at least of a certain size
 	if (pCity->getPopulation() >= /*4*/ GD_INT_GET(AI_CITYSTRATEGY_WANT_TILE_IMPROVERS_MINIMUM_SIZE))
 	{
@@ -2536,6 +2536,7 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_WantTileImprovers(AICityStrategyT
 		if (iNumBuilders < 1)
 			return true;
 
+		int iCurrentNumCities = kPlayer.countCitiesNeedingTerrainImprovements();
 		CvAICityStrategyEntry* pCityStrategy = pCity->GetCityStrategyAI()->GetAICityStrategies()->GetEntry(eStrategy);
 		if (iNumBuilders < iCurrentNumCities * pCityStrategy->GetWeightThreshold()) // limit to x builders per city
 			return true;
@@ -2549,7 +2550,7 @@ bool CityStrategyAIHelpers::IsTestCityStrategy_EnoughTileImprovers(AICityStrateg
 {
 	CvPlayer& kPlayer = GET_PLAYER(pCity->getOwner());
 	int iLastTurnWorkerDisbanded = kPlayer.GetEconomicAI()->GetLastTurnWorkerDisbanded();
-	if(iLastTurnWorkerDisbanded >= 0 && GC.getGame().getGameTurn() - iLastTurnWorkerDisbanded <= 20)
+	if(iLastTurnWorkerDisbanded >= 0 && GC.getGame().getGameTurn() - iLastTurnWorkerDisbanded <= NO_WORKER_AFTER_DISBAND_DURATION)
 	{
 		return true;
 	}
@@ -4175,7 +4176,7 @@ int CityStrategyAIHelpers::GetBuildingYieldValue(CvCity *pCity, BuildingTypes eB
 	}
 	if (pkBuildingInfo->GetYieldFromBorderGrowth(eYield) > 0)
 	{
-		iInstant += pkBuildingInfo->GetYieldFromBorderGrowth(eYield) + (pCity->getPlotCultureCostModifier() * -1) + (kPlayer.GetPlotCultureCostModifier() * -1);
+		iInstant += pkBuildingInfo->GetYieldFromBorderGrowth(eYield) + (pCity->getPlotCultureCostModifier() * -1) + (kPlayer.GetPlotCultureCostModifier() * -1) + pCity->GetBorderGrowthRateIncrease() + kPlayer.GetBorderGrowthRateIncreaseGlobal();
 	}
 	if (pkBuildingInfo->GetYieldFromPolicyUnlock(eYield) > 0)
 	{
@@ -5021,6 +5022,10 @@ int CityStrategyAIHelpers::GetBuildingPolicyValue(CvCity *pCity, BuildingTypes e
 		}
 	}
 
+	if(pkBuildingInfo->GetBorderGrowthRateIncrease() > 0)
+	{
+		iValue += 2 * abs((kPlayer.GetBorderGrowthRateIncreaseGlobal() + pkBuildingInfo->GetBorderGrowthRateIncrease()));
+	}
 	if(pkBuildingInfo->GetPlotCultureCostModifier() < 0)
 	{
 		iValue += 2 * abs((kPlayer.GetPlotCultureCostModifier() + pkBuildingInfo->GetPlotCultureCostModifier()));
@@ -5215,9 +5220,9 @@ int CityStrategyAIHelpers::GetBuildingPolicyValue(CvCity *pCity, BuildingTypes e
 		iValue += 5 * kPlayer.getNumCities();
 	}
 
-	if(pkBuildingInfo->GetExtraSpies() > 0 || pkBuildingInfo->GetEspionageModifier() < 0 || pkBuildingInfo->GetGlobalEspionageModifier() < 0 || pkBuildingInfo->GetSpyRankChange() > 0 || pkBuildingInfo->GetInstantSpyRankChange() > 0)
+	if(pkBuildingInfo->GetExtraSpies() > 0 || pkBuildingInfo->GetEspionageModifier() < 0 || pkBuildingInfo->GetGlobalEspionageModifier() < 0 || pkBuildingInfo->GetEspionageTurnsModifierFriendly() != 0 || pkBuildingInfo->GetEspionageTurnsModifierEnemyCity() != 0 || pkBuildingInfo->GetEspionageTurnsModifierEnemyGlobal() != 0 || pkBuildingInfo->GetSpyRankChange() > 0 || pkBuildingInfo->GetInstantSpyRankChange() > 0)
 	{
-		iValue += ((kPlayer.GetEspionage()->GetNumSpies() + kPlayer.GetPlayerTraits()->GetExtraSpies() * 10) + (pkBuildingInfo->GetEspionageModifier() * -5) + (pkBuildingInfo->GetGlobalEspionageModifier() * -10) + (pkBuildingInfo->GetSpyRankChange() + pkBuildingInfo->GetInstantSpyRankChange() * 100));
+		iValue += ((kPlayer.GetEspionage()->GetNumSpies() + kPlayer.GetPlayerTraits()->GetExtraSpies() * 10) + (pkBuildingInfo->GetEspionageModifier() * -5) + (pkBuildingInfo->GetGlobalEspionageModifier() * -20) + (pkBuildingInfo->GetEspionageTurnsModifierFriendly() * -5) + (pkBuildingInfo->GetEspionageTurnsModifierEnemyCity() * 5) + (pkBuildingInfo->GetEspionageTurnsModifierEnemyGlobal() * 20) + (pkBuildingInfo->GetSpyRankChange() + pkBuildingInfo->GetInstantSpyRankChange() * 100));
 
 		iValue += /*1000*/ GD_INT_GET(ESPIONAGE_SPY_RESISTANCE_MAXIMUM) - pCity->GetEspionageRanking();
 		if(kPlayer.GetEspionageModifier() != 0)

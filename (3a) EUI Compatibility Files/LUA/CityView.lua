@@ -9,22 +9,6 @@
 ------------------------------------------------------
 include( "EUI_tooltips" )
 
-Events.SequenceGameInitComplete.Add(function()
-print("Loading EUI city view",ContextPtr,os.clock(),[[ 
-  ____ _ _       __     ___
- / ___(_) |_ _   \ \   / (_) _____      __
-| |   | | __| | | \ \ / /| |/ _ \ \ /\ / /
-| |___| | |_| |_| |\ V / | |  __/\ V  V /
- \____|_|\__|\__, | \_/  |_|\___| \_/\_/
-             |___/
-]])
-
---todo: upper left corner
---todo: add meters
---todo: add meter cues
---todo: selection list with all buildable items
---todo: mod case where several buildings are allowed
-
 -------------------------------
 -- minor lua optimizations
 -------------------------------
@@ -38,6 +22,22 @@ local pairs = pairs
 local tonumber = tonumber
 local tostring = tostring
 local unpack = unpack
+
+Events.SequenceGameInitComplete.Add(function()
+print("Loading EUI city view",ContextPtr,os.clock(),[[
+  ____ _ _       __     ___
+ / ___(_) |_ _   \ \   / (_) _____      __
+| |   | | __| | | \ \ / /| |/ _ \ \ /\ / /
+| |___| | |_| |_| |\ V / | |  __/\ V  V /
+ \____|_|\__|\__, | \_/  |_|\___| \_/\_/
+             |___/
+]])
+
+--todo: upper left corner
+--todo: add meters
+--todo: add meter cues
+--todo: selection list with all buildable items
+--todo: mod case where several buildings are allowed
 
 local civ5_mode = InStrategicView ~= nil
 local civBE_mode = not civ5_mode
@@ -128,6 +128,18 @@ local YieldTypes = YieldTypes
 local g_options = Modding.OpenUserData( "Enhanced User Interface Options", 1)
 local g_isAdvisor = true
 
+local g_isSeparateCityProductionEUI = g_options.GetValue( "SeparateCityProduction" ) == 1
+--print("Separate City Production: "..tostring(g_isSeparateCityProductionEUI))
+
+local g_isSeparateGPReligious = g_options.GetValue( "SeparateGPReligious" ) == 1
+--print("Separate Great Person and Religious Units: "..tostring(g_isSeparateGPReligious))
+
+local g_isSeparateMilitaryDomain = g_options.GetValue( "SeparateMilitaryDomain" ) == 1
+--print("Separate Military Units by Domain: "..tostring(g_isSeparateMilitaryDomain))
+
+local g_isSeparateProjectWonders = g_options.GetValue( "SeparateProjectWonders" ) == 1
+--print("Separate Projects and Wonders: "..tostring(g_isSeparateProjectWonders))
+
 local g_activePlayerID = Game.GetActivePlayer()
 local g_activePlayer = Players[ g_activePlayerID ]
 local g_finishedItems = {}
@@ -147,7 +159,7 @@ local g_leftStackHeigth = g_screenHeight - 40 - Controls.CityInfoBG:GetOffsetY()
 
 local g_PlotButtonIM	= StackInstanceManager( "PlotButtonInstance", "PlotButtonAnchor", Controls.PlotButtonContainer )
 local g_BuyPlotButtonIM	= StackInstanceManager( "BuyPlotButtonInstance", "BuyPlotButtonAnchor", Controls.PlotButtonContainer )
-local g_ProdQueueIM, g_SpecialBuildingsIM, g_GreatWorkIM, g_WondersIM, g_BuildingsIM, g_CorpsIM, g_GreatPeopleIM, g_SlackerIM, g_UnitSelectIM, g_BuildingSelectIM, g_WonderSelectIM, g_ProcessSelectIM, g_FocusSelectIM
+local g_ProdQueueIM, g_SpecialBuildingsIM, g_GreatWorkIM, g_WondersIM, g_BuildingsIM, g_CorpsIM, g_GreatPeopleIM, g_SlackerIM, g_UnitSelectIM, g_GPUnitSelectIM, g_ReligiousUnitSelectIM, g_MilitaryUnitSelectIM, g_LandUnitSelectIM, g_SeaUnitSelectIM, g_AirUnitSelectIM, g_BuildingSelectIM, g_ProjectSelectIM, g_NationalWonderSelectIM, g_WonderSelectIM, g_ProcessSelectIM, g_FocusSelectIM
 local g_slots = table()
 local g_works = table()
 local g_heap = Controls.Scrap
@@ -191,7 +203,7 @@ local g_lockedslotTexture = {
 	SPECIALIST_MUSICIAN = "locked_musician.dds",
 	SPECIALIST_WRITER = "locked_writer.dds",
 	SPECIALIST_ENGINEER = "locked_engineer.dds",
-	SPECIALIST_CIVIL_SERVANT = "locked_servant.dds",	
+	SPECIALIST_CIVIL_SERVANT = "locked_servant.dds",
 	SPECIALIST_JFD_MONK = "CitizenMonk.dds",  -- VP/Lock Specialists: need to add this for Religion Overhaul sometime
 }
 for specialist in GameInfo.Specialists() do
@@ -514,7 +526,7 @@ end
 local function OrderItemTooltip( city, isDisabled, purchaseYieldID, orderID, itemID, _, isRepeat )
 	local itemInfo, strToolTip, strDisabledInfo, portraitOffset, portraitAtlas, isRealRepeat
 	local IsBasic = not OptionsManager.IsNoBasicHelp() -- condensedhelp
-	
+
 	if city then
 		local cityOwnerID = city:GetOwner()
 		if orderID == OrderTypes.ORDER_TRAIN then
@@ -837,7 +849,7 @@ local function SetupBuildingList( city, buildings, buildingIM )
 				if civ5_mode then
 					if lockedspecialistTable[slotID] then
 						slot:SetTexture( lockedspecialistTable[ slotID ] and g_lockedslotTexture[ specialistType ] or "CitizenEmpty.dds" )
-					elseif specialistTable[slotID] then 
+					elseif specialistTable[slotID] then
 						slot:SetTexture( specialistTable[ slotID ] and g_slotTexture[ specialistType ] or "CitizenEmpty.dds" )
 					else
 						slot:SetTexture("CitizenEmpty.dds")
@@ -877,7 +889,7 @@ local function SetupBuildingList( city, buildings, buildingIM )
 			local happinessChange = (tonumber(building.Happiness) or 0) + (tonumber(building.UnmoddedHappiness) or 0)
 						+ cityOwner:GetExtraBuildingHappinessFromPolicies( buildingID )
 						+ (cityOwner:IsHalfSpecialistUnhappiness() and GameDefines.UNHAPPINESS_PER_POPULATION * numSpecialistsInBuilding * ((city:IsCapital() and cityOwner:GetCapitalUnhappinessMod() or 0)+100) * (cityOwner:GetUnhappinessMod() + 100) * (cityOwner:GetTraitPopUnhappinessMod() + 100) / 2e6 or 0) -- missing getHandicapInfo().getPopulationUnhappinessMod()
-			-- Vox Populi fix for 3939			
+			-- Vox Populi fix for 3939
 			if gk_mode then
 				happinessChange = happinessChange + cityOwner:GetPlayerBuildingClassHappiness( buildingClassID )
 			end
@@ -932,7 +944,7 @@ local function SetupBuildingList( city, buildings, buildingIM )
 			end
 			-- Vox Populi start
 			-- Yield bonuses to World Wonders
-			if city:GetNumWorldWonders() > 0 and Game.IsWorldWonderClass(buildingClassID) then 
+			if city:GetNumWorldWonders() > 0 and Game.IsWorldWonderClass(buildingClassID) then
 				buildingYieldRate = buildingYieldRate + cityOwner:GetExtraYieldWorldWonder(buildingID, yieldID)
 			end
 			-- Vox Populi end
@@ -961,14 +973,14 @@ local function SetupBuildingList( city, buildings, buildingIM )
 				--buildingYieldRate = buildingYieldRate + (foodConsumed < foodPerPop * population and foodPerPop * numSpecialistsInBuilding / 2 or 0)
 				--buildingYieldModifier = buildingYieldModifier + (tonumber(building.FoodKept) or 0) -- FoodKept has a different meaning
 				--[[ Infixo turned off due to confusion
-				if foodConsumed < foodPerPop * population then 
+				if foodConsumed < foodPerPop * population then
 					-- this only happens when specialists in the city consume less food that normal population
 					local foodPerSpec = city:FoodConsumptionSpecialistTimes100() / 100;
 					buildingYieldRate = buildingYieldRate + (foodPerPop - foodPerSpec) * numSpecialistsInBuilding;
 				end
 				--]]
 				-- Vox Populi end
-				cityYieldRate = city:FoodDifferenceTimes100() / 100 -- cityYieldRate - foodConsumed 
+				cityYieldRate = city:FoodDifferenceTimes100() / 100 -- cityYieldRate - foodConsumed
 				cityYieldRateModifier = cityYieldRateModifier + city:GetMaxFoodKeptPercent()
 				isProducing = true
 			end
@@ -986,7 +998,15 @@ local function SetupBuildingList( city, buildings, buildingIM )
 			buildingYieldRate = buildingYieldRate + buildingYieldPerPopInEmpire * populationEmpire / 100
 			-- Events
 			buildingYieldRate = buildingYieldRate + city:GetEventBuildingClassYield(buildingClassID, yieldID);
-			-- End 
+			-- Tech Enhanced Yield
+			buildingTechEnhancedYield = 0
+			for row in GameInfo.Building_TechEnhancedYieldChanges( thisBuildingAndYieldTypes ) do
+				if (Teams[city:GetTeam()]:IsHasTech(GameInfoTypes[ building.EnhancedYieldTech ])) then
+					buildingTechEnhancedYield = buildingTechEnhancedYield + (row.Yield or 0)
+				end
+			end
+			buildingYieldRate = buildingYieldRate + buildingTechEnhancedYield
+			-- End
 			-- Vox Populi Comparable Yields
 			cityYieldRateModifier = 100
 			-- Vox Populi calculate impact of that single building on base yields
@@ -1043,6 +1063,21 @@ end
 -------------------------------------------
 -- Production Selection List Management
 -------------------------------------------
+local function isItemInQueue(city, itemID)
+	local queueLength = city:GetOrderQueueLength()
+	if queueLength < 1 then
+		return false
+	else
+		for queuedItemNumber = 0, queueLength-1 do
+			local curItemID
+			_, curItemID, _, _ = city:GetOrderFromQueue( queuedItemNumber )
+			if itemID == curItemID then
+				return true
+			end
+		end
+		return false
+	end
+end
 
 local function SelectionPurchase( orderID, itemID, yieldID, soundKey )
 	local city = UI_GetHeadSelectedCity()
@@ -1064,6 +1099,21 @@ local function SelectionPurchase( orderID, itemID, yieldID, soundKey )
 					Game.CityPurchaseBuilding( city, itemID, yieldID )
 					Network.SendUpdateCityCitizens( cityID )
 					isPurchase = true
+				end
+
+				-- Invest in all buildings of this type in any cities queue
+				if UI.ShiftKeyDown() then
+					for cityX in g_activePlayer:Cities() do
+						if cityX ~= city
+								and ( not cityX:IsPuppet() or ( bnw_mode and g_activePlayer:MayNotAnnex() ) or g_isFaithPurchaseBuildingsInPuppetsMod)
+								and isItemInQueue(cityX, itemID) then
+							if cityIsCanPurchase( cityX, true, true, -1, itemID, -1, yieldID ) then
+								Game.CityPurchaseBuilding( cityX, itemID, yieldID )
+								Network.SendUpdateCityCitizens( cityX:GetID() )
+								isPurchase = true
+							end
+						end
+					end
 				end
 			elseif orderID == OrderTypes.ORDER_CREATE then
 				if cityIsCanPurchase( city, true, true, -1, -1, itemID, yieldID ) then
@@ -1123,6 +1173,54 @@ local function SortSelectionList(a,b)
 	return a[3]<b[3]
 end
 
+local function doCityPushOrder( city, orderID, itemID, bAlt, bShift, bCtrl )
+	-- cityPushOrder( city, orderID, itemID, bAlt, bShift, bCtrl )
+	-- cityPushOrder( city, orderID, itemID, repeatBuild, replaceQueue, bottomOfQueue )
+	Game.CityPushOrder( city, orderID, itemID, bAlt, bShift, not bCtrl )
+	Events.SpecificCityInfoDirty( cityOwnerID, city:GetID(), CityUpdateTypes.CITY_UPDATE_TYPE_BANNER )
+	Events.SpecificCityInfoDirty( cityOwnerID, city:GetID(), CityUpdateTypes.CITY_UPDATE_TYPE_PRODUCTION )
+end
+
+local function canCityFulfillOrder(city, orderID, itemID)
+	if orderID == OrderTypes.ORDER_TRAIN then
+		return city:CanTrain( itemID )
+	elseif orderID == OrderTypes.ORDER_CONSTRUCT then
+		return city:CanConstruct( itemID )
+	elseif orderID == OrderTypes.ORDER_CREATE then
+		return city:CanCreate( itemID )
+	elseif orderID == OrderTypes.ORDER_MAINTAIN then
+		return city:CanMaintain( itemID )
+	else
+		print("Warning: unknown orderID", orderID)
+		return false
+	end
+end
+
+local function handleBuildOrder( city, orderID, itemID )
+	if UI.ShiftKeyDown() and UI.AltKeyDown() and not UI.CtrlKeyDown() then
+		-- Add to back of every cities queue (shift-alt-lclick)
+		for cityX in g_activePlayer:Cities() do
+			if not cityX:IsPuppet() and canCityFulfillOrder(cityX, orderID, itemID) and
+					-- allow duplicates when order type is units
+					not (orderID ~= OrderTypes.ORDER_TRAIN and isItemInQueue(cityX, itemID)) then
+				doCityPushOrder( cityX, orderID, itemID, false, false, false )
+			end
+		end
+	elseif UI.ShiftKeyDown() and not UI.AltKeyDown() and UI.CtrlKeyDown() then
+		-- Add to front of every cities queue (shift-ctrl-lclick)
+		for cityX in g_activePlayer:Cities() do
+			if not cityX:IsPuppet() and canCityFulfillOrder(cityX, orderID, itemID) and
+					-- allow duplicates when order type is units
+					not (orderID ~= OrderTypes.ORDER_TRAIN and isItemInQueue(cityX, itemID)) then
+				doCityPushOrder( cityX, orderID, itemID, false, false, true )
+			end
+		end
+	else
+		-- Default behavior
+		doCityPushOrder( city, orderID, itemID, UI.AltKeyDown(), UI.ShiftKeyDown(), UI.CtrlKeyDown() )
+	end
+end
+
 local g_SelectionListCallBacks = {
 	Button = {
 		[Mouse.eLClick] = function( orderID, itemID )
@@ -1130,11 +1228,8 @@ local g_SelectionListCallBacks = {
 			if city then
 				local cityOwnerID = city:GetOwner()
 				if cityOwnerID == g_activePlayerID and not city:IsPuppet() then
-					-- cityPushOrder( city, orderID, itemID, bAlt, bShift, bCtrl )
-					-- cityPushOrder( city, orderID, itemID, repeatBuild, replaceQueue, bottomOfQueue )
-					Game.CityPushOrder( city, orderID, itemID, UI.AltKeyDown(), UI.ShiftKeyDown(), not UI.CtrlKeyDown() )
-					Events.SpecificCityInfoDirty( cityOwnerID, city:GetID(), CityUpdateTypes.CITY_UPDATE_TYPE_BANNER )
-					Events.SpecificCityInfoDirty( cityOwnerID, city:GetID(), CityUpdateTypes.CITY_UPDATE_TYPE_PRODUCTION )
+
+					handleBuildOrder( city, orderID, itemID )
 					if g_isButtonPopupChooseProduction then
 						-- is there another city without production order ?
 						for cityX in g_activePlayer:Cities() do
@@ -1338,9 +1433,9 @@ end)
 		instance.PQremove:SetHide( isQueueEmpty or g_isViewingMode )
 		instance.PQremove:SetVoid1( queuedItemNumber )
 		instance.PQremove:RegisterCallback( Mouse.eLClick, RemoveQueueItem )
-		
+
 		local itemInfo, turnsRemaining, portraitOffset, portraitAtlas
-		
+
 		-- Vox Populi invested
 		local cashInvested;
 		-- Vox Populi gold button
@@ -1378,10 +1473,14 @@ end)
 
 		-- Vox Populi invested
 		instance.PQinvested:SetHide( not (cashInvested and cashInvested > 0) );
-		
+
 		-- Vox Populi gold button
 		if itemInfo then
-			instance.PQGoldButton:SetHide( not goldCostPQ or g_isViewingMode )
+			if (bnw_mode and g_activePlayer:MayNotAnnex()) then --Venice puppets needs to buy building on production queue
+				instance.PQGoldButton:SetHide( not goldCostPQ or (isActivePlayerCity or isCityCaptureViewingMode)) 
+			else
+				instance.PQGoldButton:SetHide( not goldCostPQ or g_isViewingMode)
+			end
 			if goldCostPQ then
 				instance.PQGoldButton:SetDisabled( not canBuyWithGoldPQ )
 				instance.PQGoldButton:SetAlpha( canBuyWithGoldPQ and 1 or 0.5 )
@@ -1394,7 +1493,7 @@ end)
 			instance.PQGoldButton:SetHide( true )
 		end
 		-- Vox Populi end
-		
+
 		if itemInfo then
 			local item = itemInfo[itemID]
 			itemInfo = IconHookup( portraitOffset or item.PortraitIndex, portraitSize, portraitAtlas or item.IconAtlas, instance.PQportrait )
@@ -1428,7 +1527,15 @@ end)
 	Controls.SelectionScrollPanel:SetHide( not isSelectionList )
 	if isSelectionList then
 		local unitSelectList = table()
+		local gpUnitSelectList = table()
+		local religiousUnitSelectList = table()
+		local landUnitSelectList = table()
+		local seaUnitSelectList = table()
+		local airUnitSelectList = table()
+		local militaryUnitSelectList = table()
 		local buildingSelectList = table()
+		local projectSelectList = table()
+		local nationalWonderSelectList = table()
 		local wonderSelectList = table()
 		local processSelectList = table()
 
@@ -1441,60 +1548,207 @@ end)
 		for item in GameInfo.Buildings() do
 			local buildingClass = GameInfo.BuildingClasses[item.BuildingClass]
 			local isWonder = buildingClass and (buildingClass.MaxGlobalInstances > 0 or buildingClass.MaxPlayerInstances == 1 or buildingClass.MaxTeamInstances > 0)
+			local isWorldWonder = buildingClass and (buildingClass.MaxGlobalInstances > 0 or buildingClass.MaxTeamInstances > 0)
+			local isNationalWonder = buildingClass and buildingClass.MaxPlayerInstances == 1
 			if not queueItems[ code + item.ID ] then
-				AddSelectionItem( city, item,
-						isWonder and wonderSelectList or buildingSelectList,
-						orderID,
-						city.CanConstruct,
-						-1, item.ID, -1,
-						city.GetBuildingProductionTurnsLeft,
-						city.GetBuildingPurchaseCost,
-						city.GetBuildingFaithPurchaseCost )
+				if g_isSeparateCityProductionEUI then
+					if g_isSeparateProjectWonders then
+						Controls.WondersText:SetText(L("TXT_KEY_POP_WORLD_WONDERS"))
+						AddSelectionItem( city, item,
+								(isNationalWonder and nationalWonderSelectList) or
+								(isWorldWonder and wonderSelectList) or
+								buildingSelectList,
+								orderID,
+								city.CanConstruct,
+								-1, item.ID, -1,
+								city.GetBuildingProductionTurnsLeft,
+								city.GetBuildingPurchaseCost,
+								city.GetBuildingFaithPurchaseCost )
+					else
+						AddSelectionItem( city, item,
+								(isWonder and wonderSelectList) or
+								buildingSelectList,
+								orderID,
+								city.CanConstruct,
+								-1, item.ID, -1,
+								city.GetBuildingProductionTurnsLeft,
+								city.GetBuildingPurchaseCost,
+								city.GetBuildingFaithPurchaseCost )
+					end
+				else
+					AddSelectionItem( city, item,
+							(isWonder and wonderSelectList) or
+							buildingSelectList,
+							orderID,
+							city.CanConstruct,
+							-1, item.ID, -1,
+							city.GetBuildingProductionTurnsLeft,
+							city.GetBuildingPurchaseCost,
+							city.GetBuildingFaithPurchaseCost )
+				end
 			end
 		end
 		if not g_isDebugMode then
 			-- Units
 			orderID = OrderTypes.ORDER_TRAIN
 			for item in GameInfo.Units() do
-				AddSelectionItem( city, item,
-							unitSelectList,
-							orderID,
-							city.CanTrain,
-							item.ID, -1, -1,
-							city.GetUnitProductionTurnsLeft,
-							city.GetUnitPurchaseCost,
-							city.GetUnitFaithPurchaseCost )
+				local isGPUnit = item.Special == "SPECIALUNIT_PEOPLE"
+				local isReligiousUnit = item.ReligiousStrength > 0
+				local isLandMilitary = item.Domain == "DOMAIN_LAND" and item.Combat > 0
+				local isSeaMilitary = item.Domain == "DOMAIN_SEA" and item.Combat > 0
+				local isAirMilitary = item.Domain == "DOMAIN_AIR" and item.RangedCombat > 0
+				local isMilitary = item.Combat > 0 or item.RangedCombat > 0
+				-- N.Core: This is unelegant solution, I'm sorry
+				if g_isSeparateCityProductionEUI then
+					if g_isSeparateGPReligious and g_isSeparateMilitaryDomain then
+						AddSelectionItem( city, item,
+									(isGPUnit and gpUnitSelectList) or
+									(isReligiousUnit and religiousUnitSelectList) or
+									(isLandMilitary and landUnitSelectList) or
+									(isSeaMilitary and seaUnitSelectList) or
+									(isAirMilitary and airUnitSelectList) or
+									(isMilitary and militaryUnitSelectList) or
+									unitSelectList,
+									orderID,
+									city.CanTrain,
+									item.ID, -1, -1,
+									city.GetUnitProductionTurnsLeft,
+									city.GetUnitPurchaseCost,
+									city.GetUnitFaithPurchaseCost )
+					elseif not g_isSeparateGPReligious and g_isSeparateMilitaryDomain then
+						AddSelectionItem( city, item,
+									(isLandMilitary and landUnitSelectList) or
+									(isSeaMilitary and seaUnitSelectList) or
+									(isAirMilitary and airUnitSelectList) or
+									(isMilitary and militaryUnitSelectList) or
+									unitSelectList,
+									orderID,
+									city.CanTrain,
+									item.ID, -1, -1,
+									city.GetUnitProductionTurnsLeft,
+									city.GetUnitPurchaseCost,
+									city.GetUnitFaithPurchaseCost )
+					elseif g_isSeparateGPReligious and not g_isSeparateMilitaryDomain then
+						AddSelectionItem( city, item,
+									(isGPUnit and gpUnitSelectList) or
+									(isReligiousUnit and religiousUnitSelectList) or
+									(isMilitary and militaryUnitSelectList) or
+									unitSelectList,
+									orderID,
+									city.CanTrain,
+									item.ID, -1, -1,
+									city.GetUnitProductionTurnsLeft,
+									city.GetUnitPurchaseCost,
+									city.GetUnitFaithPurchaseCost )
+					elseif not g_isSeparateGPReligious and not g_isSeparateMilitaryDomain then
+						AddSelectionItem( city, item,
+									(isMilitary and militaryUnitSelectList) or
+									unitSelectList,
+									orderID,
+									city.CanTrain,
+									item.ID, -1, -1,
+									city.GetUnitProductionTurnsLeft,
+									city.GetUnitPurchaseCost,
+									city.GetUnitFaithPurchaseCost )
+					else	-- N.Core: same as above, only serve as a redundancy check
+						AddSelectionItem( city, item,
+									(isMilitary and militaryUnitSelectList) or
+									unitSelectList,
+									orderID,
+									city.CanTrain,
+									item.ID, -1, -1,
+									city.GetUnitProductionTurnsLeft,
+									city.GetUnitPurchaseCost,
+									city.GetUnitFaithPurchaseCost )
+					end
+				else
+					AddSelectionItem( city, item,
+								unitSelectList,
+								orderID,
+								city.CanTrain,
+								item.ID, -1, -1,
+								city.GetUnitProductionTurnsLeft,
+								city.GetUnitPurchaseCost,
+								city.GetUnitFaithPurchaseCost )
+				end
 			end
 			-- Projects
 			orderID = OrderTypes.ORDER_CREATE
 			code = orderID / 64
 			for item in GameInfo.Projects() do
 				if not queueItems[ code + item.ID ] then
-					AddSelectionItem( city, item,
-							wonderSelectList,
-							orderID,
-							city.CanCreate,
-							-1, -1, item.ID,
-							city.GetProjectProductionTurnsLeft,
-							city.GetProjectPurchaseCost,
-							city.GetProjectFaithPurchaseCost )	-- nil
+					if g_isSeparateCityProductionEUI then
+						if g_isSeparateProjectWonders then
+							AddSelectionItem( city, item,
+									projectSelectList,
+									orderID,
+									city.CanCreate,
+									-1, -1, item.ID,
+									city.GetProjectProductionTurnsLeft,
+									city.GetProjectPurchaseCost,
+									city.GetProjectFaithPurchaseCost )	-- nil
+						else
+							AddSelectionItem( city, item,
+									wonderSelectList,
+									orderID,
+									city.CanCreate,
+									-1, -1, item.ID,
+									city.GetProjectProductionTurnsLeft,
+									city.GetProjectPurchaseCost,
+									city.GetProjectFaithPurchaseCost )	-- nil
+						end
+					else
+						AddSelectionItem( city, item,
+								wonderSelectList,
+								orderID,
+								city.CanCreate,
+								-1, -1, item.ID,
+								city.GetProjectProductionTurnsLeft,
+								city.GetProjectPurchaseCost,
+								city.GetProjectFaithPurchaseCost )	-- nil
+					end
 				end
 			end
 			-- Processes
 			orderID = OrderTypes.ORDER_MAINTAIN
 			code = orderID / 64
 			for item in GameInfo.Processes() do
+				local leagueProjects = GameInfo.LeagueProjects{Process = item.Type}()
+				local isLeagueProject = leagueProjects and leagueProjects.Process == item.Type
 				if not queueItems[ code + item.ID ] then
-					AddSelectionItem( city, item,
-							processSelectList,
-							orderID,
-							city.CanMaintain )
+					if g_isSeparateCityProductionEUI then
+						if g_isSeparateProjectWonders then
+							AddSelectionItem( city, item,
+									(isLeagueProject and projectSelectList) or
+									processSelectList,
+									orderID,
+									city.CanMaintain )
+						else
+							AddSelectionItem( city, item,
+									processSelectList,
+									orderID,
+									city.CanMaintain )
+						end
+					else
+						AddSelectionItem( city, item,
+								processSelectList,
+								orderID,
+								city.CanMaintain )
+					end
 				end
 			end
 		end
 
 		SetupSelectionList( unitSelectList, g_UnitSelectIM, cityOwnerID, UI_GetUnitPortraitIcon )
+		SetupSelectionList( gpUnitSelectList, g_GPUnitSelectIM, cityOwnerID, UI_GetUnitPortraitIcon )
+		SetupSelectionList( religiousUnitSelectList, g_ReligiousUnitSelectIM, cityOwnerID, UI_GetUnitPortraitIcon )
+		SetupSelectionList( militaryUnitSelectList, g_MilitaryUnitSelectIM, cityOwnerID, UI_GetUnitPortraitIcon )
+		SetupSelectionList( landUnitSelectList, g_LandUnitSelectIM, cityOwnerID, UI_GetUnitPortraitIcon )
+		SetupSelectionList( seaUnitSelectList, g_SeaUnitSelectIM, cityOwnerID, UI_GetUnitPortraitIcon )
+		SetupSelectionList( airUnitSelectList, g_AirUnitSelectIM, cityOwnerID, UI_GetUnitPortraitIcon )
 		SetupSelectionList( buildingSelectList, g_BuildingSelectIM )
+		SetupSelectionList( projectSelectList, g_ProjectSelectIM )
+		SetupSelectionList( nationalWonderSelectList, g_NationalWonderSelectIM )
 		SetupSelectionList( wonderSelectList, g_WonderSelectIM )
 		SetupSelectionList( processSelectList, g_ProcessSelectIM )
 
@@ -1584,7 +1838,8 @@ local function UpdateWorkingHexesNow()
 		-- display worked plots buttons
 		local cityOwnerID = city:GetOwner()
 		local notInStrategicView = not InStrategicView()
-		local showButtons = g_workerHeadingOpen and not g_isViewingMode
+		local bAnnex = g_activePlayer:MayNotAnnex()
+		local showButtons = g_workerHeadingOpen and (not g_isViewingMode or bAnnex)
 
 		for cityPlotIndex = 0, cityArea do
 			local plot = city:GetCityIndexPlot( cityPlotIndex )
@@ -1658,7 +1913,9 @@ local function UpdateWorkingHexesNow()
 					instance.PlotButtonImage:LocalizeAndSetToolTip( tipKey )
 					IconHookup( iconID, 45, "CITIZEN_ATLAS", instance.PlotButtonImage )
 					local button = instance.PlotButtonImage
-					if not cityPlotIndex or g_isViewingMode then
+					if not cityPlotIndex or (g_isViewingMode and not bAnnex) then 
+						button:ClearCallback( Mouse.eLCLick )
+					elseif (bAnnex and city:IsPuppet() and iconID ~= 12) then --Another Venice exception huh...
 						button:ClearCallback( Mouse.eLCLick )
 					else
 						button:SetVoid1( cityPlotIndex )
@@ -1670,8 +1927,8 @@ local function UpdateWorkingHexesNow()
 
 		-- display buy plot buttons
 		-- Venice Edit (CBP)
-		local bAnnex = g_activePlayer:MayNotAnnex();
-		if g_BuyPlotMode then 
+		--local bAnnex = g_activePlayer:MayNotAnnex();
+		if g_BuyPlotMode then
 			if not g_isViewingMode or bAnnex then
 		--END
 				local cash = g_activePlayer:GetGold()
@@ -2108,7 +2365,7 @@ local function UpdateCityViewNow()
 		local otherBuildings = table()
 		local noWondersWithSpecialistInThisCity = true
 		local HasForcedSpecialists = false
-		
+
 		for building in GameInfo.Buildings() do
 			local buildingID = building.ID
 			if city:IsHasBuilding(buildingID) then
@@ -2117,7 +2374,7 @@ local function UpdateCityViewNow()
 				local greatWorkCount = civ5bnw_mode and building.GreatWorkCount or 0
 				local corporation = building.IsCorporation > 0
 				local areSpecialistsAllowedByBuilding = city:GetNumSpecialistsAllowedByBuilding(buildingID) > 0
-				
+
 				if (corporation) then
 					buildings = corps
 				elseif buildingClass.MaxGlobalInstances > 0
@@ -2193,7 +2450,7 @@ local function UpdateCityViewNow()
 				Controls.ResourceDemandedBox:LocalizeAndSetToolTip( "TXT_KEY_CITYVIEW_RESOURCE_FULFILLED_TT_UA" )
 			elseif(cityOwner:IsCarnaval())then
 				Controls.ResourceDemandedString:LocalizeAndSetText( "TXT_KEY_CITYVIEW_WLTKD_COUNTER_UA_CARNAVAL", weLoveTheKingDayCounter )
-				Controls.ResourceDemandedBox:LocalizeAndSetToolTip( "TXT_KEY_CITYVIEW_RESOURCE_FULFILLED_TT_UA_CARNAVAL" )	
+				Controls.ResourceDemandedBox:LocalizeAndSetToolTip( "TXT_KEY_CITYVIEW_RESOURCE_FULFILLED_TT_UA_CARNAVAL" )
 			else
 			-- END
 				Controls.ResourceDemandedString:LocalizeAndSetText( "TXT_KEY_CITYVIEW_WLTKD_COUNTER", weLoveTheKingDayCounter )
@@ -2203,10 +2460,10 @@ local function UpdateCityViewNow()
 			-- END
 			Controls.ResourceDemandedBox:SetHide(true)
 		elseif(city:GetResourceDemanded(true) ~= -1) then
-			local resourceInfo = GameInfo.Resources[ city:GetResourceDemanded() ]		
+			local resourceInfo = GameInfo.Resources[ city:GetResourceDemanded() ]
 			--CBP
 			Controls.ResourceDemandedString:LocalizeAndSetText( "TXT_KEY_CITYVIEW_RESOURCE_DEMANDED", resourceInfo.IconString .. " " .. L(resourceInfo.Description) )
-			if(cityOwner:IsGPWLTKD()) then					
+			if(cityOwner:IsGPWLTKD()) then
 				Controls.ResourceDemandedBox:LocalizeAndSetToolTip( "TXT_KEY_CITYVIEW_RESOURCE_DEMANDED_TT_UA" )
 			elseif(cityOwner:IsCarnaval())then
 				Controls.ResourceDemandedBox:LocalizeAndSetToolTip("TXT_KEY_CITYVIEW_RESOURCE_DEMANDED_TT_UA_CARNAVAL" )
@@ -2312,10 +2569,8 @@ local function UpdateCityViewNow()
 		Controls.CulturePerTurnLabel:LocalizeAndSetText( "TXT_KEY_CITYVIEW_PERTURN_TEXT", culturePerTurn )
 		local cultureDiff = cultureNext - cultureStored
 		local borderGrowthRate = culturePerTurn + city:GetBaseYieldRate(YieldTypes.YIELD_CULTURE_LOCAL)
-
-		if ((city:GetWeLoveTheKingDayCounter() > 0 and cityOwner:IsDoubleBorderGrowthWLTKD()) or (cityOwner:IsGoldenAge() and cityOwner:IsDoubleBorderGrowthGA())) then
-			borderGrowthRate = borderGrowthRate * 2
-		end
+		local borderGrowthRateIncrease = city:GetBorderGrowthRateIncreaseTotal()
+		borderGrowthRate = math_floor(borderGrowthRate * (100 + borderGrowthRateIncrease) / 100)
 
 		if borderGrowthRate > 0 then
 			local cultureTurns = math_max(math_ceil(cultureDiff / borderGrowthRate), 1)
@@ -2410,7 +2665,15 @@ g_GreatPeopleIM		= StackInstanceManager( "GPInstance", "GPBox", Controls.GPStack
 g_SlackerIM		= StackInstanceManager( "Slot", "Button", Controls.SlackerStack, Controls.SlackerHeader, ResizeRightStack )
 g_ProdQueueIM		= StackInstanceManager( "ProductionInstance", "PQbox", Controls.QueueStack, Controls.ProdBox, ResizeProdQueue, true )
 g_UnitSelectIM		= StackInstanceManager( "SelectionInstance", "Button", Controls.UnitButtonStack, Controls.UnitButton, ResizeProdQueue )
+g_GPUnitSelectIM		= StackInstanceManager( "SelectionInstance", "Button", Controls.GPUnitButtonStack, Controls.GPUnitButton, ResizeProdQueue )
+g_ReligiousUnitSelectIM		= StackInstanceManager( "SelectionInstance", "Button", Controls.ReligiousUnitButtonStack, Controls.ReligiousUnitButton, ResizeProdQueue )
+g_MilitaryUnitSelectIM		= StackInstanceManager( "SelectionInstance", "Button", Controls.MilitaryUnitButtonStack, Controls.MilitaryUnitButton, ResizeProdQueue )
+g_LandUnitSelectIM		= StackInstanceManager( "SelectionInstance", "Button", Controls.LandUnitButtonStack, Controls.LandUnitButton, ResizeProdQueue )
+g_SeaUnitSelectIM		= StackInstanceManager( "SelectionInstance", "Button", Controls.SeaUnitButtonStack, Controls.SeaUnitButton, ResizeProdQueue )
+g_AirUnitSelectIM		= StackInstanceManager( "SelectionInstance", "Button", Controls.AirUnitButtonStack, Controls.AirUnitButton, ResizeProdQueue )
 g_BuildingSelectIM	= StackInstanceManager( "SelectionInstance", "Button", Controls.BuildingButtonStack, Controls.BuildingsButton, ResizeProdQueue )
+g_ProjectSelectIM	= StackInstanceManager( "SelectionInstance", "Button", Controls.ProjectButtonStack, Controls.ProjectsButton, ResizeProdQueue )
+g_NationalWonderSelectIM	= StackInstanceManager( "SelectionInstance", "Button", Controls.NationalWonderButtonStack, Controls.NationalWondersButton, ResizeProdQueue )
 g_WonderSelectIM	= StackInstanceManager( "SelectionInstance", "Button", Controls.WonderButtonStack, Controls.WondersButton, ResizeProdQueue )
 g_ProcessSelectIM	= StackInstanceManager( "SelectionInstance", "Button", Controls.OtherButtonStack, Controls.OtherButton, ResizeProdQueue )
 g_FocusSelectIM		= StackInstanceManager( "", "", Controls.WorkerManagementBox, Controls.WorkerHeader, function(self, collapsed) g_workerHeadingOpen = not collapsed ResizeRightStack() UpdateWorkingHexes() end, true, not g_workerHeadingOpen )

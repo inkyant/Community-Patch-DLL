@@ -87,11 +87,7 @@ SET SpecialistType = 'SPECIALIST_SCIENTIST'
 WHERE Type = 'BUILDING_ROYAL_LIBRARY';
 
 UPDATE Buildings
-SET GoldMaintenance = '0'
-WHERE Type = 'BUILDING_ROYAL_LIBRARY';
-
-UPDATE Buildings
-SET GreatPeopleRateChange = '1'
+SET GreatPeopleRateChange = '2'
 WHERE Type = 'BUILDING_ROYAL_LIBRARY';
 
 UPDATE Buildings
@@ -111,10 +107,6 @@ WHERE Type = 'BUILDING_ROYAL_LIBRARY';
 
 UPDATE Buildings
 SET Cost = '125'
-WHERE Type = 'BUILDING_ROYAL_LIBRARY';
-
-UPDATE Buildings
-SET NationalPopRequired = '15'
 WHERE Type = 'BUILDING_ROYAL_LIBRARY';
 
 UPDATE Buildings
@@ -163,12 +155,12 @@ UPDATE Traits
 SET UniqueLuxuryCities = '100'
 WHERE Type = 'TRAIT_SPICE';
 
-UPDATE Traits 
-SET MonopolyModFlat = 2 WHERE 
+UPDATE Traits
+SET MonopolyModFlat = 2 WHERE
 Type = 'TRAIT_SPICE';
 
-UPDATE Traits 
-SET MonopolyModPercent = 5 
+UPDATE Traits
+SET MonopolyModPercent = 5
 WHERE Type = 'TRAIT_SPICE';
 
 UPDATE Buildings
@@ -208,7 +200,9 @@ WHERE Type = 'TRAIT_EXTRA_TRADE';
 
 
 -- Shoshone
-
+UPDATE Traits
+SET ExtraConqueredCityTerritoryClaimRange = 4
+WHERE Type = 'TRAIT_GREAT_EXPANSE';
 
 -- Casimir III -- Ducal Stable +1 Production
 UPDATE Buildings
@@ -350,8 +344,8 @@ UPDATE Traits
 SET CSBullyValueModifier = '0'
 WHERE Type = 'TRAIT_BUFFALO_HORNS';
 
-UPDATE Traits 
-SET IgnoreBullyPenalties = 1 
+UPDATE Traits
+SET IgnoreBullyPenalties = 1
 WHERE Type = 'TRAIT_BUFFALO_HORNS';
 
 -- New BNW Leader Data and Yields
@@ -433,12 +427,6 @@ INSERT INTO Building_BuildingClassYieldChanges
 	(BuildingType, BuildingClassType, YieldType, YieldChange)
 VALUES
 	('BUILDING_ROYAL_LIBRARY', 'BUILDINGCLASS_LIBRARY', 'YIELD_SCIENCE', 3);
-
-INSERT INTO Building_SpecialistYieldChangesLocal
-		(BuildingType, 		SpecialistType, 		YieldType, 			Yield)
-VALUES	('BUILDING_CANDI', 'SPECIALIST_ARTIST', 	'YIELD_TOURISM', 	1),
-		('BUILDING_CANDI', 'SPECIALIST_MUSICIAN', 	'YIELD_TOURISM', 	1),
-		('BUILDING_CANDI', 'SPECIALIST_WRITER', 	'YIELD_TOURISM', 	1);
 
 INSERT INTO Building_ResourceYieldChanges
 	(BuildingType, ResourceType, YieldType, Yield)

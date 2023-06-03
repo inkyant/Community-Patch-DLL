@@ -127,6 +127,10 @@ INSERT INTO Policy_BuildingClassHappiness
 VALUES
 	('POLICY_POLICE_STATE', 'BUILDINGCLASS_POLICE_STATION', 1);
 
+UPDATE Policies
+SET
+	EspionageTurnsModifierEnemy = 2
+WHERE Type = 'POLICY_POLICE_STATE';
 
 -- Nationalism (now Commerce Raiders)
 
@@ -186,7 +190,7 @@ UPDATE Policies
 SET
 	MilitaryUnitGiftExtraInfluence = 0,
 	CityStateUnitFrequencyModifier = 300,
-	NoAlliedCSInfluenceDecayAtWar = 1,
+	MinimumAllyInfluenceIncreaseAtWar = 100,
 	ExtraSupplyPerPopulation = 50
 WHERE Type = 'POLICY_UNITED_FRONT';
 

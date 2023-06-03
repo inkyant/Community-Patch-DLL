@@ -2,14 +2,14 @@
 
 UPDATE Policies
 SET
-	MaxAirUnitsChangeGlobal = 1
+	MaxAirUnitsChangeGlobal = 2, CityStrengthMod = 0, FlatDefenseFromAirUnits = 3
 WHERE Type = 'POLICY_THEIR_FINEST_HOUR';
 
-INSERT INTO Policy_UnitCombatProductionModifiers
+/*INSERT INTO Policy_UnitCombatProductionModifiers
 	(PolicyType, UnitCombatType, ProductionModifier)
 VALUES
 	('POLICY_THEIR_FINEST_HOUR', 'UNITCOMBAT_BOMBER', 25),
-	('POLICY_THEIR_FINEST_HOUR', 'UNITCOMBAT_FIGHTER', 25);
+	('POLICY_THEIR_FINEST_HOUR', 'UNITCOMBAT_FIGHTER', 25);*/
 
 INSERT INTO Policy_UnitClassReplacements
 	(PolicyType, ReplacedUnitClassType, ReplacementUnitClassType)
@@ -41,14 +41,16 @@ WHERE Type = 'POLICY_CAPITALISM';
 INSERT INTO Policy_SpecialistExtraYields
 	(PolicyType, YieldType, Yield)
 VALUES
-	('POLICY_CAPITALISM', 'YIELD_GOLD', 1);
+	('POLICY_CAPITALISM', 'YIELD_GOLD', 1),
+	('POLICY_CAPITALISM', 'YIELD_SCIENCE', 1);
 
 
 -- Covert Action
 
 UPDATE Policies
 SET
-	FreeSpy = 1
+	FreeSpy = 1,
+	EspionageTurnsModifierFriendly = -2
 WHERE Type = 'POLICY_COVERT_ACTION';
 
 
@@ -247,4 +249,4 @@ INSERT INTO Policy_BuildingClassYieldModifiers
 	(PolicyType, BuildingClassType, YieldType, YieldMod)
 VALUES
 	('POLICY_MEDIA_CULTURE', 'BUILDINGCLASS_STADIUM', 'YIELD_CULTURE', 20),
-	('POLICY_SPACE_PROCUREMENTS', 'BUILDINGCLASS_LABORATORY', 'YIELD_SCIENCE', 10);
+	('POLICY_SPACE_PROCUREMENTS', 'BUILDINGCLASS_LABORATORY', 'YIELD_SCIENCE', 20);

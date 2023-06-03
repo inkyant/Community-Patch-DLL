@@ -17,7 +17,7 @@ ALTER TABLE UnitPromotions	ADD ShowInUnitPanel						boolean default 1;
 ALTER TABLE UnitPromotions	ADD IsVisibleAboveFlag					boolean default 1;
 
 -- For promos where the title is the same as the Help text
-UPDATE UnitPromotions SET SimpleHelpText = 1 WHERE Description == Help;
+UPDATE UnitPromotions SET SimpleHelpText = 1 WHERE Description = Help;
 
 ---------------------------------------
 --Define rankings for promotion sets
@@ -60,8 +60,9 @@ UPDATE UnitPromotions SET RankList = 'SCOUTING', RankNumber = 3 WHERE Type = 'PR
   
 UPDATE UnitPromotions SET RankList = 'HONOR', RankNumber = 1 WHERE Type = 'PROMOTION_HONOR_BONUS';
 UPDATE UnitPromotions SET RankList = 'HONOR', RankNumber = 2 WHERE Type = 'PROMOTION_KILL_HEAL';
-UPDATE UnitPromotions SET RankList = 'HONOR', RankNumber = 3 WHERE Type = 'PROMOTION_PARTIAL_HEAL_IF_DESTROY_ENEMY'; -- MUC4VP uses it for the Eagle
-UPDATE UnitPromotions SET RankList = 'HONOR', RankNumber = 4 WHERE Type = 'PROMOTION_HEAL_IF_DESTROY_ENEMY'; -- Janissary
+UPDATE UnitPromotions SET RankList = 'HONOR', RankNumber = 3 WHERE Type = 'PROMOTION_GOD_WAR';
+UPDATE UnitPromotions SET RankList = 'HONOR', RankNumber = 4 WHERE Type = 'PROMOTION_PARTIAL_HEAL_IF_DESTROY_ENEMY'; -- MUC4VP uses it for the Eagle
+UPDATE UnitPromotions SET RankList = 'HONOR', RankNumber = 5 WHERE Type = 'PROMOTION_HEAL_IF_DESTROY_ENEMY'; -- Janissary
   
 
 UPDATE UnitPromotions SET RankList = 'BUFFALO', RankNumber = 1 WHERE Type = 'PROMOTION_BUFFALO_LOINS'; -- UndeadDevel: now in the correct order
@@ -320,10 +321,10 @@ UPDATE UnitPromotions SET FlagPromoOrder = 20 WHERE Type IN (
 	'PROMOTION_SHOCK_2',
 	'PROMOTION_SHOCK_3',
 	'PROMOTION_SHOCK_4',
-	'PROMOTION_ACCURACY_1',
-	'PROMOTION_ACCURACY_2',
-	'PROMOTION_ACCURACY_3',
-    'PROMOTION_ACCURACY_4',
+	'PROMOTION_BARRAGE_1',
+	'PROMOTION_BARRAGE_2',
+	'PROMOTION_BARRAGE_3',
+    'PROMOTION_BARRAGE_4',
 	'PROMOTION_FIELD_I',
 	'PROMOTION_FIELD_II',
 	'PROMOTION_FIELD_III',
@@ -357,10 +358,10 @@ UPDATE UnitPromotions SET FlagPromoOrder = 25 WHERE Type IN (
 	'PROMOTION_DRILL_2',
 	'PROMOTION_DRILL_3',
 	'PROMOTION_DRILL_4',
-	'PROMOTION_BARRAGE_1',
-	'PROMOTION_BARRAGE_2',
-	'PROMOTION_BARRAGE_3',
-    'PROMOTION_BARRAGE_4',
+	'PROMOTION_ACCURACY_1',
+	'PROMOTION_ACCURACY_2',
+	'PROMOTION_ACCURACY_3',
+    'PROMOTION_ACCURACY_4',
 	'PROMOTION_SURVIVALISM_1',
 	'PROMOTION_SURVIVALISM_2',
 	'PROMOTION_SURVIVALISM_3',

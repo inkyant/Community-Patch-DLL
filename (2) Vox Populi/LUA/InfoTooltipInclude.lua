@@ -381,6 +381,12 @@ function GetHelpTextForBuilding(iBuildingID, bExcludeName, bExcludeHeader, bNoMa
 		table.insert(lines, Locale.ConvertTextKey("TXT_KEY_PRODUCTION_BUILDING_HITPOINTS", iHitPoints));
 	end
 
+	-- Damage Reduction
+	local iDamageReductionFlat = pBuildingInfo.DamageReductionFlat;
+	if (iDamageReductionFlat ~= nil and iDamageReductionFlat ~= 0) then
+		table.insert(lines, Locale.ConvertTextKey("TXT_KEY_PRODUCTION_BUILDING_DAMAGE_REDUCTION", iDamageReductionFlat));
+	end
+
 	--CP EVENTS
 	if (pCity ~= nil) then
 		for pYieldInfo in GameInfo.Yields() do
@@ -1131,10 +1137,8 @@ function GetCultureTooltip(pCity)
 	local iCultureStored = pCity:GetJONSCultureStored();
 	local iCultureNeeded = pCity:GetJONSCultureThreshold();
 	local borderGrowthRate = iCulturePerTurn + pCity:GetBaseYieldRate(YieldTypes.YIELD_CULTURE_LOCAL);
-
-	if ((pCity:GetWeLoveTheKingDayCounter() > 0 and Players[pCity:GetOwner()]:IsDoubleBorderGrowthWLTKD()) or (Players[pCity:GetOwner()]:IsGoldenAge() and Players[pCity:GetOwner()]:IsDoubleBorderGrowthGA())) then
-		borderGrowthRate = borderGrowthRate * 2;
-	end
+	local borderGrowthRateIncrease = pCity:GetBorderGrowthRateIncreaseTotal();
+	borderGrowthRate = math.floor(borderGrowthRate * (100 + borderGrowthRateIncrease) / 100);
 
 	strCultureToolTip = strCultureToolTip .. "[NEWLINE][NEWLINE]";
 	strCultureToolTip = strCultureToolTip .. Locale.ConvertTextKey("TXT_KEY_CULTURE_INFO", iCultureStored, iCultureNeeded);

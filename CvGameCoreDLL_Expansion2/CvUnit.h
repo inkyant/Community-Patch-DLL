@@ -53,6 +53,7 @@ struct CvUnitCaptureDefinition
 	int iY;
 	bool bEmbarked;
 	bool bAsIs;
+	bool bConscript;
 	int iScenarioData;
 	ReligionTypes eReligion;
 	int iReligiousStrength;
@@ -69,6 +70,7 @@ struct CvUnitCaptureDefinition
 		, iY(-1)
 		, bEmbarked(false)
 		, bAsIs(false)
+		, bConscript(false)
 		, iScenarioData(0)
 		, eReligion(NO_RELIGION)
 		, iReligiousStrength(0)
@@ -169,6 +171,13 @@ enum AreaEffectType
 	AE_SIEGETOWER
 };
 
+enum SquadsEndMovementType
+{
+	ALERT_ON_ARRIVAL = 0,
+	WAKE_ON_EACH_UNIT_ARRIVED = 1,
+	WAKE_ON_ALL_ARRIVED = 2
+};
+
 class CvUnit
 {
 	friend class CvUnitMission;
@@ -193,7 +202,7 @@ public:
 		//these values are used internally only
 		MOVEFLAG_IGNORE_DANGER					= 0x0100, //do not apply a penalty for dangerous plots
 		MOVEFLAG_NO_EMBARK						= 0x0200, //do not ever embark (but move along if already embarked)
-		MOVEFLAG_NO_ENEMY_TERRITORY				= 0x0400, //don't enter enemy territory, even if we could
+		MOVEFLAG_NO_ENEMY_TERRITORY				= 0x0400, //don't enter enemy territory, even if we could (but can still pass through enemy *zones*!) 
 		MOVEFLAG_MAXIMIZE_EXPLORE				= 0x0800, //try to reveal as many plots as possible
 		MOVEFLAG_NO_DEFENSIVE_SUPPORT			= 0x1000, //without this set in a melee attack, the defender can receive support from adjacent ranged units (unless disabled globally)
 		MOVEFLAG_NO_OCEAN						= 0x2000, //don't use deep water even if we could
@@ -213,6 +222,7 @@ public:
 		MOVEFLAG_APPROX_TARGET_SAME_OWNER		= 0x8000000, //same owner of approximate target tile
 		MOVEFLAG_PRETEND_CANALS					= 0x10000000, //pretend ships can move one tile inland to see if a canal would make sense
 	    MOVEFLAG_IGNORE_STACKING_NEUTRAL		= 0x20000000, // stacking rules (with neutral units) don't apply (on turn end plots)
+		MOVEFLAG_CONTINUE_TO_CLOSEST_PLOT		= 0x40000000, //if the target plot is occupied go to the closest available plot instead
 
 		//some flags are relevant during pathfinding, some only during execution
 		PATHFINDER_FLAG_MASK					= ~(MOVEFLAG_ABORT_IF_NEW_ENEMY_REVEALED|MOVEFLAG_TURN_END_IS_NEXT_TURN),
@@ -627,6 +637,22 @@ public:
 	void DoGroupMovement(CvPlot* pDestPlot);
 #endif
 
+	// VP - Squads control groups modmod
+#if defined(MOD_SQUADS)
+	int  GetSquadNumber() const;
+	void AssignToSquad(int iNewSquadNumber);
+	void RemoveFromSquad();
+	void DoSquadMovement(CvPlot* pDestPlot);
+	bool IsUnitInActiveMoveMission();
+	bool IsSquadMoving();
+	void TryEndSquadMovement();
+	void SetSquadDestination(CvPlot* pDestPlot = NULL);
+	bool HasSquadDestination();
+	CvPlot* GetSquadDestination();
+	SquadsEndMovementType GetSquadEndMovementType() const;
+	void SetSquadEndMovementType(SquadsEndMovementType endMovementType);
+#endif
+
 	int GetRange() const;
 	int GetNukeDamageLevel() const;
 
@@ -677,7 +703,7 @@ public:
 	int GetBestAttackStrength() const; //ranged or melee, whichever is greater
 	int GetDamageCombatModifier(bool bForDefenseAgainstRanged = false, int iAssumedDamage = 0) const;
 
-	int GetGenericMeleeStrengthModifier(const CvUnit* pOtherUnit, const CvPlot* pBattlePlot, 
+	int GetGenericMeleeStrengthModifier(const CvUnit* pOtherUnit, const CvPlot* pBattlePlot, bool bAttacking,
 									bool bIgnoreUnitAdjacencyBoni, const CvPlot* pFromPlot = NULL, bool bQuickAndDirty = false) const;
 	int GetMaxAttackStrength(const CvPlot* pFromPlot, const CvPlot* pToPlot, const CvUnit* pDefender, 
 									bool bIgnoreUnitAdjacencyBoni = false, bool bQuickAndDirty = false) const;
@@ -894,6 +920,10 @@ public:
 	int GetRoughTerrainEndsTurnCount() const;
 	void ChangeRoughTerrainEndsTurnCount(int iValue);
 
+	bool IsCapturedUnitsConscripted() const;
+	int GetCapturedUnitsConscriptedCount() const;
+	void ChangeCapturedUnitsConscriptedCount(int iValue);
+
 	bool IsHoveringUnit() const;
 	int GetHoveringUnitCount() const;
 	void ChangeHoveringUnitCount(int iValue);
@@ -933,6 +963,10 @@ public:
 	bool isOnlyDefensive() const;
 	int getOnlyDefensiveCount() const;
 	void changeOnlyDefensiveCount(int iValue);
+
+	bool isNoAttackInOcean() const;
+	int getNoAttackInOceanCount() const;
+	void changeNoAttackInOceanCount(int iValue);
 
 	bool noDefensiveBonus() const;
 	int getNoDefensiveBonusCount() const;
@@ -1570,6 +1604,8 @@ public:
 	void setCapturingPlayer(PlayerTypes eNewValue);
 	bool IsCapturedAsIs() const;
 	void SetCapturedAsIs(bool bSetValue);
+	bool IsCapturedAsConscript() const;
+	void SetCapturedAsConscript(bool bSetValue);
 
 	const UnitTypes getUnitType() const;
 	CvUnitEntry& getUnitInfo() const;
@@ -1597,6 +1633,12 @@ public:
 
 	int getExtraDomainModifier(DomainTypes eIndex) const;
 	void changeExtraDomainModifier(DomainTypes eIndex, int iChange);
+
+	int getExtraDomainAttack(DomainTypes eIndex) const;
+	void changeExtraDomainAttack(DomainTypes eIndex, int iChange);
+
+	int getExtraDomainDefense(DomainTypes eIndex) const;
+	void changeExtraDomainDefense(DomainTypes eIndex, int iChange);
 
 	const CvString getName() const;
 	const char* getNameKey() const;
@@ -1861,7 +1903,7 @@ public:
 	bool IsCombatUnit() const;
 
 	ReachablePlots GetAllPlotsInReachThisTurn(bool bCheckTerritory=true, bool bCheckZOC=true, bool bAllowEmbark=true, int iMinMovesLeft=0) const;
-	bool IsEnemyInMovementRange(bool bOnlyFortified = false, bool bOnlyCities = false);
+	vector<int> GetPlotsWithEnemyInMovementRange(bool bOnlyFortified = false, bool bOnlyCities = false, int iMaxPathLength=INT_MAX);
 
 	// Path-finding routines
 	bool GeneratePath(const CvPlot* pToPlot, int iFlags = 0, int iMaxTurns = INT_MAX, int* piPathTurns = NULL);
@@ -1873,7 +1915,6 @@ public:
 	int GetMovementPointsAtCachedTarget() const;
 	CvPlot* GetLastValidDestinationPlotInCachedPath() const;
 	const CvPathNodeArray& GetLastPath() const;
-	bool IsCurrentPathUnsafe() const;
 
 	bool IsEmbarkAllWater() const;
 	void ChangeEmbarkAllWaterCount(int iValue);
@@ -1997,7 +2038,7 @@ protected:
 	void PublishQueuedVisualizationMoves();
 
 	bool EmergencyRebase();
-	bool CheckDOWNeededForMove(int iX, int iY);
+	bool CheckDOWNeededForMove(int iX, int iY, bool bPopup = true);
 	MoveResult UnitAttackWithMove(int iX, int iY, int iFlags);
 	int UnitPathTo(int iX, int iY, int iFlags);
 	bool UnitMove(CvPlot* pPlot, bool bCombat, CvUnit* pCombatUnit, bool bEndMove = false);
@@ -2025,6 +2066,11 @@ protected:
 	int m_iArmyId;
 	int m_iBaseCombat;
 	int m_iBaseRangedCombat;
+
+	int m_iSquadNumber;
+	int m_iSquadDestinationX;
+	int m_iSquadDestinationY;
+	int m_SquadEndMovementType;
 
 	int m_iHotKeyNumber;
 	int m_iDeployFromOperationTurn;
@@ -2224,11 +2270,13 @@ protected:
 	int m_iNumRepairCharges;
 	int m_iMilitaryCapChange;
 	int m_iRoughTerrainEndsTurnCount;
+	int m_iCapturedUnitsConscriptedCount;
 	int m_iEmbarkAbilityCount;
 	int m_iHoveringUnitCount;
 	int m_iFlatMovementCostCount;
 	int m_iCanMoveImpassableCount;
 	int m_iOnlyDefensiveCount;
+	int m_iNoAttackInOceanCount;
 	int m_iNoDefensiveBonusCount;
 	int m_iNoCaptureCount;
 	int m_iNukeImmuneCount;
@@ -2298,6 +2346,7 @@ protected:
 
 	PlayerTypes m_eCapturingPlayer;
 	bool m_bCapturedAsIs;
+	bool m_bCapturedAsConscript;
 	UnitTypes m_eLeaderUnitType;
 	InvisibleTypes m_eInvisibleType;
 	InvisibleTypes m_eSeeInvisibleType;
@@ -2311,6 +2360,8 @@ protected:
 	IDInfo m_transportUnit;
 
 	std::vector<int> m_extraDomainModifiers;
+	std::vector<int> m_extraDomainAttacks;
+	std::vector<int> m_extraDomainDefenses;
 	std::vector<int> m_YieldModifier;
 	std::vector<int> m_YieldChange;
 	std::vector<int> m_iGarrisonYieldChange;
@@ -2473,6 +2524,10 @@ SYNC_ARCHIVE_VAR(bool, m_bIsGrouped)
 SYNC_ARCHIVE_VAR(int, m_iLinkedMaxMoves)
 SYNC_ARCHIVE_VAR(UnitIdContainer, m_LinkedUnitIDs)
 SYNC_ARCHIVE_VAR(int, m_iLinkedLeaderID)
+SYNC_ARCHIVE_VAR(int, m_iSquadNumber)
+SYNC_ARCHIVE_VAR(int, m_SquadEndMovementType)
+SYNC_ARCHIVE_VAR(int, m_iSquadDestinationX)
+SYNC_ARCHIVE_VAR(int, m_iSquadDestinationY)
 SYNC_ARCHIVE_VAR(int, m_iArmyId)
 SYNC_ARCHIVE_VAR(int, m_iBaseCombat)
 SYNC_ARCHIVE_VAR(int, m_iBaseRangedCombat)
@@ -2652,11 +2707,13 @@ SYNC_ARCHIVE_VAR(int, m_iAuraEffectChange)
 SYNC_ARCHIVE_VAR(int, m_iNumRepairCharges)
 SYNC_ARCHIVE_VAR(int, m_iMilitaryCapChange)
 SYNC_ARCHIVE_VAR(int, m_iRoughTerrainEndsTurnCount)
+SYNC_ARCHIVE_VAR(int, m_iCapturedUnitsConscriptedCount)
 SYNC_ARCHIVE_VAR(int, m_iEmbarkAbilityCount)
 SYNC_ARCHIVE_VAR(int, m_iHoveringUnitCount)
 SYNC_ARCHIVE_VAR(int, m_iFlatMovementCostCount)
 SYNC_ARCHIVE_VAR(int, m_iCanMoveImpassableCount)
 SYNC_ARCHIVE_VAR(int, m_iOnlyDefensiveCount)
+SYNC_ARCHIVE_VAR(int, m_iNoAttackInOceanCount)
 SYNC_ARCHIVE_VAR(int, m_iNoDefensiveBonusCount)
 SYNC_ARCHIVE_VAR(int, m_iNoCaptureCount)
 SYNC_ARCHIVE_VAR(int, m_iNukeImmuneCount)
@@ -2717,6 +2774,7 @@ SYNC_ARCHIVE_VAR(int, m_iDamageTakenThisTurn)
 SYNC_ARCHIVE_VAR(int, m_iDamageTakenLastTurn)
 SYNC_ARCHIVE_VAR(PlayerTypes, m_eCapturingPlayer)
 SYNC_ARCHIVE_VAR(bool, m_bCapturedAsIs)
+SYNC_ARCHIVE_VAR(bool, m_bCapturedAsConscript)
 SYNC_ARCHIVE_VAR(UnitTypes, m_eLeaderUnitType)
 SYNC_ARCHIVE_VAR(InvisibleTypes, m_eInvisibleType)
 SYNC_ARCHIVE_VAR(InvisibleTypes, m_eSeeInvisibleType)

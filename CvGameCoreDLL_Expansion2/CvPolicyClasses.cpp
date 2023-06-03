@@ -102,6 +102,8 @@ CvPolicyEntry::CvPolicyEntry(void):
 	m_iTradeRouteLandDistanceModifier(0),
 	m_iTradeRouteSeaDistanceModifier(0),
 	m_iEspionageModifier(0),
+	m_iEspionageTurnsModifierFriendly(0),
+	m_iEspionageTurnsModifierEnemy(0),
 	m_iXCSAlliesLowersPolicyNeedWonders(0),
 	m_iTRSpeedBoost(0),
 	m_iTRVisionBoost(0),
@@ -183,7 +185,8 @@ CvPolicyEntry::CvPolicyEntry(void):
 	m_iTradeRouteYieldModifier(0),
 	m_iPositiveWarScoreTourismMod(0),
 #endif
-	m_bNoCSDecayAtWar (false),
+	m_bNoCSDecayAtWar(false),
+	m_iMinimumAllyInfluenceIncreaseAtWar(0),
 	m_bBullyFriendlyCS(false),
 	m_iBullyGlobalCSReduction(0),
 	m_bVassalsNoRebel(false),
@@ -213,6 +216,7 @@ CvPolicyEntry::CvPolicyEntry(void):
 	m_bHalfSpecialistFoodCapital(false),
 	m_iStealGWSlowerModifier(0),
 	m_iStealGWFasterModifier(0),
+	m_iExtraYieldsFromHeavyTribute(0),
 	m_iEventTourism(0),
 	m_iEventTourismCS(0),
 	m_iMonopolyModFlat(0),
@@ -297,6 +301,7 @@ CvPolicyEntry::CvPolicyEntry(void):
 	m_bNoUnhappyIsolation(false),
 	m_bDoubleBorderGrowthGA(false),
 	m_bDoubleBorderGrowthWLTKD(false),
+	m_bKeepConqueredBuildings(false),
 	m_iIncreasedQuestInfluence(0),
 	m_iGreatScientistBeakerModifier(0),
 	m_iGreatEngineerHurryModifier(0),
@@ -573,6 +578,8 @@ bool CvPolicyEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	m_iTradeRouteLandDistanceModifier = kResults.GetInt("TradeRouteLandDistanceModifier");
 	m_iTradeRouteSeaDistanceModifier = kResults.GetInt("TradeRouteSeaDistanceModifier");
 	m_iEspionageModifier = kResults.GetInt("EspionageModifier");
+	m_iEspionageTurnsModifierFriendly = kResults.GetInt("EspionageTurnsModifierFriendly");
+	m_iEspionageTurnsModifierEnemy = kResults.GetInt("EspionageTurnsModifierEnemy");
 	m_iXCSAlliesLowersPolicyNeedWonders = kResults.GetInt("XCSAlliesLowersPolicyNeedWonders");
 	m_iTRVisionBoost = kResults.GetInt("TRVisionBoost");
 	m_iTRSpeedBoost = kResults.GetInt("TRSpeedBoost");
@@ -633,6 +640,7 @@ bool CvPolicyEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 #if defined(MOD_BALANCE_CORE)
 	m_iStealGWSlowerModifier = kResults.GetInt("StealGWSlowerModifier");
 	m_iStealGWFasterModifier = kResults.GetInt("StealGWFasterModifier");
+	m_iExtraYieldsFromHeavyTribute = kResults.GetInt("ExtraYieldsFromHeavyTribute");
 	m_bHalfSpecialistFoodCapital = kResults.GetBool("HalfSpecialistFoodCapital");
 	m_iEventTourism = kResults.GetInt("EventTourism");
 	m_iEventTourismCS = kResults.GetInt("EventTourismCS");
@@ -683,6 +691,7 @@ bool CvPolicyEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	m_iTradeRouteYieldModifier = kResults.GetInt("TradeRouteYieldModifier");
 #endif
 	m_bNoCSDecayAtWar = kResults.GetBool("NoAlliedCSInfluenceDecayAtWar");
+	m_iMinimumAllyInfluenceIncreaseAtWar = kResults.GetInt("MinimumAllyInfluenceIncreaseAtWar");
 	m_bBullyFriendlyCS = kResults.GetBool("CanBullyFriendlyCS");
 	m_iBullyGlobalCSReduction = kResults.GetInt("BullyGlobalCSInfluenceShift");
 	m_bVassalsNoRebel = kResults.GetBool("VassalsNoRebel");
@@ -745,6 +754,7 @@ bool CvPolicyEntry::CacheResults(Database::Results& kResults, CvDatabaseUtility&
 	m_bNoUnhappyIsolation = kResults.GetBool("NoUnhappyIsolation");
 	m_bDoubleBorderGrowthGA = kResults.GetBool("DoubleBorderGrowthGA");
 	m_bDoubleBorderGrowthWLTKD = kResults.GetBool("DoubleBorderGrowthWLTKD");
+	m_bKeepConqueredBuildings = kResults.GetBool("KeepConqueredBuildings");
 	m_iIncreasedQuestInfluence = kResults.GetInt("IncreasedQuestRewards");
 	m_iGreatScientistBeakerModifier = kResults.GetInt("GreatScientistBeakerModifier");
 	m_iGreatEngineerHurryModifier = kResults.GetInt("GreatEngineerHurryModifier");
@@ -1821,6 +1831,14 @@ int CvPolicyEntry::GetEspionageModifier() const
 {
 	return m_iEspionageModifier;
 }
+int CvPolicyEntry::GetEspionageTurnsModifierFriendly() const
+{
+	return m_iEspionageTurnsModifierFriendly;
+}
+int CvPolicyEntry::GetEspionageTurnsModifierEnemy() const
+{
+	return m_iEspionageTurnsModifierEnemy;
+}
 int CvPolicyEntry::GetXCSAlliesLowersPolicyNeedWonders() const
 {
 	return m_iXCSAlliesLowersPolicyNeedWonders;
@@ -2256,6 +2274,10 @@ bool CvPolicyEntry::IsNoCSDecayAtWar() const
 {
 	return m_bNoCSDecayAtWar;
 }
+int CvPolicyEntry::GetMinimumAllyInfluenceIncreaseAtWar() const
+{
+	return m_iMinimumAllyInfluenceIncreaseAtWar;
+}
 bool CvPolicyEntry::CanBullyFriendlyCS() const
 {
 	return m_bBullyFriendlyCS;
@@ -2379,6 +2401,10 @@ int CvPolicyEntry::GetStealGWSlowerModifier() const
 int CvPolicyEntry::GetStealGWFasterModifier() const
 {
 	return m_iStealGWFasterModifier;
+}
+int CvPolicyEntry::GetExtraYieldsFromHeavyTribute() const
+{
+	return m_iExtraYieldsFromHeavyTribute;
 }
 int CvPolicyEntry::GetEventTourism() const
 {
@@ -3019,6 +3045,11 @@ bool CvPolicyEntry::GetDoubleBorderGrowthGA() const
 bool CvPolicyEntry::GetDoubleBorderGrowthWLTKD() const
 {
 	return m_bDoubleBorderGrowthWLTKD;
+}
+/// Are all buildings kept on city conquest?
+bool CvPolicyEntry::IsKeepConqueredBuildings() const
+{
+	return m_bKeepConqueredBuildings;
 }
 /// Increased influence from quests?
 int CvPolicyEntry::GetIncreasedQuestInfluence() const
@@ -4522,6 +4553,9 @@ int CvPlayerPolicies::GetNumericModifier(PolicyModifierType eType)
 			case POLICYMOD_STEAL_GW_FASTER_MODIFIER:
 				rtnValue += m_pPolicies->GetPolicyEntry(i)->GetStealGWFasterModifier();
 				break;
+			case POLICYMOD_EXTRA_YIELDS_FROM_HEAVY_TRIBUTE:
+				rtnValue += m_pPolicies->GetPolicyEntry(i)->GetExtraYieldsFromHeavyTribute();
+				break;
 			case POLICYMOD_CITY_DEFENSE_BOOST:
 				rtnValue += m_pPolicies->GetPolicyEntry(i)->GetDefenseBoost();
 				break;
@@ -5787,7 +5821,7 @@ void CvPlayerPolicies::DoSwitchIdeologies(PolicyBranchTypes eNewBranchType)
 				const CvCivilizationInfo& playerCivilizationInfo = kCityPlayer.getCivilizationInfo();
 				BuildingTypes eBuilding = NO_BUILDING;
 
-				if (MOD_BUILDINGS_THOROUGH_PREREQUISITES || m_pPlayer->GetPlayerTraits()->IsKeepConqueredBuildings())
+				if (MOD_BUILDINGS_THOROUGH_PREREQUISITES)
 				{
 					eBuilding = pLoopCity->GetCityBuildings()->GetBuildingTypeFromClass((BuildingClassTypes)iBuildingClassLoop);
 				}

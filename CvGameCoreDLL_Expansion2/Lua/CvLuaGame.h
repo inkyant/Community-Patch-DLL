@@ -264,6 +264,7 @@ protected:
 	static int lDoMinorGiftTileImprovement(lua_State* L);
 	static int lDoMinorBullyGold(lua_State* L);
 	static int lDoMinorBullyUnit(lua_State* L);
+	static int lDoMinorBullyAnnex(lua_State* L);
 	static int lDoMinorBuyout(lua_State* L);
 	static int lDoMinorMarriage(lua_State* L);
 
@@ -396,6 +397,7 @@ protected:
 	static int lDoEnactResolution(lua_State* L);
 	static int lDoRepealResolution(lua_State* L);
 	static int lIsBeliefValid(lua_State* L);
+	static int lScoreBelief(lua_State* L);
 	
 	static int lIsProcessingMessages(lua_State* L);
 

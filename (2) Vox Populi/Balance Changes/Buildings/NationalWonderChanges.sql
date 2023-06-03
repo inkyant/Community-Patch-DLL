@@ -153,7 +153,9 @@ VALUES ('BUILDING_OXFORD_UNIVERSITY' , 'UNIT_SCIENTIST' , 1);
 
 -- Spy Agency
 UPDATE Buildings
-SET EspionageModifier = '-15'
+SET EspionageModifier = '-15',
+	EspionageTurnsModifierFriendly = '-1',
+	EspionageTurnsModifierEnemyCity = '2'
 WHERE Type = 'BUILDING_INTELLIGENCE_AGENCY';
 
 UPDATE Buildings
@@ -169,63 +171,6 @@ WHERE Type = 'BUILDING_RECYCLING_CENTER';
 
 -- Building Requirement
 DELETE FROM Building_PrereqBuildingClasses;
-
--- Pop Requirement
-UPDATE Buildings
-SET NationalPopRequired = '20'
-WHERE Type = 'BUILDING_HEROIC_EPIC';
-
-UPDATE Buildings
-SET NationalPopRequired = '25'
-WHERE Type = 'BUILDING_NATIONAL_EPIC';
-
-UPDATE Buildings
-SET NationalPopRequired = '25'
-WHERE Type = 'BUILDING_CIRCUS_MAXIMUS';
-
-UPDATE Buildings
-SET NationalPopRequired = '40'
-WHERE Type = 'BUILDING_NATIONAL_TREASURY';
-
-UPDATE Buildings
-SET NationalPopRequired = '25'
-WHERE Type = 'BUILDING_NATIONAL_COLLEGE';
-
-UPDATE Buildings
-SET NationalPopRequired = '40'
-WHERE Type = 'BUILDING_IRONWORKS';
-
-UPDATE Buildings
-SET NationalPopRequired = '35'
-WHERE Type = 'BUILDING_OXFORD_UNIVERSITY';
-
-UPDATE Buildings
-SET NationalPopRequired = '45'
-WHERE Type = 'BUILDING_HERMITAGE';
-
-UPDATE Buildings
-SET NationalPopRequired = '70'
-WHERE Type = 'BUILDING_INTELLIGENCE_AGENCY';
-
-UPDATE Buildings
-SET NationalPopRequired = '30'
-WHERE Type = 'BUILDING_GRAND_TEMPLE';
-
--- City-Based Cost 
-
--- Pop Requirement
-
-UPDATE Buildings SET NumCityCostMod = '10' WHERE Type IN 
-('BUILDING_HEROIC_EPIC',
-'BUILDING_NATIONAL_EPIC',
-'BUILDING_CIRCUS_MAXIMUS',
-'BUILDING_NATIONAL_TREASURY',
-'BUILDING_NATIONAL_COLLEGE',
-'BUILDING_IRONWORKS',
-'BUILDING_OXFORD_UNIVERSITY',
-'BUILDING_HERMITAGE',
-'BUILDING_INTELLIGENCE_AGENCY',
-'BUILDING_GRAND_TEMPLE');
 
 -- NEW
 

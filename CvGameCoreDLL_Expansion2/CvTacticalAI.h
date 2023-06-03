@@ -16,7 +16,7 @@ class FDataStream;
 
 //for tactical combat
 enum eAggressionLevel { AL_NONE, AL_LOW, AL_MEDIUM, AL_HIGH, AL_BRAVEHEART };
-extern int TACTICAL_COMBAT_MAX_TARGET_DISTANCE;
+extern const unsigned char TACTICAL_COMBAT_MAX_TARGET_DISTANCE;
 
 // STL "find_if" predicate
 class UnitIDMatch
@@ -344,6 +344,7 @@ public:
 	bool ShouldRebase(CvUnit* pUnit) const;
 
 	// Public logging
+	FILogFile* GetLogFile();
 	void LogTacticalMessage(const CvString& strMsg);
 
 	// Other people want to know this too
@@ -420,7 +421,7 @@ private:
 	void IdentifyPriorityTargetsByType();
 	void UpdateTargetScores();
 	void SortTargetListAndDropUselessTargets();
-	void DumpTacticalTargets(const char* hint);
+	void DumpTacticalTargets();
 
 	void ClearCurrentMoveUnits(AITacticalMove eNewMove);
 	void ExtractTargetsForZone(CvTacticalDominanceZone* pZone /* Pass in NULL for all zones */);
@@ -485,7 +486,7 @@ private:
 	bool IsMediumPriorityCivilianTarget(CvTacticalTarget* pTarget);
 
 	// Logging functions
-	CvString GetLogFileName(CvString& playerName) const;
+	CvString GetLogFileName(const CvString& playerName) const;
 
 	// Class data - some of it only temporary, does not need to be persisted
 	CvPlayer* m_pPlayer;
@@ -576,7 +577,7 @@ struct SUnitStats
 		pUnit(pUnit_), iUnitID(iUnit), iPlotIndex(iPlot), iAttacksLeft(iAttacks), iMovesLeft(iMoves), iImportanceScore(iImportance), iSelfDamage(0),
 		eLastAssignment(A_INITIAL), eStrategy(eStrategy_) {}
 
-	bool operator<(const SUnitStats& rhs) { return iImportanceScore > rhs.iImportanceScore; } //sort descending by default
+	bool operator<(const SUnitStats& rhs) const { return iImportanceScore > rhs.iImportanceScore; } //sort descending by default
 };
 
 struct SPathFinderStartPos
@@ -678,7 +679,7 @@ class CvTacticalPlot
 public:
 	enum eTactPlotDomain { TD_LAND, TD_SEA, TD_BOTH };
 
-	CvTacticalPlot(const CvPlot* plot=NULL, PlayerTypes ePlayer=NO_PLAYER, const set<CvUnit*>& allOurUnits=set<CvUnit*>());
+	CvTacticalPlot(const CvPlot* plot=NULL, PlayerTypes ePlayer=NO_PLAYER, const vector<CvUnit*>& allOurUnits= vector<CvUnit*>());
 
 	const CvPlot* getPlot() const { return pPlot; }
 	int getPlotIndex() const { return pPlot ? pPlot->GetPlotIndex() : -1; }
@@ -872,6 +873,10 @@ public:
 	{
 		bool operator()(const CvTacticalPosition* lhs, const CvTacticalPosition* rhs) const
 		{
+			if (lhs->getScoreTotal() == rhs->getScoreTotal())
+				//equal ... try to use number of moves as a tiebraker
+				return lhs->getAssignments().size() < rhs->getAssignments().size();
+			
 			//regular descending sort. only makes sense for "completed" positions!
 			return lhs->getScoreTotal() > rhs->getScoreTotal();
 		}
@@ -894,7 +899,7 @@ public:
 		vector<CvTacticalPosition*>& openPositionsHeap, vector<CvTacticalPosition*>& completedPositions, const PrPositionSortHeapGeneration& heapSort);
 	void updateMovePlotsIfRequired();
 	bool findTactPlotRecursive(int iPlotIndex) const;
-	bool addTacticalPlot(const CvPlot* pPlot, const set<CvUnit*>& allOurUnits);
+	bool addTacticalPlot(const CvPlot* pPlot, const vector<CvUnit*>& allOurUnits);
 	bool addAvailableUnit(const CvUnit* pUnit);
 	const vector<SUnitStats>& getAvailableUnits() const { return availableUnits; }
 	int countChildren() const;
@@ -907,6 +912,7 @@ public:
 	STacticalAssignment* getInitialAssignmentMutable(int iUnitID);
 	const STacticalAssignment* getLatestAssignment(int iUnitID) const;
 	STacticalAssignment* getLatestAssignmentMutable(int iUnitID);
+	const STacticalAssignment* getLatestMoveAssignment(int iUnitID) const;
 	bool unitHasAssignmentOfType(int iUnitID, eUnitAssignmentType assignmentType) const;
 	bool plotHasAssignmentOfType(int iToPlotIndex, eUnitAssignmentType assignmentType) const;
 	bool addAssignment(const STacticalAssignment& newAssignment);
@@ -931,6 +937,7 @@ public:
 	const UnitIdContainer& getKilledEnemies() const { return killedEnemies; }
 	const int getNumEnemies() const { return nEnemies - killedEnemies.size(); }
 	const PlotIndexContainer& getFreedPlots() const { return freedPlots; }
+	const int getNumPlots() const { return (int)tactPlots.size(); }
 
 	//sort descending cumulative score. only makes sense for "completed" positions
 	bool operator<(const CvTacticalPosition& rhs) { return iTotalScore>rhs.iTotalScore; }

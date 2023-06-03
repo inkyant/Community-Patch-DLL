@@ -402,6 +402,9 @@ function UpdateDisplay()
 	-- Discussion is always valid, but there may be nothing to say
 	Controls.DiscussButton:SetDisabled(false);
 
+	-- reset any war buttons, can change every time
+	g_WarTypeButtonIM:ResetInstances()
+
 	g_oldCursor = UIManager:SetUICursor(0); -- make sure we start with the default cursor
 
 	if (g_iAITeam ~= -1 and g_iAIPlayer ~= -1) then
@@ -454,13 +457,12 @@ function UpdateDisplay()
 			end
 
 			if (pActiveTeam:CanDeclareWar(g_iAITeam)) then
-				g_WarTypeButtonIM:ResetInstances()
 				for row in GameInfo.WarTypes() do
 					print(row.Description)
 					local instance = g_WarTypeButtonIM:GetInstance()
 					instance.Label:LocalizeAndSetText(row.Description)
 					-- instance.WarTypeButton:SetToolTipString(row.Help) --TODO: get helptext
-					instance.WarTypeButton:RegisterCallback(Mouse.eLClick, onWarType)
+					instance.WarTypeButton:RegisterCallback(Mouse.eLClick, OnWarOrPeace)
 					instance.WarTypeButton:SetVoid1(row.ID)
 				end
 				Controls.WarButton:SetDisabled(false);
@@ -488,15 +490,6 @@ function UpdateDisplay()
 	if civBE_mode then
 		Controls.TalkOptionStack:CalculateSize();
 		Controls.TalkOptionStack:ReprocessAnchoring();
-	end
-end
-
-function onWarType(id)
-	print("Clicked war type! #" .. id)
-	if bnw_mode then
-		UI.AddPopup{ Type = ButtonPopupTypes.BUTTONPOPUP_DECLAREWARMOVE, Data1 = g_iAITeam, Option1 = true};
-	else
-		Controls.WarConfirm:SetHide(false);
 	end
 end
 
@@ -585,7 +578,7 @@ Controls.DemandButton:RegisterCallback( Mouse.eLClick, OnDemand );
 
 
 -- ===========================================================================
-function OnWarOrPeace()
+function OnWarOrPeace(warType)
 
 	local bAtWar = Teams[Game.GetActiveTeam()]:IsAtWar(g_iAITeam);
 
@@ -596,6 +589,11 @@ function OnWarOrPeace()
 	-- Declaring War (currently at peace)
 	elseif bnw_mode then
 		UI.AddPopup{ Type = ButtonPopupTypes.BUTTONPOPUP_DECLAREWARMOVE, Data1 = g_iAITeam, Option1 = true};
+		
+		-- TODO: figure out way to do this after confirm with UI popup
+		if warType and warType ~= -1 then
+			Game.GetActivePlayer():SetWarType(g_iAITeam, warType)
+		end
 	else
 		Controls.WarConfirm:SetHide(false);
 	end

@@ -4126,22 +4126,23 @@ void CvTeam::makeHasMet(TeamTypes eIndex, bool bSuppressMessages)
 
 	updateTechShare();
 
-	if (GC.getGame().isOption(GAMEOPTION_ALWAYS_WAR) && isHuman() && GetID() != eIndex)
-	{
-		declareWar(eIndex, false, getLeaderID());
-	}
-
 	const vector<PlayerTypes>& vMyTeam = getPlayers();
 	const vector<PlayerTypes>& vTheirTeam = GET_TEAM(eIndex).getPlayers();
 
-	// Update military strengths before doing first contact (avoids a crash in DoUpdatePlayerTargetValues() in games with teams)
+	// Update strength estimates before doing first contact
+	// "Sets the scene" for AI's initial evaluations
 	for (size_t i=0; i<vMyTeam.size(); i++)
 	{
 		PlayerTypes eMyPlayer = vMyTeam[i];
 		if (!GET_PLAYER(eMyPlayer).isAlive() || !GET_PLAYER(eMyPlayer).isMajorCiv())
 			continue;
 
-		GET_PLAYER(eMyPlayer).GetDiplomacyAI()->DoUpdatePlayerMilitaryStrengths();
+		GET_PLAYER(eMyPlayer).GetDiplomacyAI()->DoUpdatePlayerStrengthEstimates();
+	}
+
+	if (GC.getGame().isOption(GAMEOPTION_ALWAYS_WAR) && isHuman() && GetID() != eIndex)
+	{
+		declareWar(eIndex, false, getLeaderID());
 	}
 
 	// First Contact in Diplo AI (Civ 5)
@@ -7169,11 +7170,11 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 			}
 		}
 
-		if(bNewValue)
+		if (bNewValue)
 		{
-			if(bAnnounce)
+			if (bAnnounce)
 			{
-				if(GC.getGame().isFinalInitialized())
+				if (GC.getGame().isFinalInitialized())
 				{
 					CvAssert(ePlayer != NO_PLAYER);
 					if(GET_PLAYER(ePlayer).isHuman())
@@ -7216,28 +7217,34 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 			}
 		}
 
-		if(GC.getGame().isFinalInitialized())
+		if (GC.getGame().isFinalInitialized())
 		{
-			if(GetID() == GC.getGame().getActiveTeam())
+			if (GetID() == GC.getGame().getActiveTeam())
 			{
 				DLLUI->setDirty(MiscButtons_DIRTY_BIT, true);
 				DLLUI->setDirty(SelectionButtons_DIRTY_BIT, true);
 				DLLUI->setDirty(ResearchButtons_DIRTY_BIT, true);
 			}
 
-			if(eIndex != NO_TECH && bNewValue)
+			if (eIndex != NO_TECH && bNewValue)
 			{
+				vector<PlayerTypes> vMembers = getPlayers();
+				for (size_t i=0; i<vMembers.size(); i++)
+				{
+					GET_PLAYER(vMembers[i]).DoDifficultyBonus(DIFFICULTY_BONUS_RESEARCHED_TECH);
+				}
+
 				bool bDontShowRewardPopup = DLLUI->IsOptionNoRewardPopups();
 
 				// Notification in MP games
-				if(bDontShowRewardPopup || GC.getGame().isReallyNetworkMultiPlayer())
+				if (bDontShowRewardPopup || GC.getGame().isReallyNetworkMultiPlayer())
 				{
 					Localization::String localizedText = Localization::Lookup("TXT_KEY_MISC_YOU_DISCOVERED_TECH");
 					localizedText << pkTechInfo->GetTextKey();
 					AddNotification(NOTIFICATION_TECH_AWARD, localizedText.toUTF8(), localizedText.toUTF8(), -1, -1, 0, (int) eIndex);
 				}
 				// Popup in SP games
-				else if(GetID() == GC.getGame().getActiveTeam())
+				else if (GetID() == GC.getGame().getActiveTeam())
 				{
 					CvPopupInfo kPopup(BUTTONPOPUP_TECH_AWARD, GC.getGame().getActivePlayer(), 0, eIndex);
 					//kPopup.setText(localizedText.toUTF8());
@@ -7246,7 +7253,7 @@ void CvTeam::setHasTech(TechTypes eIndex, bool bNewValue, PlayerTypes ePlayer, b
 			}
 		}
 
-		if(bNewValue)
+		if (bNewValue)
 		{
 			gDLL->GameplayTechAcquired(GetID(), eIndex);
 		}
@@ -9363,10 +9370,21 @@ bool CvTeam::canEndAllVassal()
 // Can we end our vassalage with eTeam?
 bool CvTeam::canEndVassal(TeamTypes eTeam) const
 {
-	if(eTeam == NO_TEAM) return false;
+	if (eTeam == NO_TEAM || eTeam == GetID()) return false;
 	
 	// Can't end a vassalage if we're not the vassal of eTeam.
-	if(!IsVassal(eTeam))
+	if (!IsVassal(eTeam))
+		return false;
+
+	if (!isAlive())
+		return false;
+
+	if (!GET_TEAM(eTeam).isAlive())
+		return true;
+
+	// Too soon to end our vassalage with ePlayer
+	int iMinTurns = IsVoluntaryVassal(eTeam) ? /*10*/ GC.getGame().getGameSpeedInfo().getMinimumVoluntaryVassalTurns() : /*50*/ GC.getGame().getGameSpeedInfo().getMinimumVassalTurns();
+	if (GetNumTurnsIsVassal() < iMinTurns)
 	{
 		return false;
 	}
@@ -9385,25 +9403,12 @@ bool CvTeam::canEndVassal(TeamTypes eTeam) const
 		}
 	}
 
-	// can't end vassalage with ourselves
-	if(eTeam == GetID())
-	{
-		return false;
-	}
-
-	if(!isAlive())
+	// Not allowed to go to war?
+	if (GC.getGame().isOption(GAMEOPTION_ALWAYS_PEACE) || GC.getGame().isOption(GAMEOPTION_NO_CHANGING_WAR_PEACE) || GC.getGame().IsAIPassiveMode())
 		return false;
 
-	if(!GET_TEAM(eTeam).isAlive())
-		return true;
-
-	// Too soon to end our vassalage with ePlayer
-	int iMinTurns = IsVoluntaryVassal(eTeam) ? /*10*/ GC.getGame().getGameSpeedInfo().getMinimumVoluntaryVassalTurns() : /*50*/ GC.getGame().getGameSpeedInfo().getMinimumVassalTurns();
-
-	if (GetNumTurnsIsVassal() < iMinTurns)
-	{
+	if (GC.getGame().IsAIPassiveTowardsHumans() && GET_TEAM(eTeam).isHuman())
 		return false;
-	}
 
 	// We're the voluntary vassal of eTeam and it's not too early to end vassalage - we're not bound by the 50% rules
 	if (IsVoluntaryVassal(eTeam))

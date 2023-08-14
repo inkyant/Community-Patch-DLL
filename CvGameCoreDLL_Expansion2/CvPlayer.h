@@ -142,7 +142,7 @@ public:
 	void CheckActivePlayerEvents(CvCity* pCity);
 	bool IsEventValid(EventTypes eEvent);
 	bool IsEventChoiceValid(EventChoiceTypes eEventChoice, EventTypes eParentEvent);
-	void DoStartEvent(EventTypes eEvent);
+	void DoStartEvent(EventTypes eEvent, bool bSendMsg);
 	void DoEventChoice(EventChoiceTypes eEventChoice, EventTypes eEvent = NO_EVENT, bool bSendMsg = true, bool bEspionage = false);
 	void DoEventSyncChoices(EventChoiceTypes eEventChoice, CvCity* pCity);
 	CvString GetScaledHelpText(EventChoiceTypes eEventChoice, bool bYieldsOnly);
@@ -311,7 +311,7 @@ public:
 	void unraze(CvCity* pCity);
 	void disband(CvCity* pCity);
 
-	bool canReceiveGoody(CvPlot* pPlot, GoodyTypes eGoody, CvUnit* pUnit) const;
+	bool canReceiveGoody(CvPlot* pPlot, GoodyTypes eGoody, CvUnit* pUnit);
 	void receiveGoody(CvPlot* pPlot, GoodyTypes eGoody, CvUnit* pUnit);
 	void doGoody(CvPlot* pPlot, CvUnit* pUnit);
 
@@ -1344,6 +1344,7 @@ public:
 	int getHappyPerMilitaryUnit() const;
 	void changeHappyPerMilitaryUnit(int iChange);
 	int GetHappinessFromMilitaryUnits() const;
+	int GetYieldFromMilitaryUnits(YieldTypes eIndex) const;
 
 	int getHappinessToCulture() const;
 	void changeHappinessToCulture(int iChange);
@@ -1674,7 +1675,7 @@ public:
 
 	//power is military + economic
 	int getPower() const;
-	int GetMilitaryMight(bool bForMinor = false) const;
+	int GetMilitaryMight() const;
 	int GetEconomicMight() const;
 	int GetProductionMight() const;
 	void ResetMightCalcTurn();
@@ -2807,7 +2808,6 @@ public:
 	bool IsAtWarAnyMajor() const;
 	bool IsAtWarAnyMinor() const;
 	bool IsAtWarWith(PlayerTypes iPlayer) const;
-	vector<PlayerTypes> GetWarAllies(PlayerTypes ePlayer) const;
 	vector<PlayerTypes> GetUnfriendlyMajors() const;
 	int CountNumDangerousMajorsAtWarWith(bool bExcludePhonyWars, bool bExcludeIfNoTarget) const;
 	bool HasPantheon() const;

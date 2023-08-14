@@ -34,9 +34,9 @@ INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_LAND_NONE_WARMONGER', '
 
 -- You are (not) competing for World Wonders.
 -- NOTE: This modifier scales based on the AI's WonderCompetitiveness flavor and the player's difficulty level.
-UPDATE Defines SET Value = '30' WHERE Name = 'OPINION_WEIGHT_WONDER_FIERCE';
-UPDATE Defines SET Value = '20' WHERE Name = 'OPINION_WEIGHT_WONDER_STRONG';
-UPDATE Defines SET Value = '10' WHERE Name = 'OPINION_WEIGHT_WONDER_WEAK';
+UPDATE Defines SET Value = '50' WHERE Name = 'OPINION_WEIGHT_WONDER_FIERCE';
+UPDATE Defines SET Value = '35' WHERE Name = 'OPINION_WEIGHT_WONDER_STRONG';
+UPDATE Defines SET Value = '20' WHERE Name = 'OPINION_WEIGHT_WONDER_WEAK';
 UPDATE Defines SET Value = '0' WHERE Name = 'OPINION_WEIGHT_WONDER_NONE';
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_WONDER_CULTURAL', '10'; -- penalty for Cultural AIs
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_WONDER_NONE_CULTURAL', '-5'; -- bonus for Cultural AIs (increases based on Neediness flavor)
@@ -251,21 +251,24 @@ UPDATE Defines SET Value = '35' WHERE Name = 'OPINION_WEIGHT_DENOUNCED_THEM'; --
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_MUTUAL_DENOUNCEMENT', '50'; -- both of these
 
 -- You have Denounced a leader they made a Declaration of Friendship with!
+-- NOTE: This penalty scales based on the AI's Loyalty flavor.
 UPDATE Defines SET Value = '20' WHERE Name = 'OPINION_WEIGHT_DENOUNCED_FRIEND';
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DENOUNCED_FRIEND_SUBSEQUENT', '8'; -- any after the first
-INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DENOUNCED_MOST_VALUED_FRIEND', '15'; -- denounced the AI's most valued friend
-INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DENOUNCED_MOST_VALUED_ALLY', '15'; -- denounced the AI's most valued DP (if they have a DoF with them)
+INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DENOUNCED_MOST_VALUED_FRIEND', '20'; -- denounced the AI's most valued friend
+INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DENOUNCED_MOST_VALUED_ALLY', '10'; -- denounced the AI's most valued DP (if they have a DoF with them)
 
 -- We have Denounced the same leaders!
+-- NOTE: This bonus scales based on the AI's DenounceWillingness flavor.
 UPDATE Defines SET Value = '-20' WHERE Name = 'OPINION_WEIGHT_DENOUNCED_ENEMY';
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DENOUNCED_ENEMY_SUBSEQUENT', '-8'; -- any after the first
-INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DENOUNCED_BIGGEST_COMPETITOR', '-15'; -- mutual denouncement against AI's biggest competitor
-INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DENOUNCED_BIGGEST_LEAGUE_RIVAL', '-15'; -- mutual denouncement against AI's biggest World Congress rival
+INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DENOUNCED_BIGGEST_COMPETITOR', '-20'; -- mutual denouncement against AI's biggest competitor
+INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DENOUNCED_BIGGEST_LEAGUE_RIVAL', '-20'; -- mutual denouncement against AI's biggest World Congress rival
 
 -- Other civs that they like more than you have denounced you!
-INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DENOUNCED_BY_THEIR_FRIEND', '10';
+-- NOTE: This penalty scales inversely (negatively) based on the AI's DiploBalance flavor.
+INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DENOUNCED_BY_THEIR_FRIEND', '15';
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DENOUNCED_BY_THEIR_FRIEND_SUBSEQUENT', '5'; -- any after the first
-INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DENOUNCED_BY_THEIR_KEY_FRIEND', '10'; -- additional penalty if the denouncement comes from a teammate or their most valued friend/ally
+INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DENOUNCED_BY_THEIR_KEY_FRIEND', '15'; -- additional penalty if the denouncement comes from a teammate or their most valued friend/ally
 
 --	//////////////////////////////////////
 --	// PROMISES
@@ -393,6 +396,7 @@ INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_SIDED_WITH_THEIR_MINOR_
 --	//////////////////////////////////////
 
 -- We have made a public Declaration of Friendship! / We were previously friends.
+-- NOTE: This bonus scales inversely (negatively) based on the AI's DoFWillingness flavor.
 UPDATE Defines SET Value = '-30' WHERE Name = 'OPINION_WEIGHT_DOF';
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DOF_MOST_VALUED_FRIEND', '-20'; -- additional bonus if player is AI's most valued friend
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DOF_TYPE_FRIENDS', '-10'; -- bonus for 1 previous DoF that wasn't ended early, without a denouncement/DoW in the interim (if not currently friends)
@@ -400,12 +404,14 @@ INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DOF_TYPE_ALLIES', '-20'
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DOF_TYPE_BATTLE_BROTHERS', '-30'; -- bonus for 3+ consecutive DoFs ""
 
 -- We have made Declarations of Friendship with the same leaders!
+-- NOTE: This bonus scales based on the AI's DoFWillingness flavor.
 UPDATE Defines SET Value = '-20' WHERE Name = 'OPINION_WEIGHT_DOF_WITH_FRIEND';
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DOF_WITH_FRIEND_SUBSEQUENT', '-8'; -- any after the first
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DOF_WITH_MOST_VALUED_FRIEND', '-20'; -- made a DoF with AI's most valued friend
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DOF_WITH_MOST_VALUED_ALLY', '-10'; -- made a DoF with AI's most valued DP (if they have a DoF with them)
 
 -- You have made a Declaration of Friendship with one of their enemies!
+-- NOTE: This penalty scales based on the AI's Neediness flavor.
 UPDATE Defines SET Value = '20' WHERE Name = 'OPINION_WEIGHT_DOF_WITH_ENEMY';
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DOF_WITH_ENEMY_SUBSEQUENT', '8'; -- any after the first
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DOF_WITH_BIGGEST_COMPETITOR', '20'; -- made a DoF with AI's biggest competitor, and AI has denounced them or they're at war
@@ -417,16 +423,20 @@ INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DOF_WITH_BIGGEST_LEAGUE
 --	//////////////////////////////////////
 
 -- We have made a Defensive Pact!
-INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DP', '-15';
-INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DP_MOST_VALUED_ALLY', '-15'; -- additional bonus if player is AI's most valued DP
+-- NOTE: This bonus scales based on the AI's WarmongerHate flavor.
+INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DP', '-20';
+INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DP_MOST_VALUED_ALLY', '-20'; -- additional bonus if player is AI's most valued DP
+INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DP_CONQUEROR_MULTIPLIER', '150'; -- multiplier if AI has conquered another player (replaces WarmongerHate scaling)
 
 -- We have made a Defensive Pact with the same leaders!
-INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DP_WITH_FRIEND', '-10';
-INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DP_WITH_FRIEND_SUBSEQUENT', '-5'; -- any after the first
+-- NOTE: This bonus scales based on the AI's WarmongerHate flavor.
+INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DP_WITH_FRIEND', '-15';
+INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DP_WITH_FRIEND_SUBSEQUENT', '-10'; -- any after the first
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DP_WITH_MOST_VALUED_ALLY', '-10'; -- made a DP with AI's most valued ally
-INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DP_WITH_MOST_VALUED_FRIEND', '-5'; -- made a DP with AI's most valued friend (if they have a DP with them)
+INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DP_WITH_MOST_VALUED_FRIEND', '-10'; -- made a DP with AI's most valued friend (if they have a DP with them)
 
 -- You have made a Defensive Pact with one of their enemies!
+-- NOTE: This penalty scales based on the AI's Neediness flavor.
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DP_WITH_ENEMY', '20';
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DP_WITH_ENEMY_SUBSEQUENT', '10'; -- any after the first
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_DP_WITH_BIGGEST_COMPETITOR', '20'; -- made a DP with AI's biggest competitor, and AI has denounced them or they're at war
@@ -453,9 +463,10 @@ INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_RA_SCIENTIFIC_MOD', '-1
 -- NOTE 1: The highest of these penalties is applied.
 -- NOTE 2: None of these penalties are applied if the player isn't considered "untrustworthy" yet, except for "Your friends found reason to denounce you!"
 
-INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_BETRAYED_OUR_FRIEND_MULTIPLIER', '200'; -- multiplier to all traitor opinion penalties wherein the player betrayed or was betrayed by AI's friend
+INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_BETRAYED_OUR_FRIEND_MULTIPLIER', '200'; -- multiplier to all traitor opinion penalties wherein the player betrayed or was betrayed by AI's friends or allies
 
 -- Your friends found reason to denounce you!
+-- NOTE: This penalty scales based on the AI's DenounceWillingness flavor.
 UPDATE Defines SET Value = '20' WHERE Name = 'OPINION_WEIGHT_DENOUNCED_BY_FRIEND_EACH'; -- if they like the denouncer more than you
 UPDATE Defines SET Value = '10' WHERE Name = 'OPINION_WEIGHT_DENOUNCED_BY_FRIEND_DONT_LIKE'; -- if they like you more than the denouncer
 
@@ -554,7 +565,8 @@ INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_VASSALAGE_WE_ARE_MASTER
 -- Opinion Weights for AI being Vassal
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_VASSALAGE_WE_ARE_VOLUNTARY_VASSAL', '-20';
 INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_VASSALAGE_WE_ARE_VASSAL', '0';
-INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_SAME_MASTER', '-30';
+INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_SAME_MASTER', '-60';
+INSERT INTO Defines (Name, Value) SELECT 'OPINION_WEIGHT_SAME_MASTER_DIFFERENT_SURRENDER_DIVISOR', '200'; -- reduces the same master bonus between voluntary and capitulated vassals
 
 
 -- Vassalage Treatment Thresholds
@@ -711,8 +723,8 @@ INSERT INTO Defines (Name, Value) SELECT 'LIBERATED_CITY_TURNS_UNTIL_FORGOTTEN',
 INSERT INTO Defines (Name, Value) SELECT 'FORGAVE_FOR_SPYING_TURNS_UNTIL_FORGOTTEN', '30';
 INSERT INTO Defines (Name, Value) SELECT 'SHARED_INTRIGUE_TURNS_UNTIL_FORGOTTEN', '50';
 INSERT INTO Defines (Name, Value) SELECT 'ROBBED_US_TURNS_UNTIL_FORGIVEN', '50';
-INSERT INTO Defines (Name, Value) SELECT 'PLOTTED_AGAINST_US_TURNS_UNTIL_FORGIVEN', '19'; -- scales based on perceived threat level of the plotter; does not scale with game speed
-INSERT INTO Defines (Name, Value) SELECT 'BEATEN_TO_WONDER_TURNS_UNTIL_FORGIVEN', '75'; -- no direct penalty from this, but it affects WonderDisputeLevel; timer is ignored if other player is spamming World Wonders
+INSERT INTO Defines (Name, Value) SELECT 'PLOTTED_AGAINST_US_TURNS_UNTIL_FORGIVEN', '14'; -- 0-26 is added to this value based on perceived threat level of the plotter; does not scale with game speed
+INSERT INTO Defines (Name, Value) SELECT 'BEATEN_TO_WONDER_TURNS_UNTIL_FORGIVEN', '75'; -- no direct penalty from this, but it affects WonderDisputeLevel
 INSERT INTO Defines (Name, Value) SELECT 'LOWERED_OUR_INFLUENCE_TURNS_UNTIL_FORGIVEN', '50'; -- no direct penalty from this, but it affects MinorCivDisputeLevel
 INSERT INTO Defines (Name, Value) SELECT 'PERFORMED_COUP_TURNS_UNTIL_FORGIVEN', '50';
 INSERT INTO Defines (Name, Value) SELECT 'EXCAVATED_ARTIFACT_TURNS_UNTIL_FORGIVEN', '50';

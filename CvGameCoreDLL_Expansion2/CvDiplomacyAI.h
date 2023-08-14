@@ -103,7 +103,10 @@ public:
 	bool IsVassal(PlayerTypes eOtherPlayer) const;
 	bool IsMaster(PlayerTypes eOtherPlayer) const;
 	bool IsVoluntaryVassalage(PlayerTypes eOtherPlayer) const;
-	vector<PlayerTypes> GetLinkedWarPlayers(PlayerTypes eOtherPlayer, bool bIgnoreDefensivePacts, bool bIncludeMinors, bool bIncludeUnmet) const;
+	vector<PlayerTypes> GetOffensiveWarAllies(PlayerTypes eOtherPlayer, bool bIncludeMinors, bool bReverseMode) const;
+	vector<PlayerTypes> GetDefensiveWarAllies(PlayerTypes eOtherPlayer, bool bIncludeMinors, bool bReverseMode, bool bNewWarsOnly) const;
+	vector<PlayerTypes> GetWarAllies(PlayerTypes eOtherPlayer, bool bDefensive, bool bIncludeWars, bool bReverseMode, bool bNewWarsOnly) const;
+	bool IsNuclearGandhi(bool bPotentially = false) const;
 
 	// ************************************
 	// Personality Values
@@ -119,18 +122,19 @@ public:
 	int GetBoldness() const;
 	int GetDiploBalance() const;
 	int GetWarmongerHate() const;
-	int GetDenounceWillingness() const;
 	int GetDoFWillingness() const;
+	int GetDenounceWillingness() const;
 	int GetLoyalty() const;
-	int GetNeediness() const;
 	int GetForgiveness() const;
-	int GetChattiness() const;
+	int GetNeediness() const;
 	int GetMeanness() const;
-	int GetWarscoreThresholdPositive() const;
-	int GetWarscoreThresholdNegative() const;
+	int GetChattiness() const;
 
 	int GetMajorCivApproachBias(CivApproachTypes eApproach) const;
 	int GetMinorCivApproachBias(CivApproachTypes eApproach) const;
+
+	int GetWarscoreThresholdPositive() const;
+	int GetWarscoreThresholdNegative() const;
 
 	VictoryPursuitTypes GetPrimaryVictoryPursuit() const;
 	void SetPrimaryVictoryPursuit(VictoryPursuitTypes eVictoryPursuit);
@@ -145,6 +149,8 @@ public:
 	bool IsSecondaryDiplomat() const;
 	bool IsSecondaryCultural() const;
 	bool IsSecondaryScientist() const;
+
+	VictoryPursuitTypes GetEternalVictoryPursuit() const;
 
 	// ************************************
 	// Memory Management
@@ -587,17 +593,22 @@ public:
 	// Strength Assessments
 	// ------------------------------------
 
-	// Military Strength: How strong is ePlayer compared to US?
-	StrengthTypes GetPlayerMilitaryStrengthComparedToUs(PlayerTypes ePlayer) const;
-	void SetPlayerMilitaryStrengthComparedToUs(PlayerTypes ePlayer, StrengthTypes eMilitaryStrength);
-
 	// Economic Strength: How strong is ePlayer compared to US?
-	StrengthTypes GetPlayerEconomicStrengthComparedToUs(PlayerTypes ePlayer) const;
-	void SetPlayerEconomicStrengthComparedToUs(PlayerTypes ePlayer, StrengthTypes eEconomicStrength);
+	StrengthTypes GetEconomicStrengthComparedToUs(PlayerTypes ePlayer) const;
+	void SetEconomicStrengthComparedToUs(PlayerTypes ePlayer, StrengthTypes eEconomicStrength);
+
+	// Military Strength: How strong is ePlayer compared to US?
+	StrengthTypes GetMilitaryStrengthComparedToUs(PlayerTypes ePlayer) const;
+	void SetMilitaryStrengthComparedToUs(PlayerTypes ePlayer, StrengthTypes eMilitaryStrength);
+	StrengthTypes GetRawMilitaryStrengthComparedToUs(PlayerTypes ePlayer) const;
+	void SetRawMilitaryStrengthComparedToUs(PlayerTypes ePlayer, StrengthTypes eMilitaryStrength);
 
 	// Target Value: how easy or hard of a target would ePlayer be to attack?
-	TargetValueTypes GetPlayerTargetValue(PlayerTypes ePlayer) const;
-	void SetPlayerTargetValue(PlayerTypes ePlayer, TargetValueTypes eTargetValue);
+	TargetValueTypes GetTargetValue(PlayerTypes ePlayer) const;
+	void SetTargetValue(PlayerTypes ePlayer, TargetValueTypes eTargetValue);
+	TargetValueTypes GetRawTargetValue(PlayerTypes ePlayer) const;
+	void SetRawTargetValue(PlayerTypes ePlayer, TargetValueTypes eTargetValue);
+
 	bool IsEasyTarget(PlayerTypes ePlayer) const;
 	void SetEasyTarget(PlayerTypes ePlayer, bool bValue);
 
@@ -941,6 +952,9 @@ public:
 	bool IsAvoidDeals() const;
 	void SetAvoidDeals(bool bValue);
 
+	bool IsIgnoreWarmonger() const;
+	void SetIgnoreWarmonger(bool bValue);
+
 	PlayerTypes GetOtherPlayerProtectedMinorBullied(PlayerTypes eBullyPlayer) const;
 	void SetOtherPlayerProtectedMinorBullied(PlayerTypes ePlayer, PlayerTypes eBulliedPlayer);
 
@@ -1080,15 +1094,12 @@ public:
 	int GetHighestWarscore();
 	PlayerTypes GetHighestWarscorePlayer();
 
-	void DoUpdatePlayerMilitaryStrengths();
-	void DoUpdatePlayerEconomicStrengths();
+	void DoUpdatePlayerStrengthEstimates();
+	int ComputeDynamicStrengthModifier(PlayerTypes ePlayer, PlayerTypes eAgainstPlayer);
 
 	void DoUpdateWarProgressScores();
 
 	void DoUpdateWarmongerThreats(bool bUpdateOnly = false);
-
-	void DoUpdatePlayerTargetValues();
-	int GetPlayerOverallStrengthEstimate(PlayerTypes ePlayer, PlayerTypes eComparedToPlayer, bool bSelfEvaluation);
 
 	int GetNumberOfThreatenedCities(PlayerTypes eEnemy);
 
@@ -1131,8 +1142,8 @@ public:
 
 	void DoUpdateSaneDiplomaticTargets();
 
-	bool IsWarWouldBankruptUs(PlayerTypes ePlayer, bool bIgnoreDPs, int iMinimumIncome = 0);
-	int CalculateGoldPerTurnLostFromWar(PlayerTypes ePlayer, bool bIgnoreDPs);
+	bool IsWarWouldBankruptUs(PlayerTypes ePlayer, int iMinimumIncome = 0);
+	int CalculateGoldPerTurnLostFromWar(PlayerTypes ePlayer);
 
 	bool DoUpdateOnePlayerSaneDiplomaticTarget(PlayerTypes ePlayer, bool bImpulse);
 	bool CanBackstab(PlayerTypes ePlayer) const;
@@ -1324,7 +1335,7 @@ public:
 
 	// Possible contact options follow:
 
-	void DoUpdateMinorCivProtection(PlayerTypes eMinor, CivApproachTypes eApproach);
+	void DoUpdateMinorCivProtection(PlayerTypes eMinor);
 
 	//void DoCoopWarTimeStatement(PlayerTypes ePlayer, DiploStatementTypes& eStatement, int& iData1);
 	void DoCoopWarStatement(PlayerTypes ePlayer, DiploStatementTypes& eStatement, int& iData1);
@@ -1372,7 +1383,7 @@ public:
 	void DoThirdPartyWarTrade(PlayerTypes ePlayer, DiploStatementTypes& eStatement, CvDeal* pDeal);
 	void DoThirdPartyPeaceTrade(PlayerTypes ePlayer, DiploStatementTypes& eStatement, CvDeal* pDeal);
 	void DoVoteTrade(PlayerTypes ePlayer, DiploStatementTypes& eStatement, CvDeal* pDeal);
-	std::vector<CvDeal*> DoRenewExpiredDeal(PlayerTypes ePlayer, DiploStatementTypes& eStatement);
+	CvDeal* DoRenewExpiredDeal(PlayerTypes ePlayer, DiploStatementTypes& eStatement);
 
 	void DoRequest(PlayerTypes ePlayer, DiploStatementTypes& eStatement, CvDeal* pDeal);
 	void DoGift(PlayerTypes ePlayer, DiploStatementTypes& eStatement, CvDeal* pDeal);
@@ -1582,7 +1593,8 @@ public:
 	/////////////////////////////////////////////////////////
 
 	int AdjustModifierDuration(int iDuration, int iFlavorValue, bool bInvertModifier = false, bool bGamespeed = true) const;
-	int AdjustModifierValue(int iValue, int iDuration, int iTurn, ModifierTypes eModifierType, int iStacks = 1, int iFirstStackValue = 0);
+	int AdjustTimedModifier(int iValue, int iDuration, int iTurn, TimedModifierTypes eModifierType, int iStacks = 1, int iFirstStackValue = 0);
+	int AdjustConditionalModifier(int iValue, int iFlavorValue, bool bInvertModifier = false) const;
 	void DoTestOpinionModifiers();
 	int GetBaseOpinionScore(PlayerTypes ePlayer);
 
@@ -1754,8 +1766,8 @@ public:
 	void LogMinorCivQuestCancelled(PlayerTypes eMinor, int iOldFriendshipTimes100, int iNewFriendshipTimes100, MinorCivQuestTypes eType);
 	void LogMinorCivBuyout(PlayerTypes eMinor, int iGoldPaid, bool bSaving);
 
-	std::vector<CvDeal*> GetDealsToRenew(PlayerTypes eOtherPlayer = NO_PLAYER);
-	void CancelRenewDeal(PlayerTypes eOtherPlayer = NO_PLAYER, RenewalReason eReason = NO_REASON, bool bJustLogging = false, CvDeal* pPassDeal = NULL);
+	std::vector<CvDeal*> GetDealsToRenew(PlayerTypes eOtherPlayer = NO_PLAYER, bool bOnlyCheckedDeals = false);
+	void CancelRenewDeal(PlayerTypes eOtherPlayer = NO_PLAYER, RenewalReason eReason = NO_REASON, bool bJustLogging = false, CvDeal* pPassDeal = NULL, bool bOnlyCheckedDeals = false);
 
 	// Methods for injecting tests
 	void TestUIDiploStatement(PlayerTypes eToPlayer, DiploStatementTypes eStatement, int iArg1);
@@ -1782,17 +1794,16 @@ private:
 	int GetEstimatePlayerBoldness(PlayerTypes ePlayer) const;
 	int GetEstimatePlayerDiploBalance(PlayerTypes ePlayer) const;
 	int GetEstimatePlayerWarmongerHate(PlayerTypes ePlayer) const;
-	int GetEstimatePlayerDenounceWillingness(PlayerTypes ePlayer) const;
 	int GetEstimatePlayerDoFWillingness(PlayerTypes ePlayer) const;
+	int GetEstimatePlayerDenounceWillingness(PlayerTypes ePlayer) const;
 	int GetEstimatePlayerLoyalty(PlayerTypes ePlayer) const;
-	int GetEstimatePlayerNeediness(PlayerTypes ePlayer) const;
 	int GetEstimatePlayerForgiveness(PlayerTypes ePlayer) const;
+	int GetEstimatePlayerNeediness(PlayerTypes ePlayer) const;
+	int GetEstimatePlayerMeanness(PlayerTypes ePlayer) const;
 	int GetEstimatePlayerChattiness(PlayerTypes ePlayer) const;
-	int GetEstimatePlayerMeanness(PlayerTypes ePlayer) const;	
 	int GetEstimatePlayerMajorCivApproachBias(PlayerTypes ePlayer, CivApproachTypes eApproach) const;
 	int GetEstimatePlayerMinorCivApproachBias(PlayerTypes ePlayer, CivApproachTypes eApproach) const;
 	int GetEstimatePlayerFlavorValue(PlayerTypes ePlayer, FlavorTypes eFlavor) const;
-	int GetDifferenceFromAverageFlavorValue(int iValue) const;
 
 	bool IsValidUIDiplomacyTarget(PlayerTypes eTargetPlayer);
 
@@ -1879,6 +1890,7 @@ private:
 
 	// Other Global Memory
 	bool m_bAvoidDeals; // Not serialized!
+	bool m_bIgnoreWarmonger; // Not serialized!
 	bool m_bWasHumanLastTurn;
 	bool m_bEndedFriendshipThisTurn;
 	bool m_bUpdatedWarProgressThisTurn;
@@ -1984,9 +1996,11 @@ private:
 	char m_aeWarmongerThreat[MAX_MAJOR_CIVS];
 
 	// Strength Assessments
-	char m_aeMilitaryStrengthComparedToUs[MAX_CIV_PLAYERS];
 	char m_aeEconomicStrengthComparedToUs[MAX_CIV_PLAYERS];
+	char m_aeMilitaryStrengthComparedToUs[MAX_CIV_PLAYERS];
+	char m_aeRawMilitaryStrengthComparedToUs[MAX_CIV_PLAYERS];
 	char m_aeTargetValue[MAX_CIV_PLAYERS];
+	char m_aeRawTargetValue[MAX_CIV_PLAYERS];
 	bool m_abEasyTarget[MAX_CIV_PLAYERS];
 
 	// PROMISES

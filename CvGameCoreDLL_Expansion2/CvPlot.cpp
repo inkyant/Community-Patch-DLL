@@ -2152,11 +2152,7 @@ bool CvPlot::canHaveImprovement(ImprovementTypes eImprovement, PlayerTypes ePlay
 		{
 			return false;
 		}
-#if defined(MOD_PSEUDO_NATURAL_WONDER)
-		if(GC.getFeatureInfo(getFeatureType())->IsNaturalWonder(true))
-#else
 		if(GC.getFeatureInfo(getFeatureType())->IsNaturalWonder())
-#endif
 		{
 			return false;
 		}
@@ -7687,6 +7683,8 @@ void CvPlot::setImprovementType(ImprovementTypes eNewValue, PlayerTypes eBuilder
 #if defined(MOD_GLOBAL_STACKING_RULES)
 		calculateAdditionalUnitsFromImprovement();
 #endif
+		//reset the counter
+		setImprovementDuration(0);
 
 		if (eOldImprovement != NO_IMPROVEMENT)
 		{
@@ -7711,11 +7709,6 @@ void CvPlot::setImprovementType(ImprovementTypes eNewValue, PlayerTypes eBuilder
 			}
 			if (oldImprovementEntry.IsEmbassy())
 				SetImprovementEmbassy(false);
-		}
-
-		if(getImprovementType() == NO_IMPROVEMENT)
-		{
-			setImprovementDuration(0);
 		}
 
 		// Reset who cleared a Barb camp here last (if we're putting a new one down)
@@ -9505,6 +9498,9 @@ int CvPlot::calculateNatureYield(YieldTypes eYield, PlayerTypes ePlayer, const C
 				iYield += (pOwningCity->getPopulation() + kYield.getPopulationChangeOffset()) / kYield.getPopulationChangeDivisor();
 			}
 		}
+
+		// GetYieldFromXMilitaryUnits (France UA)
+		iYield += GET_PLAYER(ePlayer).GetYieldFromMilitaryUnits(eYield);
 
 		// Mod for Player; used for Policies and such
 		iYield += GET_PLAYER(ePlayer).GetPlayerTraits()->GetCityYieldChanges(eYield);
@@ -11325,6 +11321,7 @@ bool CvPlot::setRevealed(TeamTypes eTeam, bool bNewValue, CvUnit* pUnit, bool bT
 	bool bRevealed = isRevealed(eTeam) != bNewValue;
 	if(bRevealed)
 	{
+		bVisbilityUpdated = true;
 		m_bfRevealed.ToggleBit(eTeam);
 
 		bool bEligibleForAchievement = MOD_API_ACHIEVEMENTS ? GET_PLAYER(GC.getGame().getActivePlayer()).isHuman() && !GC.getGame().isGameMultiPlayer() : false;
@@ -11547,7 +11544,6 @@ bool CvPlot::setRevealed(TeamTypes eTeam, bool bNewValue, CvUnit* pUnit, bool bT
 
 		if(eTeam == eActiveTeam)
 		{
-			bVisbilityUpdated = true;
 			updateSymbols();
 			updateFog(true);
 			updateVisibility();

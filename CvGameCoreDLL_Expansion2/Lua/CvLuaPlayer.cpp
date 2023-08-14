@@ -29,6 +29,7 @@
 #include "../CvInternalGameCoreUtils.h"
 #include "ICvDLLUserInterface.h"
 #include "CvDllInterfaces.h"
+#include "CvDllNetMessageExt.h"
 
 #pragma warning(disable:4800 ) //forcing value to bool 'true' or 'false'
 
@@ -58,6 +59,8 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(InitUnit);
 	Method(InitUnitWithNameOffset);
 	Method(InitNamedUnit);
+	Method(GetHistoricEventTourism);
+	Method(GetNumHistoricEvents);
 #if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	Method(GetResourceMonopolyPlayer);
 	Method(GetMonopolyPercent);
@@ -438,8 +441,8 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(ChangeBarbarianCombatBonus);
 	Method(GetCombatBonusVsHigherPop);
 	Method(GetWarScore);
-	Method(GetPlayerMilitaryStrengthComparedToUs);
-	Method(GetPlayerEconomicStrengthComparedToUs);
+	Method(GetMilitaryStrengthComparedToUs);
+	Method(GetEconomicStrengthComparedToUs);
 	Method(GetWarDamageValue);
 	Method(IsWantsPeaceWithPlayer);
 	Method(GetTreatyWillingToOffer);
@@ -681,6 +684,8 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(ChangeMinorCivFriendshipWithMajor);
 	Method(GetMinorCivFriendshipAnchorWithMajor);
 	Method(GetMinorCivFriendshipLevelWithMajor);
+	Method(GetRestingPointChange);
+	Method(ChangeRestingPointChange);
 	Method(GetActiveQuestForPlayer);
 	Method(IsMinorCivActiveQuestForPlayer);
 	Method(SetMinorCivActiveQuestForPlayer);
@@ -701,6 +706,9 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetMinorCivContestValueForLeader);
 	Method(GetMinorCivContestValueForPlayer);
 	Method(IsMinorCivUnitSpawningDisabled);
+	Method(GetQuestRewardModifier);
+	Method(IsQuestInfluenceDisabled);
+	Method(SetQuestInfluenceDisabled);
 	Method(IsMinorCivRouteEstablishedWithMajor);
 	Method(IsMinorWarQuestWithMajorActive);
 	Method(GetMinorWarQuestWithMajorRemainingCount);
@@ -743,7 +751,6 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(GetMinorCivBullyGoldAmount);
 	Method(SetBullyUnit);
 	Method(GetBullyUnit);
-	Method(GetYieldTheftAmount);
 	Method(GetPledgeProtectionInvalidReason);
 	Method(CanMajorBullyGold);
 	Method(GetMajorBullyGoldDetails);
@@ -1092,6 +1099,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 	Method(IsDiplomaticMarriage);
 	Method(IsGPWLTKD);
 	Method(IsCarnaval);
+	Method(IsAnnexedCityStatesGiveYields);
 	Method(GetGoldPerTurnFromAnnexedMinors);
 	Method(GetCulturePerTurnFromAnnexedMinors);
 	Method(GetFaithPerTurnFromAnnexedMinors);
@@ -1145,6 +1153,7 @@ void CvLuaPlayer::PushMethods(lua_State* L, int t)
 
 	Method(GetEspionageCityStatus);
 	Method(IsTradeSanctioned);
+	Method(IsTradeItemValuedImpossible);
 	Method(GetTotalValueToMeNormal);
 	Method(GetTotalValueToMe);
 	Method(GetRandomIntrigue);
@@ -1624,6 +1633,44 @@ int CvLuaPlayer::lInitNamedUnit(lua_State* L)
 		pkUnit->setFacingDirection(eFacingDirection);
 
 	CvLuaUnit::Push(L, pkUnit);
+	return 1;
+}
+
+//------------------------------------------------------------------------------
+int CvLuaPlayer::lGetHistoricEventTourism(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	const HistoricEventTypes eHistoricEvent = (HistoricEventTypes)lua_tointeger(L, 2);
+	int iCity = luaL_optint(L, 3, -1);
+	CvCity* pkCity = NULL;
+	if (iCity != -1)
+	{
+		pkCity = pkPlayer->getCity(iCity);
+
+		//sometimes Lua city IDs are actually sequential indices
+		//global IDs start at 1000
+		if (!pkCity && iCity < 1000)
+		{
+			if (iCity > 0)
+			{
+				iCity--;
+				pkCity = pkPlayer->nextCity(&iCity);
+			}
+			else
+			{
+				pkCity = pkPlayer->firstCity(&iCity);
+			}
+		}
+	}
+	const int iResult = pkPlayer->GetHistoricEventTourism(eHistoricEvent, pkCity);
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+
+int CvLuaPlayer::lGetNumHistoricEvents(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	lua_pushinteger(L, pkPlayer->GetNumHistoricEvents());
 	return 1;
 }
 
@@ -2171,7 +2218,11 @@ int CvLuaPlayer::lReceiveGoody(lua_State* L)
 //void doGoody(CyPlot* pPlot, CyUnit* pUnit);
 int CvLuaPlayer::lDoGoody(lua_State* L)
 {
-	return BasicLuaMethod(L, &CvPlayerAI::doGoody);
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	CvPlot* pPlot = CvLuaPlot::GetInstance(L, 2);
+	CvUnit* pUnit = CvLuaUnit::GetInstance(L, 3, false);
+	pkPlayer->doGoody(pPlot, pUnit);
+	return 1;
 }
 //------------------------------------------------------------------------------
 // This function checks the handicap as well as CanReceiveGoody to test validity
@@ -6477,19 +6528,19 @@ int CvLuaPlayer::lGetWarScore(lua_State* L)
 	lua_pushinteger(L, iResult);
 	return 1;
 }
-int CvLuaPlayer::lGetPlayerMilitaryStrengthComparedToUs(lua_State* L)
+int CvLuaPlayer::lGetMilitaryStrengthComparedToUs(lua_State* L)
 {
 	CvPlayer* pkPlayer = GetInstance(L);
 	const PlayerTypes ePlayer = (PlayerTypes) lua_tointeger(L, 2);
-	const int iResult = pkPlayer->GetDiplomacyAI()->GetPlayerMilitaryStrengthComparedToUs(ePlayer);
+	const int iResult = pkPlayer->GetDiplomacyAI()->GetMilitaryStrengthComparedToUs(ePlayer);
 	lua_pushinteger(L, iResult);
 	return 1;
 }
-int CvLuaPlayer::lGetPlayerEconomicStrengthComparedToUs(lua_State* L)
+int CvLuaPlayer::lGetEconomicStrengthComparedToUs(lua_State* L)
 {
 	CvPlayer* pkPlayer = GetInstance(L);
 	const PlayerTypes ePlayer = (PlayerTypes) lua_tointeger(L, 2);
-	const int iResult = pkPlayer->GetDiplomacyAI()->GetPlayerEconomicStrengthComparedToUs(ePlayer);
+	const int iResult = pkPlayer->GetDiplomacyAI()->GetEconomicStrengthComparedToUs(ePlayer);
 	lua_pushinteger(L, iResult);
 	return 1;
 }
@@ -7913,28 +7964,51 @@ int CvLuaPlayer::lGetMilitaryMightForCS(lua_State* L)
 {
 	CvPlayerAI* pkPlayer = GetInstance(L);
 
-	CvWeightedVector<PlayerTypes> veMilitaryRankings;
-	PlayerTypes eMajorLoop;
+	int iGlobalMilitaryScore = 0;
 
-	int iRankRatio = 0;
-	for (int iMajorLoop = 0; iMajorLoop < MAX_MAJOR_CIVS; iMajorLoop++)
+	if (MOD_BALANCE_VP)
 	{
-		eMajorLoop = (PlayerTypes)iMajorLoop;
-		if (GET_PLAYER(eMajorLoop).isAlive() && !GET_PLAYER(eMajorLoop).isMinorCiv())
+		int iTotalMilitaryMight = 0;
+		for (int iMajorLoop = 0; iMajorLoop < MAX_MAJOR_CIVS; iMajorLoop++)
 		{
-			veMilitaryRankings.push_back(eMajorLoop, GET_PLAYER(eMajorLoop).GetMilitaryMight(true)); // Don't recalculate within a turn, can cause inconsistency
+			PlayerTypes eMajorLoop = (PlayerTypes)iMajorLoop;
+			if (GET_PLAYER(eMajorLoop).isAlive() && GET_PLAYER(eMajorLoop).getNumCities() > 0)
+				iTotalMilitaryMight += GET_PLAYER(eMajorLoop).GetMilitaryMight();
+		}
+
+		int iMilitaryMightPercent = 100 * pkPlayer->GetMilitaryMight() / max(1, iTotalMilitaryMight);
+		iGlobalMilitaryScore = iMilitaryMightPercent * 50 / 100;
+	}
+	else
+	{
+		CvWeightedVector<PlayerTypes> viMilitaryRankings;
+		for (int iMajorLoop = 0; iMajorLoop < MAX_MAJOR_CIVS; iMajorLoop++)
+		{
+			PlayerTypes eMajorLoop = (PlayerTypes)iMajorLoop;
+			if (GET_PLAYER(eMajorLoop).isAlive() && GET_PLAYER(eMajorLoop).getNumCities() > 0)
+				viMilitaryRankings.push_back(eMajorLoop, GET_PLAYER(eMajorLoop).GetMilitaryMight());
+		}
+		if (viMilitaryRankings.size() > 0)
+		{
+			viMilitaryRankings.StableSortItems();
+			for (int iRanking = 0; iRanking < viMilitaryRankings.size(); iRanking++)
+			{
+				if (viMilitaryRankings.GetElement(iRanking) == pkPlayer->GetID())
+				{
+					float fRankRatio = (float)(viMilitaryRankings.size() - iRanking) / (float)(viMilitaryRankings.size());
+					iGlobalMilitaryScore = (int)(fRankRatio * 75); // A score between 75*(1 / num majors alive) and 75, with the highest rank major getting 75
+					break;
+				}
+			}
 		}
 	}
-	veMilitaryRankings.StableSortItems();
-	for (int iRanking = 0; iRanking < veMilitaryRankings.size(); iRanking++)
-	{
-		if (veMilitaryRankings.GetElement(iRanking) == pkPlayer->GetID())
-		{
-			iRankRatio = ((veMilitaryRankings.size() - iRanking) * 100) / veMilitaryRankings.size();
-			break;
-		}
-	}
-	lua_pushinteger(L, iRankRatio);
+
+	iGlobalMilitaryScore *= 100 + pkPlayer->GetPlayerTraits()->GetBullyMilitaryStrengthModifier();
+	iGlobalMilitaryScore /= 100;
+	iGlobalMilitaryScore *= 100 + pkPlayer->GetPlayerPolicies()->GetNumericModifier(POLICYMOD_MINOR_BULLY_SCORE_MODIFIER);
+	iGlobalMilitaryScore /= 100;
+
+	lua_pushinteger(L, iGlobalMilitaryScore);
 	return 1;
 }
 
@@ -8315,6 +8389,26 @@ int CvLuaPlayer::lGetMinorCivFriendshipLevelWithMajor(lua_State* L)
 	return 1;
 }
 //------------------------------------------------------------------------------
+int CvLuaPlayer::lGetRestingPointChange(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	const PlayerTypes ePlayer = (PlayerTypes) lua_tointeger(L, 2);
+
+	const int iResult = pkPlayer->GetMinorCivAI()->GetRestingPointChange(ePlayer);
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+int CvLuaPlayer::lChangeRestingPointChange(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	PlayerTypes ePlayer = (PlayerTypes) lua_tointeger(L, 2);
+	int iChange = lua_tointeger(L, 3);
+
+	pkPlayer->GetMinorCivAI()->ChangeRestingPointChange(ePlayer, iChange);
+	return 1;
+}
+//------------------------------------------------------------------------------
 // Deprecated
 int CvLuaPlayer::lGetActiveQuestForPlayer(lua_State* L)
 {
@@ -8509,6 +8603,36 @@ int CvLuaPlayer::lIsMinorCivUnitSpawningDisabled(lua_State* L)
 
 	const bool bResult = pkPlayer->GetMinorCivAI()->IsUnitSpawningDisabled(ePlayer);
 	lua_pushboolean(L, bResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+int CvLuaPlayer::lGetQuestRewardModifier(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	const PlayerTypes ePlayer = (PlayerTypes) lua_tointeger(L, 2);
+
+	const int iResult = pkPlayer->GetMinorCivAI()->GetQuestRewardModifier(ePlayer);
+	lua_pushinteger(L, iResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+int CvLuaPlayer::lIsQuestInfluenceDisabled(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	const PlayerTypes ePlayer = (PlayerTypes) lua_tointeger(L, 2);
+
+	const bool bResult = pkPlayer->GetMinorCivAI()->IsQuestInfluenceDisabled(ePlayer);
+	lua_pushboolean(L, bResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+int CvLuaPlayer::lSetQuestInfluenceDisabled(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	const PlayerTypes ePlayer = (PlayerTypes) lua_tointeger(L, 2);
+	const bool bValue = lua_toboolean(L, 3);
+
+	NetMessageExt::Send::DoQuestInfluenceDisabled(ePlayer, pkPlayer->GetID(), bValue);
 	return 1;
 }
 //------------------------------------------------------------------------------
@@ -8873,17 +8997,6 @@ int CvLuaPlayer::lGetBullyUnit(lua_State* L)
 	}		
 
 	lua_pushinteger(L, (UnitTypes) GC.getInfoTypeForString("UNIT_WORKER"));
-	return 1;
-}
-//------------------------------------------------------------------------------
-//int GetYieldTheftAmount(PlayerTypes eMajor);
-int CvLuaPlayer::lGetYieldTheftAmount(lua_State* L)
-{
-	CvPlayerAI* pkPlayer = GetInstance(L);
-	PlayerTypes eMajor = (PlayerTypes) lua_tointeger(L, 2);
-
-	const int iValue = pkPlayer->GetMinorCivAI()->GetYieldTheftAmount(eMajor);
-	lua_pushinteger(L, iValue);
 	return 1;
 }
 //------------------------------------------------------------------------------
@@ -11252,12 +11365,10 @@ int CvLuaPlayer::lDoForceDoF(lua_State* L)
 		GET_PLAYER(eOtherPlayer).GetDiplomacyAI()->SetDoFType(pkPlayer->GetID(), DOF_TYPE_NEW);
 	}
 
-	vector<PlayerTypes> v;
-	v.push_back(eOtherPlayer);
+	vector<PlayerTypes> v(1, eOtherPlayer);
 	pkPlayer->GetDiplomacyAI()->DoReevaluatePlayers(v);
 
-	vector<PlayerTypes> v2;
-	v2.push_back(pkPlayer->GetID());
+	vector<PlayerTypes> v2(1, pkPlayer->GetID());
 	GET_PLAYER(eOtherPlayer).GetDiplomacyAI()->DoReevaluatePlayers(v2);
 
 	return 1;
@@ -12277,6 +12388,16 @@ int CvLuaPlayer::lIsCarnaval(lua_State* L)
 }
 #endif
 //------------------------------------------------------------------------------
+int CvLuaPlayer::lIsAnnexedCityStatesGiveYields(lua_State* L)
+{
+	CvPlayerAI* pkPlayer = GetInstance(L);
+	if (pkPlayer)
+	{
+		lua_pushboolean(L, (pkPlayer->GetPlayerTraits()->IsAnnexedCityStatesGiveYields()));
+	}
+	return 1;
+}
+//------------------------------------------------------------------------------
 int CvLuaPlayer::lGetGoldPerTurnFromAnnexedMinors(lua_State* L)
 {
 	CvPlayer* pkPlayer = GetInstance(L);
@@ -13041,15 +13162,12 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 			}
 
 			// Gandhi? :)
-			if (GC.getGame().IsNuclearGandhiEnabled() && pDiplo->IsAtWar(ePlayer) && pkPlayer->GetPlayerTraits()->IsPopulationBoostReligion())
+			if (pDiplo->IsNuclearGandhi() && pDiplo->IsAtWar(ePlayer))
 			{
-				if (GET_PLAYER(ePlayer).GetDiplomacyAI()->IsNukedBy(pkPlayer->GetID()) || pkPlayer->getNumNukeUnits() > 0)
-				{
-					Opinion kOpinion;
-					kOpinion.m_iValue = 9999;
-					kOpinion.m_str = Localization::Lookup("TXT_KEY_DIPLO_NUCLEAR_GANDHI");
-					aOpinions.push_back(kOpinion);
-				}
+				Opinion kOpinion;
+				kOpinion.m_iValue = 9999;
+				kOpinion.m_str = Localization::Lookup("TXT_KEY_DIPLO_NUCLEAR_GANDHI");
+				aOpinions.push_back(kOpinion);
 			}
 		}
 	}
@@ -14080,17 +14198,17 @@ int CvLuaPlayer::lGetOpinionTable(lua_State* L)
 
 			str += " ";
 
-			// Aztecs have a special message.
-			if (!GC.getGame().isOption(GAMEOPTION_RANDOM_PERSONALITIES) && pkPlayer->GetPlayerTraits()->GetGoldenAgeFromVictory() != 0)
-			{
-				str += Localization::Lookup("TXT_KEY_WARMONGER_HATE_AZTECS").toUTF8();
-			}
 			// India/Venice have a special message.
-			else if (!GC.getGame().isOption(GAMEOPTION_RANDOM_PERSONALITIES) && (pkPlayer->GetPlayerTraits()->IsNoAnnexing() || pkPlayer->GetPlayerTraits()->IsPopulationBoostReligion()))
+			if (GET_PLAYER(pkPlayer->GetID()).getLeaderInfo().GetWarmongerHate() >= 12 || GET_PLAYER(pkPlayer->GetID()).getLeaderInfo().GetWarmongerHate() == -12)
 			{
 				str += Localization::Lookup("TXT_KEY_WARMONGER_HATE_MAXIMAL").toUTF8();
 			}
-			// Otherwise, give a hint as to this player's WarmongerHate flavor. This is relevant for humans too!
+			// Aztecs have a special message.
+			else if (GET_PLAYER(pkPlayer->GetID()).getLeaderInfo().GetWarmongerHate() <= -1)
+			{
+				str += Localization::Lookup("TXT_KEY_WARMONGER_HATE_BLOODTHIRSTY").toUTF8();
+			}
+			// Otherwise, give a hint as to this player's WarmongerHate flavor.
 			else
 			{
 				if (pDiplo->GetWarmongerHate() >= 9)
@@ -15541,6 +15659,31 @@ int CvLuaPlayer::lIsTradeSanctioned(lua_State* L)
 	}
 
 	lua_pushboolean(L, bResult);
+	return 1;
+}
+//------------------------------------------------------------------------------
+int CvLuaPlayer::lIsTradeItemValuedImpossible(lua_State* L)
+{
+	CvPlayerAI* pkThisPlayer = GetInstance(L);
+	const TradeableItems eItem = (TradeableItems)lua_tointeger(L, 2);
+	const PlayerTypes eOtherPlayer = (PlayerTypes)lua_tointeger(L, 3);
+	const bool bFromMe = lua_toboolean(L, 4);
+	const int iDuration = lua_tointeger(L, 5);
+	const int iData1 = luaL_optint(L, 6, -1);
+	const int iData2 = luaL_optint(L, 7, -1);
+	const int iData3 = luaL_optint(L, 8, -1);
+	const bool bFlag1 = luaL_optbool(L, 9, false);
+
+	if (!GET_PLAYER(pkThisPlayer->GetID()).isHuman())
+	{
+		int iResult = pkThisPlayer->GetDealAI()->GetTradeItemValue(eItem, bFromMe, eOtherPlayer, iData1, iData2, iData3, bFlag1, iDuration);
+		if (iResult == INT_MAX || iResult == (INT_MAX * -1))
+		{
+			lua_pushboolean(L, true);
+			return 1;
+		}
+	}
+	lua_pushboolean(L, false);
 	return 1;
 }
 //------------------------------------------------------------------------------
@@ -17424,14 +17567,14 @@ int CvLuaPlayer::lDoEventChoice(lua_State* L)
 	CvPlayer* pkPlayer = GetInstance(L);
 	const EventChoiceTypes eEventChoice = (EventChoiceTypes)lua_tointeger(L, 2);
 	const EventTypes eParentEvent = (EventTypes)luaL_optint(L, 3, NO_EVENT);
-	pkPlayer->DoEventChoice(eEventChoice, eParentEvent);
+	pkPlayer->DoEventChoice(eEventChoice, eParentEvent, true);
 	return 1;
 }
 int CvLuaPlayer::lDoStartEvent(lua_State* L)
 {
 	CvPlayer* pkPlayer = GetInstance(L);
 	const EventTypes eEvent = (EventTypes)lua_tointeger(L, 2);
-	pkPlayer->DoStartEvent(eEvent);
+	pkPlayer->DoStartEvent(eEvent, true);
 	return 1;
 }
 int CvLuaPlayer::lDoCancelEventChoice(lua_State* L)

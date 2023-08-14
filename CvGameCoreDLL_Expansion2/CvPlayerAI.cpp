@@ -851,7 +851,7 @@ void CvPlayerAI::AI_DoEventChoice(EventTypes eChosenEvent)
 				//If didn't find something (probably because a modder forgot to set flavors...), do a random selection.
 				if(eBestEventChoice != NO_EVENT_CHOICE)
 				{
-					DoEventChoice(eBestEventChoice);
+					DoEventChoice(eBestEventChoice, NO_EVENT, false);
 					return;
 				}
 			}
@@ -905,7 +905,7 @@ void CvPlayerAI::AI_DoEventChoice(EventTypes eChosenEvent)
 			//If didn't find something (probably because a modder forgot to set flavors...), do a random selection.
 			if(eBestEventChoice != NO_EVENT_CHOICE)
 			{
-				DoEventChoice(eBestEventChoice);
+				DoEventChoice(eBestEventChoice, NO_EVENT, false);
 				return;
 			}
 		}
@@ -1038,7 +1038,7 @@ bool CvPlayerAI::AI_DoEspionageEventChoice(CityEventTypes eEvent, int uiSpyIndex
 
 				if (eBestEventChoice != NO_EVENT_CHOICE_CITY)
 				{
-					pCity->DoEventChoice(eBestEventChoice, NO_EVENT_CITY, true, uiSpyIndex, GetID());
+					pCity->DoEventChoice(eBestEventChoice, NO_EVENT_CITY, false, uiSpyIndex, GetID());
 					return true;
 				}
 			}
@@ -1094,7 +1094,7 @@ bool CvPlayerAI::AI_DoEspionageEventChoice(CityEventTypes eEvent, int uiSpyIndex
 			//If didn't find something (probably because a modder forgot to set flavors...), do a random selection.
 			if (eBestEventChoice != NO_EVENT_CHOICE_CITY)
 			{
-				pCity->DoEventChoice(eBestEventChoice, NO_EVENT_CITY, true, uiSpyIndex, GetID());
+				pCity->DoEventChoice(eBestEventChoice, NO_EVENT_CITY, false, uiSpyIndex, GetID());
 				return true;
 			}
 		}
@@ -2070,6 +2070,10 @@ int CvPlayerAI::ScoreCityForMessenger(CvCity* pCity, CvUnit* pUnit)
 
 	// Did we bully you recently?  If so, being friendly now would be very odd.
 	if (pMinorCivAI->IsRecentlyBulliedByMajor(GetID()))
+		return 0;
+
+	// If player has manually disabled Influence gain from quests with this City-State, don't send diplomats here.
+	if (pMinorCivAI->IsQuestInfluenceDisabled(GetID()))
 		return 0;
 
 	// They captured one of our cities? Do not raise influence; we want to recapture.

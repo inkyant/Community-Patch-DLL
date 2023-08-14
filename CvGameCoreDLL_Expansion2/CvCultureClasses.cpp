@@ -3622,9 +3622,7 @@ void CvPlayerCulture::DoArchaeologyChoice (ArchaeologyChoiceType eChoice)
 
 		m_pPlayer->changeJONSCulture(iValue);
 		if (pPlot->getEffectiveOwningCity() != NULL && pPlot->getOwner() == m_pPlayer->GetID())
-		{
 			pPlot->getEffectiveOwningCity()->ChangeJONSCultureStored(iValue);
-		}
 
 		if (pUnit)
 			pPlot->setImprovementType(NO_IMPROVEMENT);
@@ -3679,9 +3677,6 @@ void CvPlayerCulture::DoArchaeologyChoice (ArchaeologyChoiceType eChoice)
 void CvPlayerCulture::DoTurn()
 {
 	int iInfluentialCivsForWin = GC.getGame().GetGameCulture()->GetNumCivsInfluentialForWin();
-#if !defined(MOD_BALANCE_CORE)
-	int iLastTurnInfluentialCivs = GetNumCivsInfluentialOn();
-#endif
 
 	for (int iLoopPlayer = 0; iLoopPlayer < MAX_MAJOR_CIVS; iLoopPlayer++)
 	{
@@ -3702,18 +3697,15 @@ void CvPlayerCulture::DoTurn()
 	SetBoredomCache(m_pPlayer->GetUnhappinessFromBoredom());
 	
 	DoPublicOpinion();
-#if defined(MOD_BALANCE_CORE_HAPPINESS)
+
 	if (MOD_BALANCE_CORE_HAPPINESS)
 	{
 		ComputeWarWeariness();
 	}
-#endif
 
 	CvString strSummary;
 	CvString strInfo;
-#if !defined(MOD_BALANCE_CORE)
-	CvNotifications* pTargetNotifications = m_pPlayer->GetNotifications();
-#endif
+
 	int iThisTurnInfluentialCivs = GetNumCivsInfluentialOn();
 
 	VictoryTypes eVictory = (VictoryTypes) GC.getInfoTypeForString("VICTORY_CULTURAL", true);
@@ -3754,15 +3746,7 @@ void CvPlayerCulture::DoTurn()
 
 		GC.getGame().GetGameCulture()->SetReportedSomeoneInfluential(true);
 	}
-#if !defined(MOD_BALANCE_CORE)
-	if (iThisTurnInfluentialCivs < iLastTurnInfluentialCivs && bCultureVictoryValid)
-	{
-		Localization::String strTemp;
-		strSummary = GetLocalizedText("TXT_KEY_NOTIFICATION_CULTURE_VICTORY_NO_LONGER_INFLUENTIAL");
-		strInfo = GetLocalizedText("TXT_KEY_NOTIFICATION_CULTURE_VICTORY_NO_LONGER_INFLUENTIAL_TT");
-		pTargetNotifications->Add(NOTIFICATION_CULTURE_VICTORY_NO_LONGER_INFLUENTIAL, strInfo, strSummary, -1, -1, m_pPlayer->GetID());
-	}
-#endif
+
 	if (!m_bReportedTwoCivsAway && iThisTurnInfluentialCivs > 0 && iThisTurnInfluentialCivs == iInfluentialCivsForWin - 2 && GC.getGame().countMajorCivsEverAlive() >= 4)
 	{
 		if(bCultureVictoryValid)
@@ -3847,7 +3831,7 @@ void CvPlayerCulture::DoTurn()
 
 		m_bReportedOneCivAway = true;
 	}
-#if defined(MOD_BALANCE_CORE)
+
 	//Tourism Update
 	strSummary = GetLocalizedText("TXT_KEY_NOTIFICATION_CULTURE_VICTORY_SUMMARY");
 	for (int iLoopPlayer = 0; iLoopPlayer < MAX_MAJOR_CIVS; iLoopPlayer++)
@@ -4055,7 +4039,6 @@ void CvPlayerCulture::DoTurn()
 			m_pPlayer->GetNotifications()->Add(NOTIFICATION_CULTURE_VICTORY_SOMEONE_INFLUENTIAL, strTheirInfluenceInfoBad, strSummary, -1, -1, m_pPlayer->GetID());
 		}
 	}
-#endif
 
 	if (MOD_API_ACHIEVEMENTS && m_pPlayer->isHuman() && !GC.getGame().isGameMultiPlayer())
 	{
@@ -4180,7 +4163,6 @@ void CvPlayerCulture::DoTurn()
 
 	LogCultureData();
 }
-#if defined(MOD_BALANCE_CORE)
 
 int CvPlayerCulture::GetLastUpdate() const
 {
@@ -4216,7 +4198,7 @@ int CvPlayerCulture::GetBoredomCache() const
 {
 	return m_iBoredomCache;
 }
-#endif
+
 /// What was our total culture generated throughout the game last turn?
 int CvPlayerCulture::GetLastTurnLifetimeCulture() const
 {

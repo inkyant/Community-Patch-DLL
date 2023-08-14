@@ -12122,9 +12122,9 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 						}
 						if (e != GetPlayer()->GetID())
 						{
-							if (GetPlayer()->GetDiplomacyAI()->GetPlayerTargetValue(e) > TARGET_VALUE_AVERAGE)
+							if (GetPlayer()->GetDiplomacyAI()->GetRawTargetValue(e) > TARGET_VALUE_AVERAGE)
 							{
-								iExtra += (GetPlayer()->GetDiplomacyAI()->GetPlayerTargetValue(e) - TARGET_VALUE_AVERAGE) * 100;
+								iExtra += (GetPlayer()->GetDiplomacyAI()->GetRawTargetValue(e) - TARGET_VALUE_AVERAGE) * 100;
 							}
 						}
 					}
@@ -12191,6 +12191,25 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 			if (bCanBronze)
 			{
 				iExtra += 100;
+			}
+		}
+		//Bare Minimum Support for Custom Resolutions: Disagree if you can't get rewards, slightly disagree if you can get bronze, slightly agree if you can get silver if you can get gold, you want it!
+		else {
+			if (bCanGold)
+			{
+				iExtra += 2 * iPercentofWinning;
+			}
+			if (bCanSilver)
+			{
+				iExtra += 150;
+			}
+			if (bCanBronze)
+			{
+				iExtra += 100;
+			}
+			if (bForSelf)
+			{
+				iExtra -= 200;
 			}
 		}
 
@@ -12293,9 +12312,9 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 			{
 				if (GetPlayer()->GetDiplomacyAI()->GetCivApproach(eTargetPlayer) < CIV_APPROACH_GUARDED && GetPlayer()->GetDiplomacyAI()->GetCivApproach(eTargetPlayer) != NO_CIV_APPROACH)
 				{
-					if (GetPlayer()->GetDiplomacyAI()->GetPlayerTargetValue(eTargetPlayer) > TARGET_VALUE_AVERAGE)
+					if (GetPlayer()->GetDiplomacyAI()->GetRawTargetValue(eTargetPlayer) > TARGET_VALUE_AVERAGE)
 					{
-						iExtra += (GetPlayer()->GetDiplomacyAI()->GetPlayerTargetValue(eTargetPlayer) - TARGET_VALUE_AVERAGE) * 100;
+						iExtra += (GetPlayer()->GetDiplomacyAI()->GetRawTargetValue(eTargetPlayer) - TARGET_VALUE_AVERAGE) * 100;
 					}
 					iExtra += GetPlayer()->GetDiplomacyAI()->GetWarmongerThreat(eTargetPlayer) * 150;
 				}
@@ -12389,9 +12408,9 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 						}
 						else
 						{
-							if (pDiploAI->GetPlayerTargetValue(eLoopPlayer) > TARGET_VALUE_AVERAGE)
+							if (pDiploAI->GetRawTargetValue(eLoopPlayer) > TARGET_VALUE_AVERAGE)
 							{
-								iWarTargets += pDiploAI->GetPlayerTargetValue(eLoopPlayer) - TARGET_VALUE_AVERAGE;
+								iWarTargets += pDiploAI->GetRawTargetValue(eLoopPlayer) - TARGET_VALUE_AVERAGE;
 							}
 						}
 					}
@@ -12456,9 +12475,9 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 				}
 				else
 				{
-					if (pDiploAI->GetPlayerTargetValue(eLoopPlayer) > TARGET_VALUE_AVERAGE)
+					if (pDiploAI->GetRawTargetValue(eLoopPlayer) > TARGET_VALUE_AVERAGE)
 					{
-						iWarTargets += pDiploAI->GetPlayerTargetValue(eLoopPlayer) - TARGET_VALUE_AVERAGE;
+						iWarTargets += pDiploAI->GetRawTargetValue(eLoopPlayer) - TARGET_VALUE_AVERAGE;
 					}
 				}
 			}
@@ -12572,9 +12591,9 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 					CivApproachTypes eApproach = GetPlayer()->GetDiplomacyAI()->GetCivApproach(eLoopPlayer);
 					if (eApproach <= CIV_APPROACH_DECEPTIVE && eApproach != NO_CIV_APPROACH)
 					{
-						if (GetPlayer()->GetDiplomacyAI()->GetPlayerTargetValue(eLoopPlayer) > TARGET_VALUE_AVERAGE)
+						if (GetPlayer()->GetDiplomacyAI()->GetRawTargetValue(eLoopPlayer) > TARGET_VALUE_AVERAGE)
 						{
-							iExtra += (GetPlayer()->GetDiplomacyAI()->GetPlayerTargetValue(eLoopPlayer) - TARGET_VALUE_AVERAGE) * 100;
+							iExtra += (GetPlayer()->GetDiplomacyAI()->GetRawTargetValue(eLoopPlayer) - TARGET_VALUE_AVERAGE) * 100;
 						}
 					}
 
@@ -12699,7 +12718,7 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 		iExtra += (8 - iNukeFlavor) * iDislikedNeighbours * 20;
 
 		// Speaking of Gandhi, he's very nuke happy!
-		if (GC.getGame().IsNuclearGandhiEnabled() && GetPlayer()->GetPlayerTraits()->IsPopulationBoostReligion())
+		if (GetPlayer()->GetDiplomacyAI()->IsNuclearGandhi(true))
 		{
 			iExtra -= 1000;
 		}
@@ -13077,9 +13096,9 @@ int CvLeagueAI::ScoreVoteChoiceYesNo(CvProposal* pProposal, int iChoice, bool bE
 			if (iAllyDesire < 0)
 			{
 				int iTargetValue = 0;
-				if (GetPlayer()->GetDiplomacyAI()->GetPlayerTargetValue(eTargetCityState) > TARGET_VALUE_AVERAGE)
+				if (GetPlayer()->GetDiplomacyAI()->GetRawTargetValue(eTargetCityState) > TARGET_VALUE_AVERAGE)
 				{
-					iTargetValue = 150 * (GetPlayer()->GetDiplomacyAI()->GetPlayerTargetValue(eTargetCityState) - TARGET_VALUE_AVERAGE);
+					iTargetValue = 150 * (GetPlayer()->GetDiplomacyAI()->GetRawTargetValue(eTargetCityState) - TARGET_VALUE_AVERAGE);
 				}
 				iAllyDesire = iAllyDesire - iTargetValue;
 			}

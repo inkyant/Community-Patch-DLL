@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -5470,6 +5470,7 @@ CvGoodyInfo::CvGoodyInfo() : CvBaseInfo()
 	, m_iCulture(0)
 	, m_iFaith(0)
 	, m_iProphetPercent(0)
+	, m_iPantheonPercent(0)
 	, m_iRevealNearbyBarbariansRange(0)
 	, m_iBarbarianUnitProb(0)
 	, m_iMinBarbarians(0)
@@ -5541,6 +5542,11 @@ int CvGoodyInfo::getFaith() const
 int CvGoodyInfo::getProphetPercent() const
 {
 	return m_iProphetPercent;
+}
+
+int CvGoodyInfo::getPantheonPercent() const
+{
+	return m_iPantheonPercent;
 }
 
 int CvGoodyInfo::getRevealNearbyBarbariansRange() const
@@ -5681,6 +5687,7 @@ bool CvGoodyInfo::CacheResults(Database::Results& results, CvDatabaseUtility& kU
 	m_iCulture = results.GetInt("Culture");
 	m_iFaith = results.GetInt("Faith");
 	m_iProphetPercent = results.GetInt("ProphetPercent");
+	m_iPantheonPercent = results.GetInt("PantheonPercent");
 	m_iRevealNearbyBarbariansRange = results.GetInt("RevealNearbyBarbariansRange");
 	m_iBarbarianUnitProb = results.GetInt("BarbarianUnitProb");
 	m_iMinBarbarians = results.GetInt("MinBarbarians");
@@ -8021,40 +8028,40 @@ int CvLeaderHeadInfo::GetChattiness() const
 int CvLeaderHeadInfo::GetWarBias(bool bMinor) const
 {
 	if (bMinor)
-		return m_piMinorCivApproachBiases ? m_piMinorCivApproachBiases[3] : GC.getGame().GetDefaultFlavorValue(); // xml: MINOR_CIV_APPROACH_CONQUEST
+		return m_piMinorCivApproachBiases ? m_piMinorCivApproachBiases[3] : 5; // xml: MINOR_CIV_APPROACH_CONQUEST
 
-	return m_piMajorCivApproachBiases ? m_piMajorCivApproachBiases[0] : GC.getGame().GetDefaultFlavorValue(); // xml: MAJOR_CIV_APPROACH_WAR
+	return m_piMajorCivApproachBiases ? m_piMajorCivApproachBiases[0] : 5; // xml: MAJOR_CIV_APPROACH_WAR
 }
 //------------------------------------------------------------------------------
 int CvLeaderHeadInfo::GetHostileBias(bool bMinor) const
 {
 	if (bMinor)
-		return m_piMinorCivApproachBiases ? m_piMinorCivApproachBiases[4] : GC.getGame().GetDefaultFlavorValue(); // xml: MINOR_CIV_APPROACH_BULLY
+		return m_piMinorCivApproachBiases ? m_piMinorCivApproachBiases[4] : 5; // xml: MINOR_CIV_APPROACH_BULLY
 
-	return m_piMajorCivApproachBiases ? m_piMajorCivApproachBiases[1] : GC.getGame().GetDefaultFlavorValue(); // xml: MAJOR_CIV_APPROACH_HOSTILE
+	return m_piMajorCivApproachBiases ? m_piMajorCivApproachBiases[1] : 5; // xml: MAJOR_CIV_APPROACH_HOSTILE
 }
 //------------------------------------------------------------------------------
 int CvLeaderHeadInfo::GetDeceptiveBias() const
 {
-	return m_piMajorCivApproachBiases ? m_piMajorCivApproachBiases[2] : GC.getGame().GetDefaultFlavorValue(); // xml: MAJOR_CIV_APPROACH_DECEPTIVE
+	return m_piMajorCivApproachBiases ? m_piMajorCivApproachBiases[2] : 5; // xml: MAJOR_CIV_APPROACH_DECEPTIVE
 }
 //------------------------------------------------------------------------------
 int CvLeaderHeadInfo::GetGuardedBias() const
 {
-	return m_piMajorCivApproachBiases ? m_piMajorCivApproachBiases[3] : GC.getGame().GetDefaultFlavorValue(); // xml: MAJOR_CIV_APPROACH_GUARDED
+	return m_piMajorCivApproachBiases ? m_piMajorCivApproachBiases[3] : 5; // xml: MAJOR_CIV_APPROACH_GUARDED
 }
 //------------------------------------------------------------------------------
 int CvLeaderHeadInfo::GetAfraidBias() const
 {
-	return m_piMajorCivApproachBiases ? m_piMajorCivApproachBiases[4] : GC.getGame().GetDefaultFlavorValue(); // xml: MAJOR_CIV_APPROACH_AFRAID
+	return m_piMajorCivApproachBiases ? m_piMajorCivApproachBiases[4] : 5; // xml: MAJOR_CIV_APPROACH_AFRAID
 }
 //------------------------------------------------------------------------------
 int CvLeaderHeadInfo::GetNeutralBias(bool bMinor) const
 {
 	if (bMinor)
-		return m_piMinorCivApproachBiases ? m_piMinorCivApproachBiases[0] : GC.getGame().GetDefaultFlavorValue(); // xml: MINOR_CIV_APPROACH_IGNORE
+		return m_piMinorCivApproachBiases ? m_piMinorCivApproachBiases[0] : 5; // xml: MINOR_CIV_APPROACH_IGNORE
 
-	return m_piMajorCivApproachBiases ? m_piMajorCivApproachBiases[6] : GC.getGame().GetDefaultFlavorValue(); // xml: MAJOR_CIV_APPROACH_NEUTRAL
+	return m_piMajorCivApproachBiases ? m_piMajorCivApproachBiases[6] : 5; // xml: MAJOR_CIV_APPROACH_NEUTRAL
 }
 //------------------------------------------------------------------------------
 int CvLeaderHeadInfo::GetFriendlyBias(bool bMinor) const
@@ -8064,12 +8071,12 @@ int CvLeaderHeadInfo::GetFriendlyBias(bool bMinor) const
 	if (bMinor)
 	{
 		if (!m_piMinorCivApproachBiases)
-			return GC.getGame().GetDefaultFlavorValue();
+			return 5;
 
 		return std::max(m_piMinorCivApproachBiases[1], m_piMinorCivApproachBiases[2]); // xml: MINOR_CIV_APPROACH_FRIENDLY, MINOR_CIV_APPROACH_PROTECTIVE
 	}
 
-	return m_piMajorCivApproachBiases ? m_piMajorCivApproachBiases[5] : GC.getGame().GetDefaultFlavorValue(); // xml: MAJOR_CIV_APPROACH_FRIENDLY
+	return m_piMajorCivApproachBiases ? m_piMajorCivApproachBiases[5] : 5; // xml: MAJOR_CIV_APPROACH_FRIENDLY
 }
 //------------------------------------------------------------------------------
 const char* CvLeaderHeadInfo::getArtDefineTag() const

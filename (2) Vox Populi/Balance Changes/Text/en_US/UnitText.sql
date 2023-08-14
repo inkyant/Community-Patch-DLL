@@ -82,12 +82,12 @@
 	WHERE ConceptType = 'CONCEPT_SPECIALISTS_AND_GREAT_PEOPLE_GREAT_PEOPLE_LEARN_NEW_TECH' OR RelatedConcept = 'CONCEPT_SPECIALISTS_AND_GREAT_PEOPLE_GREAT_PEOPLE_LEARN_NEW_TECH';
 
 	-- Changed how Musician Great Tour Works
-	UPDATE Language_en_US SET Text = 'When you perform a Concert Tour, your [ICON_TOURISM] Tourism with the target Civilization increases by 100% for [COLOR_POSITIVE_TEXT]10[ENDCOLOR] Turns (plus 1 additional Turn for every owned [ICON_GREAT_WORK] Great Work of Music). You also receive 2 [ICON_HAPPINESS_1] Happiness in your Capital. This action consumes the unit.[NEWLINE][NEWLINE]Cannot perform this action if at war with the target Civilization, or if your [ICON_TOURISM] Cultural Influence over the Civilization is [COLOR_MAGENTA]Influential[ENDCOLOR] or greater.' WHERE Tag = 'TXT_KEY_MISSION_ONE_SHOT_TOURISM_HELP';
+	UPDATE Language_en_US SET Text = 'When you perform a Concert Tour, your [ICON_TOURISM] Tourism with the target Civilization increases by 100% for [COLOR_POSITIVE_TEXT]10[ENDCOLOR] Turns (plus 1 additional Turn for every owned [ICON_VP_GREATMUSIC] Great Work of Music). You also receive 2 [ICON_HAPPINESS_1] Happiness in your Capital. This action consumes the unit.[NEWLINE][NEWLINE]Cannot perform this action if at war with the target Civilization, or if your [ICON_TOURISM] Cultural Influence over the Civilization is [COLOR_MAGENTA]Influential[ENDCOLOR] or greater.' WHERE Tag = 'TXT_KEY_MISSION_ONE_SHOT_TOURISM_HELP';
 
-	UPDATE Language_en_US SET Text = 'A Great Musician can create a Great Work of Music (generates both [ICON_CULTURE] Culture and [ICON_TOURISM] Tourism) that is placed in the nearest city that has an appropriate building with an empty slot (like an Opera House or Broadcast Tower).[NEWLINE][NEWLINE]A Great Musician can also travel to another civilization and perform a [COLOR_POSITIVE_TEXT]Concert Tour[ENDCOLOR], increasing your [ICON_TOURISM] Tourism with the target Civilization for 10 Turns, plus 1 additional Turn for every owned [ICON_GREAT_WORK] Great Work of Music. You also receive 2 Happiness in your Capital. This action consumes the unit.[NEWLINE][NEWLINE]You cannot perform a Concert Tour if at war with the target Civilization, or if your [ICON_TOURISM] Cultural Influence over the Civilization is [COLOR_MAGENTA]Influential[ENDCOLOR] or greater.' WHERE Tag = 'TXT_KEY_UNIT_GREAT_MUSICIAN_STRATEGY';
+	UPDATE Language_en_US SET Text = 'A Great Musician can create a Great Work of Music (generates both [ICON_CULTURE] Culture and [ICON_TOURISM] Tourism) that is placed in the nearest city that has an appropriate building with an empty slot (like an Opera House or Broadcast Tower).[NEWLINE][NEWLINE]A Great Musician can also travel to another civilization and perform a [COLOR_POSITIVE_TEXT]Concert Tour[ENDCOLOR], increasing your [ICON_TOURISM] Tourism with the target Civilization for 10 Turns, plus 1 additional Turn for every owned [ICON_VP_GREATMUSIC] Great Work of Music. You also receive 2 Happiness in your Capital. This action consumes the unit.[NEWLINE][NEWLINE]You cannot perform a Concert Tour if at war with the target Civilization, or if your [ICON_TOURISM] Cultural Influence over the Civilization is [COLOR_MAGENTA]Influential[ENDCOLOR] or greater.' WHERE Tag = 'TXT_KEY_UNIT_GREAT_MUSICIAN_STRATEGY';
 
 	UPDATE Language_en_US
-	SET Text = '[COLOR_CYAN]Special Ability: Great Work[ENDCOLOR][NEWLINE]A Great Musician can create a Great Work of Music that is placed in the nearest city that has an appropriate building with an empty slot (like an Opera House or Broadcast Tower). The Great Musician is expended when used this way.[NEWLINE][NEWLINE][COLOR_CYAN]Special Ability: Concert Tour[ENDCOLOR][NEWLINE]A Great Musician can travel to another civilization and perform a Concert Tour, [COLOR_YELLOW]which will increase Tourism with the target Civilization by 100% for 10 Turns (plus 1 additional Turn for every owned [ICON_GREAT_WORK] Great Work of Music). You also receive 2 [ICON_HAPPINESS_1] Happiness in your Capital. You cannot perform this action if at war with the target Civilization, or if your [ICON_TOURISM] Cultural Influence over the Civilization is [ENDCOLOR][COLOR_MAGENTA]Influential[ENDCOLOR][COLOR_YELLOW] or greater.[ENDCOLOR] This action consumes the Great Musician.[NEWLINE][NEWLINE]'
+	SET Text = '[COLOR_CYAN]Special Ability: Great Work[ENDCOLOR][NEWLINE]A Great Musician can create a Great Work of Music that is placed in the nearest city that has an appropriate building with an empty slot (like an Opera House or Broadcast Tower). The Great Musician is expended when used this way.[NEWLINE][NEWLINE][COLOR_CYAN]Special Ability: Concert Tour[ENDCOLOR][NEWLINE]A Great Musician can travel to another civilization and perform a Concert Tour, [COLOR_YELLOW]which will increase Tourism with the target Civilization by 100% for 10 Turns (plus 1 additional Turn for every owned [ICON_VP_GREATMUSIC] Great Work of Music). You also receive 2 [ICON_HAPPINESS_1] Happiness in your Capital. You cannot perform this action if at war with the target Civilization, or if your [ICON_TOURISM] Cultural Influence over the Civilization is [ENDCOLOR][COLOR_MAGENTA]Influential[ENDCOLOR][COLOR_YELLOW] or greater.[ENDCOLOR] This action consumes the Great Musician.[NEWLINE][NEWLINE]'
 	WHERE Tag = 'TXT_KEY_SPECIALISTSANDGP_GREATMUSICIAN_HEADING3_BODY';
 	UPDATE Language_en_US
 	SET Text = '[COLOR_YELLOW]Great Musician[ENDCOLOR]'
@@ -273,7 +273,7 @@
 	UPDATE Language_en_US SET Text = 'This order will remove the presence of other religions from the nearby, friendly-controlled city. An inquisitor is consumed by this action.' WHERE Tag = 'TXT_KEY_MISSION_REMOVE_HERESY_HELP';
 	-- Archaeologist Text
 
-	UPDATE Language_en_US SET Text = 'Maximum [COLOR_POSITIVE_TEXT]3[ENDCOLOR] active Archaeologists per player at any one time. Archaeologists are a special subtype of Worker that are used to excavate Antiquity Sites to either create Landmark improvements or to extract [ICON_GREAT_WORK] Artifacts to fill in [ICON_GREAT_WORK] Great Work of Art slots in Museums, Palaces, Hermitages, and selected Wonders. Archaeologists may work in territory owned by any player. They are consumed once they complete an Archaeological Dig at an Antiquity Site. Archaeologists may not be purchased with [ICON_GOLD] Gold and may only be built in a City with a [COLOR_POSITIVE_TEXT]Public School[ENDCOLOR].' WHERE Tag = 'TXT_KEY_UNIT_HELP_ARCHAEOLOGIST';
+	UPDATE Language_en_US SET Text = 'Maximum [COLOR_POSITIVE_TEXT]3[ENDCOLOR] active Archaeologists per player at any one time. Archaeologists are a special subtype of Worker that are used to excavate Antiquity Sites to either create Landmark improvements or to extract [ICON_VP_ARTIFACT] Artifacts to fill in [ICON_GREAT_WORK] Great Work of Art slots in Museums, Palaces, Hermitages, and selected Wonders. Archaeologists may work in territory owned by any player. They are consumed once they complete an Archaeological Dig at an Antiquity Site. Archaeologists may not be purchased with [ICON_GOLD] Gold and may only be built in a City with a [COLOR_POSITIVE_TEXT]Public School[ENDCOLOR].' WHERE Tag = 'TXT_KEY_UNIT_HELP_ARCHAEOLOGIST';
 
 	UPDATE Language_en_US
 	SET Text = 'A town is a human settlement larger than a village but smaller than a city. The size definition for what constitutes a "town" varies considerably in different parts of the world. The word town shares an origin with the German word Zaun, the Dutch word tuin, and the Old Norse tun. The German word Zaun comes closest to the original meaning of the word: a fence of any material.[NEWLINE][NEWLINE]Towns receive +2 [ICON_GOLD] Gold and [ICON_PRODUCTION] Production if built on a Road that connects two owned Cities, and +4 [ICON_GOLD] and [ICON_PRODUCTION] Production if a Railroad. Receive additional [ICON_GOLD] Gold and [ICON_PRODUCTION] Production (+2 for Roads, +4 for Railroads) if a Trade Route, either internal or international, passes over this Town.'
@@ -427,7 +427,7 @@
 	INSERT INTO Language_en_US (Tag, Text)
 	VALUES
 		('TXT_KEY_UNIT_VP_SLINGER',				'Slinger'),
-		('TXT_KEY_UNIT_VP_SLINGER_TEXT',		'Like most early weapon systems, the sling evolved from a tool for hunting game to one for killing people. Simply a pouch between two lengths of cord, the sling was used to swing a projectile – a stone, lump of lead, or anything else convenient – in an arc until it was launched. Although a thrown stone doesn’t have the lethality of an arrow or bullet, it can still do a lot of damage. If nothing else, a rain of well-aimed stones gives an enemy pause before rushing in. In addition, it wasn’t hard to find ammunition. With the exception of Australia, ancient slings have been found in archaeological digs all over the world. Slings are cheap, portable, and as the First Book of Samuel points out, a slinger can bring down even a Goliath...'),
+		('TXT_KEY_UNIT_VP_SLINGER_TEXT',		'Like most early weapon systems, the sling evolved from a tool for hunting game to one for killing people. Simply a pouch between two lengths of cord, the sling was used to swing a projectile - a stone, lump of lead, or anything else convenient - in an arc until it was launched. Although a thrown stone doesn''t have the lethality of an arrow or bullet, it can still do a lot of damage. If nothing else, a rain of well-aimed stones gives an enemy pause before rushing in. In addition, it wasn''t hard to find ammunition. With the exception of Australia, ancient slings have been found in archaeological digs all over the world. Slings are cheap, portable, and as the First Book of Samuel points out, a slinger can bring down even a Goliath...'),
 		('TXT_KEY_UNIT_VP_SLINGER_STRATEGY',	'Slingers are the first ranged unit available in the game. Although they lack damage and range, a Slinger can still prevent a barbarian encampment from healing, and gives you a cheap, early option for fighting off small waves of invading barbarians.'),
 		('TXT_KEY_UNIT_VP_SLINGER_HELP',		'First Ranged unit, available from the start of the Game.');
 		
@@ -436,7 +436,7 @@
 	WHERE Tag = 'TXT_KEY_UNIT_HELP_ARCHER';
 
 	UPDATE Language_en_US
-	SET Text = 'The Archer is an early ranged unit. It is the first in the unit line to have 2 range, allowing it to initiate fights and keep away from melee attackers. Use archers to soften up stargets before a melee strike.'
+	SET Text = 'The Archer is an early ranged unit. It is the first in the unit line to have 2 range, allowing it to initiate fights and keep away from melee attackers. Use archers to soften up targets before a melee strike.'
 	WHERE Tag = 'TXT_KEY_UNIT_ARCHER_STRATEGY';
 
 	-- Melee
@@ -522,6 +522,23 @@
 	-- Naval Units
 
 	INSERT INTO Language_en_US (Tag, Text)
+		VALUES 	('TXT_KEY_UNIT_GALLEY_HELP', 'Ancient Era Naval Unit used to wrest control of the seas.');
+	
+	UPDATE Language_en_US
+	SET Text = 'A galley is any type of ship that is mainly propelled by oars. Many galleys also used sails in favorable winds, but rowing with oars was relied on for maneuvering and for independence from wind power. The plan and size of galleys varied greatly from ancient times, but early vessels were often small enough to be picked up and carried onto shore when not in use, and were multipurpose vessels, used in both trade and warfare.'
+	WHERE Tag = 'TXT_KEY_UNIT_GALLEY_PEDIA';
+	
+	UPDATE Language_en_US
+	SET Text = 'Galleys are the earliest naval unit. They are slow and weak, but can be used to establish an early naval presence. Use Galleys to protect your cities from early Barbarian incursions.'
+	WHERE Tag = 'TXT_KEY_UNIT_GALLEY_STRATEGY';
+
+	INSERT INTO Language_en_US (Tag, Text)
+		VALUES 	('TXT_KEY_UNIT_LIBURNA', 			'Liburna'),
+				('TXT_KEY_UNIT_LIBURNA_HELP', 		'Dominant Classical Era Naval Unit used to own the seas well into the Medieval Era with its ranged attack.'),
+				('TXT_KEY_UNIT_LIBURNA_PEDIA', 		'A Liburna was a small, fast type of Galley used for raiding and patrols in the Mediterranean sea. First invented by Liburnians in present-day Dalmatia, the Liburna was later adopted by the Roman Navy as an agile patrol ship against pirates.'), 
+				('TXT_KEY_UNIT_LIBURNA_STRATEGY', 	'Attacks with lethal barrages of arrows, making it the first naval unit with a ranged attack. It cannot end its turn in Ocean Tiles outside of the city borders.');
+	
+	INSERT INTO Language_en_US (Tag, Text)
 		VALUES ('TXT_KEY_DESC_CRUISER', 'Cruiser');
 
 	INSERT INTO Language_en_US (Tag, Text)
@@ -540,14 +557,6 @@
 	UPDATE Language_en_US
 	SET Text = 'The Galley is a Barbarian unit which remains in coast tiles, looking for embarked units to destroy. The Galley can annoy cities and units near the coast.'
 	WHERE Tag = 'TXT_KEY_UNIT_GALLEY_STRATEGY';
-
-	UPDATE Language_en_US
-	SET Text = 'Dominant Classical Era Naval Unit used to own the seas well into the Medieval Era with its ranged attack.'
-	WHERE Tag = 'TXT_KEY_UNIT_HELP_BYZANTINE_DROMON';
-
-	UPDATE Language_en_US
-	SET Text = 'Attacks with lethal Greek Fire, making it the first naval unit with a ranged attack. It cannot end its turn in Ocean Tiles outside of the city borders.'
-	WHERE Tag = 'TXT_KEY_UNIT_BYZANTINE_DROMON_STRATEGY';
 
 	UPDATE Language_en_US
 	SET Text = 'The Galleass is the second naval unit with a ranged attack available to the civilizations in the game. It is much stronger than earlier naval ships, and can enter the ocean. The Galleass is useful for clearing enemy ships out of shallow waters and supporting sieges.'
@@ -618,7 +627,7 @@
 	WHERE Tag = 'TXT_KEY_UNIT_HELP_DESTROYER';
 	
 	UPDATE Language_en_US
-	SET Text = 'The Missile Cruiser is a modern warship. It''s fast and tough, carries a mean punch and is pretty good at intercepting enemy aircraft. Most importantly, the Missile Cruiser can carry Guided Missiles and Nuclear Missiles, allowing you to carry these deadly weapons right up to the enemy''s shore. Missile Cruisers combined with carriers, submarines, and battleships make a fiendishly powerful armada.'
+	SET Text = 'The Missile Cruiser is a modern warship. It''s fast and tough, carries a mean punch and is pretty good at intercepting enemy aircraft. Most importantly, the Missile Cruiser can carry Guided Missiles and Nuclear Missiles, allowing you to carry these deadly weapons right up to the enemy''s shore. Missile Cruisers combined with carriers, submarines, and battleships make a fiendishly powerful armada as its promotion to withdraw before an enemy naval melee attack can be a nuisance to take down.'
 	WHERE Tag = 'TXT_KEY_UNIT_MISSILE_CRUISER_STRATEGY';
 
 

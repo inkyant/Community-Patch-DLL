@@ -1118,22 +1118,8 @@ function PopulateTakeChoices()
 	
 -- CBP
 	local iGoldTribute = pPlayer:GetMinorCivBullyGoldAmount(iActivePlayer, true);
-	local iTheftValue = pPlayer:GetYieldTheftAmount(iActivePlayer);
 	local pMajor = Players[iActivePlayer];
-	local sBullyUnit = GameInfo.Units[pPlayer:GetBullyUnit()].Description; --antonjs: todo: XML or fn
-	if(pPlayer:GetMinorCivTrait() == MinorCivTraitTypes.MINOR_CIV_TRAIT_MARITIME) then
-		buttonText = Locale.Lookup("TXT_KEY_POPUP_MINOR_BULLY_FOOD_AMOUNT", iGoldTribute, iTheftValue, iBullyUnitInfluenceLost);
-	elseif(pPlayer:GetMinorCivTrait() == MinorCivTraitTypes.MINOR_CIV_TRAIT_CULTURED) then
-		buttonText = Locale.Lookup("TXT_KEY_POPUP_MINOR_BULLY_CULTURE_AMOUNT", iGoldTribute, iTheftValue, iBullyUnitInfluenceLost);
-	elseif(pPlayer:GetMinorCivTrait() == MinorCivTraitTypes.MINOR_CIV_TRAIT_MILITARISTIC) then
-		buttonText = Locale.Lookup("TXT_KEY_POPUP_MINOR_BULLY_SCIENCE_AMOUNT", iGoldTribute, iTheftValue, iBullyUnitInfluenceLost);
-	elseif(pPlayer:GetMinorCivTrait() == MinorCivTraitTypes.MINOR_CIV_TRAIT_MERCANTILE) then
-		buttonText = Locale.Lookup("TXT_KEY_POPUP_MINOR_BULLY_PRODUCTION_AMOUNT", iGoldTribute, iTheftValue, iBullyUnitInfluenceLost);
-	elseif(pPlayer:GetMinorCivTrait() == MinorCivTraitTypes.MINOR_CIV_TRAIT_RELIGIOUS) then
-		buttonText = Locale.Lookup("TXT_KEY_POPUP_MINOR_BULLY_FAITH_AMOUNT", iGoldTribute, iTheftValue, iBullyUnitInfluenceLost);
-	else
-		buttonText = Locale.Lookup("TXT_KEY_POPUP_MINOR_BULLY_UNIT_AMOUNT", sBullyUnit, iBullyUnitInfluenceLost);
-	end	
+	buttonText = Locale.Lookup("TXT_KEY_POPUP_MINOR_BULLY_UNIT_AMOUNT", iGoldTribute, iBullyUnitInfluenceLost);
 -- END
 	ttText = pPlayer:GetMajorBullyUnitDetails(iActivePlayer);
 	if (not pPlayer:CanMajorBullyUnit(iActivePlayer)) then
@@ -1145,6 +1131,17 @@ function PopulateTakeChoices()
 	Controls.UnitTributeLabel:SetText(buttonText);
 	Controls.UnitTributeButton:SetToolTipString(ttText);
 	SetButtonSize(Controls.UnitTributeLabel, Controls.UnitTributeButton, Controls.UnitTributeAnim, Controls.UnitTributeButtonHL);
+
+-- CBP: Deny Quest Influence Award
+	if (pPlayer:IsQuestInfluenceDisabled(iActivePlayer)) then
+			Controls.DenyInfluenceLabel:SetText(Locale.Lookup("TXT_KEY_CITY_STATE_DISABLED_QUEST_INFLUENCE_YES"))
+			Controls.DenyInfluenceButton:SetToolTipString(Locale.Lookup("TXT_KEY_CITY_STATE_DISABLED_QUEST_INFLUENCE_YES_TT", pPlayer:GetName()))
+		else
+			Controls.DenyInfluenceLabel:SetText(Locale.Lookup("TXT_KEY_CITY_STATE_DISABLED_QUEST_INFLUENCE_NO"))
+			Controls.DenyInfluenceButton:SetToolTipString(Locale.Lookup("TXT_KEY_CITY_STATE_DISABLED_QUEST_INFLUENCE_NO_TT", pPlayer:GetName()))
+		end
+	SetButtonSize(Controls.DenyInfluenceLabel, Controls.DenyInfluenceButton, Controls.DenyInfluenceAnim, Controls.DenyInfluenceButtonHL)
+-- END
 	
 -- CBP: Forced Annex
 	if(pMajor:IsBullyAnnex()) then
@@ -1268,6 +1265,23 @@ function OnBullyAnnexButtonClicked()
 	end
 end
 Controls.BullyAnnexButton:RegisterCallback( Mouse.eLClick, OnBullyAnnexButtonClicked );
+
+----------------------------------------------------------------
+-- CBP: Deny Quest Influence
+----------------------------------------------------------------
+function OnNoQuestInfluenceButtonClicked()
+	local pPlayer = Players[g_iMinorCivID];
+	local iActivePlayer = Game.GetActivePlayer();
+	
+	if (pPlayer:IsQuestInfluenceDisabled(iActivePlayer)) then
+		pPlayer:SetQuestInfluenceDisabled(iActivePlayer, false);
+		OnCloseTake();
+	else
+		pPlayer:SetQuestInfluenceDisabled(iActivePlayer, true);
+		OnCloseTake();
+	end
+end
+Controls.DenyInfluenceButton:RegisterCallback( Mouse.eLClick, OnNoQuestInfluenceButtonClicked );
 
 ----------------------------------------------------------------
 -- Close Take Submenu

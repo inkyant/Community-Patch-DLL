@@ -271,7 +271,7 @@ void CvBuilderTaskingAI::ConnectCitiesToCapital(CvCity* pPlayerCapital, CvCity* 
 	}
 
 	// build a path between the two cities
-	SPathFinderUserData data(m_pPlayer->GetID(),PT_BUILD_ROUTE,eRoute);
+	SPathFinderUserData data(m_pPlayer->GetID(),PT_BUILD_ROUTE,eRoute,INT_MAX,true);
 	SPath path = GC.GetStepFinder().GetPath(pPlayerCapital->getX(), pPlayerCapital->getY(), pTargetCity->getX(), pTargetCity->getY(), data);
 
 	// if no path, try again with harbors allowed
@@ -305,7 +305,7 @@ void CvBuilderTaskingAI::ConnectCitiesToCapital(CvCity* pPlayerCapital, CvCity* 
 
 		iRoadLength++;
 
-		if ((pPlot->getRouteType() < eRoute || pPlot->IsRoutePillaged()) && !GetSameRouteBenefitFromTrait(pPlot, eRoute))
+		if (!GetSameRouteBenefitFromTrait(pPlot, eRoute) && GetRouteTypeNeededAtPlot(pPlot) < eRoute && GetRouteTypeWantedAtPlot(pPlot) < eRoute)
 			iPlotsNeeded++;
 	}
 
@@ -324,23 +324,51 @@ void CvBuilderTaskingAI::ConnectCitiesToCapital(CvCity* pPlayerCapital, CvCity* 
 		//route has side benefits also (movement, village gold, trade route range, religion spread)
 		int iSideBenefits = 500 + iRoadLength * 100;
 
-		// give an additional bump if we're almost done (don't get distracted and leave half-finished roads)
-		if (iPlotsNeeded > 0 && iPlotsNeeded < 3)
-			iSideBenefits += 20000;
-
 		//assume one unhappiness is worth gold per turn per city
 		iSideBenefits += pTargetCity->GetUnhappinessFromIsolation() * (m_pPlayer->IsEmpireUnhappy() ? 200 : 100);
 
 		if(GC.getGame().GetIndustrialRoute() == eRoute)
 		{
-			iSideBenefits += (pTargetCity->getYieldRate(YIELD_PRODUCTION, false) * /*25 in CP, 0 in VP*/ GD_INT_GET(INDUSTRIAL_ROUTE_PRODUCTION_MOD));
+			iSideBenefits += pTargetCity->getYieldRate(YIELD_PRODUCTION, false) * /*25 in CP, 0 in VP*/ GD_INT_GET(INDUSTRIAL_ROUTE_PRODUCTION_MOD);
+
+#if defined(MOD_BALANCE_CORE)
+			// Target city would get a production and gold boost from a train station.
+			for (int iBuildingIndex = 0; iBuildingIndex < GC.getNumBuildingInfos(); iBuildingIndex++)
+			{
+				BuildingTypes eBuilding = (BuildingTypes)iBuildingIndex;
+				CvBuildingEntry* pkBuilding = GC.getBuildingInfo(eBuilding);
+				if (pkBuilding == NULL)
+					continue;
+
+				bool bRequiresRail = pkBuilding->IsRequiresRail();
+				if (!bRequiresRail)
+					continue;
+
+				int iProductionYield = pTargetCity->getYieldRate(YIELD_PRODUCTION, false);
+				int iGoldYield = pTargetCity->getYieldRate(YIELD_GOLD, false);
+				int iProductionYieldRateModifier = pkBuilding->GetYieldModifier(YIELD_PRODUCTION);
+				int iGoldYieldRateModifier = pkBuilding->GetYieldModifier(YIELD_GOLD);
+
+				if (pTargetCity->HasBuilding(eBuilding))
+				{
+					iSideBenefits += 100 * iProductionYield * iProductionYieldRateModifier / (100 + iProductionYieldRateModifier);
+					iSideBenefits += 100 * iGoldYield * iGoldYieldRateModifier / (100 + iGoldYieldRateModifier);
+				}
+				else if (m_pPlayer->canConstruct(eBuilding) || eBuilding == pTargetCity->getProductionBuilding())
+				{
+					iSideBenefits += iProductionYield * iProductionYieldRateModifier;
+					iSideBenefits += iGoldYield * iGoldYieldRateModifier;
+				}
+			}
+#endif
+
 			// railroads have extra benefits over normal roads
-			iSideBenefits += 200 + iRoadLength * 350;
+			iSideBenefits += iRoadLength * 150;
 		}
 
 		int iProfit = iGoldForRoute - (iRoadLength*iMaintenancePerTile) + iSideBenefits;
 
-		if (!bHuman && iPlotsNeeded>3 && (iProfit < 0 || (iProfit + iNetGoldTimes100 < 0)))
+		if (!bHuman && iProfit < 0 && iProfit + iNetGoldTimes100 < 0)
 			return;
 
 		iValue = iProfit;
@@ -366,6 +394,10 @@ void CvBuilderTaskingAI::ConnectCitiesForShortcuts(CvCity* pCity1, CvCity* pCity
 	if(pCity1->getOwner() != pCity2->getOwner())
 		return;
 
+	// don't build shortcut routes when we are losing money
+	if (iNetGoldTimes100 < 0)
+		return;
+
 	// don't connect razing cities
 	if (pCity1->IsRazing() || pCity2->IsRazing())
 		return;
@@ -375,11 +407,6 @@ void CvBuilderTaskingAI::ConnectCitiesForShortcuts(CvCity* pCity1, CvCity* pCity
 	{
 		return;
 	}
-
-	CvCity* pPlayerCapital = m_pPlayer->getCapitalCity();
-	// only build a shortcut if both cities have a connection to the capital (including sea routes)
-	if (!m_pPlayer->IsCityConnectedToCity(pCity1, pPlayerCapital, eRoute, false) || !m_pPlayer->IsCityConnectedToCity(pCity2, pPlayerCapital, eRoute, false))
-		return;
 
 	// build a path between the two cities - this will tend to re-use existing routes, unless the new path is much shorter
 	SPathFinderUserData data(m_pPlayer->GetID(),PT_BUILD_ROUTE,eRoute);
@@ -423,16 +450,12 @@ void CvBuilderTaskingAI::ConnectCitiesForShortcuts(CvCity* pCity1, CvCity* pCity
 	if (GC.getGame().GetIndustrialRoute() == eRoute)
 	{
 		// railroads have extra benefits over normal roads
-		iSideBenefits += 200 + iRoadLength * 350;
+		iSideBenefits += iRoadLength * 150;
 	}
-
-	// give an additional bump if we're almost done (don't get distracted and leave half-finished roads)
-	if (iPlotsNeeded > 0 && iPlotsNeeded < 3)
-		iSideBenefits += 20000;
 
 	int iProfit = iSideBenefits - (iRoadLength * iMaintenancePerTile);
 
-	if (iPlotsNeeded > 3 && (iProfit < 0 || (iProfit + iNetGoldTimes100 < 0)))
+	if (iProfit < 0 && iProfit + iNetGoldTimes100 < 0)
 		return;
 
 	for (size_t i=0; i<newPath.vPlots.size(); i++)
@@ -1291,67 +1314,60 @@ void CvBuilderTaskingAI::AddImprovingPlotsDirectives(vector<OptionWithScore<Buil
 			continue;
 		}
 
-		bool bWillRemoveForestOrJungle = false;
 		FeatureTypes eFeature = pPlot->getFeatureType();
-		if(eFeature == FEATURE_FOREST || eFeature == FEATURE_JUNGLE)
-		{
-			if (pkBuild->isFeatureRemove(eFeature))
-			{
-				bWillRemoveForestOrJungle = true;
-			}
-		}
+		bool bWillRemoveFeature = pkBuild->isFeatureRemove(eFeature);
+		bool bWillRemoveForest = eFeature == FEATURE_FOREST && bWillRemoveFeature;
+		bool bWillRemoveJungle = eFeature == FEATURE_JUNGLE && bWillRemoveFeature;
+		bool bWillRemoveMarsh = eFeature == FEATURE_MARSH && bWillRemoveFeature;
 
 		// special case for Dutch
-		if (m_bKeepMarshes && eFeature == FEATURE_MARSH)
+		if (m_bKeepMarshes && bWillRemoveMarsh)
 		{
-			if (pkBuild->isFeatureRemove(FEATURE_MARSH))
+			if(m_bLogging){
+				CvString strTemp;
+				strTemp.Format(
+					"%i,Weight,Marsh Remove,%s,%i,%i", 
+					pUnit->GetID(),
+					GC.getBuildInfo(eBuild)->GetType(),
+					pPlot->getX(),
+					pPlot->getY()
+				);
+				LogInfo(strTemp, m_pPlayer);
+			}
+			if (eResource == NO_RESOURCE)
 			{
-				if(m_bLogging){
-					CvString strTemp;
-					strTemp.Format(
-						"%i,Weight,Marsh Remove,%s,%i,%i", 
-						pUnit->GetID(),
-						GC.getBuildInfo(eBuild)->GetType(),
-						pPlot->getX(),
-						pPlot->getY()
-					);
-					LogInfo(strTemp, m_pPlayer);
-				}
 				continue;
 			}
 		}
 
 		// special case for Brazil
-		if (m_bKeepJungle && eFeature == FEATURE_JUNGLE)
+		if (m_bKeepJungle && bWillRemoveJungle)
 		{
-			if (pkBuild->isFeatureRemove(FEATURE_JUNGLE))
+			if(m_bLogging){
+				CvString strTemp;
+				strTemp.Format(
+					"%i,Weight,Jungle Remove,%s,%i,%i", 
+					pUnit->GetID(),
+					GC.getBuildInfo(eBuild)->GetType(),
+					pPlot->getX(),
+					pPlot->getY()
+				);
+				LogInfo(strTemp, m_pPlayer);
+			}
+			if (eResource == NO_RESOURCE)
 			{
-				if(m_bLogging){
-					CvString strTemp;
-					strTemp.Format(
-						"%i,Weight,Jungle Remove,%s,%i,%i", 
-						pUnit->GetID(),
-						GC.getBuildInfo(eBuild)->GetType(),
-						pPlot->getX(),
-						pPlot->getY()
-					);
-					LogInfo(strTemp, m_pPlayer);
-				}
-				if (pPlot->getResourceType(m_pPlayer->getTeam()) == NO_RESOURCE)
-				{
-					continue;
-				}
+				continue;
 			}
 		}
 
 		if(GET_PLAYER(pUnit->getOwner()).isOption(PLAYEROPTION_LEAVE_FORESTS) && GET_PLAYER(pUnit->getOwner()).isHuman())
 		{
-			if(bWillRemoveForestOrJungle && eResource == NO_RESOURCE)
+			if((bWillRemoveForest || bWillRemoveJungle || bWillRemoveMarsh) && eResource == NO_RESOURCE)
 			{
 				if(m_bLogging){
 					CvString strTemp;
 					strTemp.Format(
-						"%i,Weight,Keep Forests,%s,%i,%i", 
+						"%i,Weight,Keep Features,%s,%i,%i", 
 						pUnit->GetID(),
 						GC.getBuildInfo(eBuild)->GetType(),
 						pPlot->getX(),
@@ -1393,7 +1409,7 @@ void CvBuilderTaskingAI::AddImprovingPlotsDirectives(vector<OptionWithScore<Buil
 		int iBuildTimeWeight = GetBuildTimeWeight(pUnit, pPlot, eBuild, DoesBuildHelpRush(pUnit, pPlot, eBuild));
 		iWeight += iBuildTimeWeight;
 
-		if (bWillRemoveForestOrJungle)
+		if (bWillRemoveForest || bWillRemoveJungle)
 		{
 			if (m_pPlayer->GetPlayerTraits()->IsWoodlandMovementBonus())
 				iWeight /= 100;
@@ -1513,19 +1529,19 @@ void CvBuilderTaskingAI::AddRemoveRouteDirectives(vector<OptionWithScore<Builder
 			return;
 
 	//we want to be aggressive with this because of the cost.
-	int iWeight = /*250*/ GD_INT_GET(BUILDER_TASKING_BASELINE_BUILD_ROUTES)/3;
+	int iWeight = /*500*/ GD_INT_GET(BUILDER_TASKING_BASELINE_BUILD_ROUTES) * 2 / 3;
 
-	//if in debt, bump it up.
+	//if we are in debt, be more aggressive
 	EconomicAIStrategyTypes eStrategyLosingMoney = (EconomicAIStrategyTypes)GC.getInfoTypeForString("ECONOMICAISTRATEGY_LOSING_MONEY");
-	if(m_pPlayer->GetEconomicAI()->IsUsingStrategy(eStrategyLosingMoney))
-		iWeight *= 3;
-
-	BuilderDirective::BuilderDirectiveType eDirectiveType = BuilderDirective::REMOVE_ROAD;
+	if (!m_pPlayer->GetEconomicAI()->IsUsingStrategy(eStrategyLosingMoney))
+		iWeight *= 2;
 
 	iWeight = GetBuildCostWeight(iWeight, pPlot, m_eRemoveRouteBuild);
 	iWeight += GetBuildTimeWeight(pUnit, pPlot, m_eRemoveRouteBuild, false);
 	iWeight /= (iMoveTurnsAway*iMoveTurnsAway + 1);
 	iWeight -= plotDistance(*pUnit->plot(), *pPlot); //tiebreaker in case of multiple equal options
+
+	BuilderDirective::BuilderDirectiveType eDirectiveType = BuilderDirective::REMOVE_ROAD;
 
 	BuilderDirective directive;
 	directive.m_eDirective = eDirectiveType;

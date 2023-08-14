@@ -51,6 +51,8 @@ protected:
 #if defined(MOD_BALANCE_CORE)
 	static int lInitNamedUnit(lua_State* L);
 #endif
+	static int lGetHistoricEventTourism(lua_State* L);
+	static int lGetNumHistoricEvents(lua_State* L);
 #if defined(MOD_BALANCE_CORE_RESOURCE_MONOPOLIES)
 	static int lGetResourceMonopolyPlayer(lua_State* L);
 	static int lGetMonopolyPercent(lua_State* L);
@@ -425,8 +427,8 @@ protected:
 
 	LUAAPIEXTN(GetCombatBonusVsHigherPop, int);
 	LUAAPIEXTN(GetWarScore, int);
-	LUAAPIEXTN(GetPlayerMilitaryStrengthComparedToUs, int);
-	LUAAPIEXTN(GetPlayerEconomicStrengthComparedToUs, int);
+	LUAAPIEXTN(GetMilitaryStrengthComparedToUs, int);
+	LUAAPIEXTN(GetEconomicStrengthComparedToUs, int);
 	LUAAPIEXTN(GetWarDamageValue, int);
 	LUAAPIEXTN(IsWantsPeaceWithPlayer, bool);
 	LUAAPIEXTN(GetTreatyWillingToOffer, int);
@@ -781,6 +783,8 @@ protected:
 	LUAAPIEXTN(GetCapitalNeedModifier, int);
 #endif
 	static int lGetMinorCivFriendshipLevelWithMajor(lua_State* L);
+	static int lGetRestingPointChange(lua_State* L);
+	static int lChangeRestingPointChange(lua_State* L);
 	static int lGetActiveQuestForPlayer(lua_State* L); // DEPRECATED
 	static int lIsMinorCivActiveQuestForPlayer(lua_State* L);
 	static int lSetMinorCivActiveQuestForPlayer(lua_State* L);
@@ -801,6 +805,9 @@ protected:
 	static int lGetMinorCivContestValueForLeader(lua_State* L);
 	static int lGetMinorCivContestValueForPlayer(lua_State* L);
 	static int lIsMinorCivUnitSpawningDisabled(lua_State* L);
+	static int lGetQuestRewardModifier(lua_State* L);
+	static int lIsQuestInfluenceDisabled(lua_State* L);
+	static int lSetQuestInfluenceDisabled(lua_State* L);
 	static int lIsMinorCivRouteEstablishedWithMajor(lua_State* L);
 	static int lIsMinorWarQuestWithMajorActive(lua_State* L); // DEPRECATED, no longer a quest
 	static int lGetMinorWarQuestWithMajorRemainingCount(lua_State* L); // DEPRECATED, no longer a quest
@@ -845,7 +852,6 @@ protected:
 #if defined(MOD_BALANCE_CORE)
 	static int lSetBullyUnit(lua_State* L);
 	static int lGetBullyUnit(lua_State* L);
-	static int lGetYieldTheftAmount(lua_State* L);
 	static int lGetPledgeProtectionInvalidReason(lua_State* L);
 #endif
 	static int lCanMajorBullyGold(lua_State* L);
@@ -1195,6 +1201,7 @@ protected:
 	static int lIsCarnaval(lua_State* L);
 	static int lGetTraitConquestOfTheWorldCityAttackMod(lua_State* L);
 #endif
+	static int lIsAnnexedCityStatesGiveYields(lua_State* L);
 	static int lGetGoldPerTurnFromAnnexedMinors(lua_State* L);
 	static int lGetCulturePerTurnFromAnnexedMinors(lua_State* L);
 	static int lGetFaithPerTurnFromAnnexedMinors(lua_State* L);
@@ -1252,6 +1259,7 @@ protected:
 	static int lGetCachedValueOfPeaceWithHuman(lua_State* L);
 	static int lGetTotalValueToMe(lua_State* L);
 	static int lIsTradeSanctioned(lua_State* L);
+	static int lIsTradeItemValuedImpossible(lua_State* L);
 	static int lGetTotalValueToMeNormal(lua_State* L);
 	static int lGetSpyChanceAtCity(lua_State* L);
 	static int lGetCityPotentialInfo(lua_State* L);

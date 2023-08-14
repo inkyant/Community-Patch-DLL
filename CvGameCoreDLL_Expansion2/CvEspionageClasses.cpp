@@ -1,5 +1,5 @@
 /*	-------------------------------------------------------------------------------------------------------
-	© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
+	Â© 1991-2012 Take-Two Interactive Software and its subsidiaries.  Developed by Firaxis Games.  
 	Sid Meier's Civilization V, Civ, Civilization, 2K Games, Firaxis Games, Take-Two Interactive Software 
 	and their respective logos are all trademarks of Take-Two interactive Software, Inc.  
 	All other marks and trademarks are the property of their respective owners.  
@@ -1010,7 +1010,7 @@ void CvPlayerEspionage::ProcessSpyFocus()
 					CityEventChoiceTypes eEventChoice = pSpy->m_eSpyFocus;
 					if (eEventChoice != NO_EVENT_CHOICE_CITY)
 					{
-						if (!pCity->IsCityEventChoiceValidEspionage(eEventChoice, NO_EVENT_CITY, uiSpy, m_pPlayer->GetID()))
+						if (!pCity->IsCityEventChoiceValidEspionage(eEventChoice, NO_EVENT_CITY, uiSpy, m_pPlayer->GetID(), false))
 						{
 						
 							pSpy->SetSpyFocus(NO_EVENT_CHOICE_CITY);
@@ -1115,8 +1115,12 @@ void CvPlayerEspionage::DoSpyFocusEvent(uint uiSpyIndex, int iDebug)
 	CityEventChoiceTypes eEventChoice = pSpy->m_eSpyFocus;
 	if (eEventChoice != NO_EVENT_CHOICE_CITY)
 	{
-		pCity->DoEventChoice(eEventChoice, NO_EVENT_CITY, true, uiSpyIndex, m_pPlayer->GetID());
-		if (m_pPlayer->isHuman())
+		pCity->DoEventChoice(eEventChoice, NO_EVENT_CITY, false, uiSpyIndex, m_pPlayer->GetID());
+		if (
+			m_pPlayer->isHuman() && 
+			// show popup for the spy owner only
+			GC.getGame().getActivePlayer() == m_pPlayer->GetID()
+		)
 		{
 			CvPopupInfo kPopupInfo(BUTTONPOPUP_MODDER_7, eEventChoice, m_pPlayer->GetID(), uiSpyIndex, 0, true);
 			GC.GetEngineUserInterface()->AddPopup(kPopupInfo);
@@ -2266,11 +2270,7 @@ void CvPlayerEspionage::UncoverIntrigue(uint uiSpyIndex)
 
 			if(MOD_BALANCE_CORE_SPIES_ADVANCED && pSpy->m_bIsDiplomat && (iSpyRank <= SPY_RANK_AGENT))
 			{
-				int iNewResult = GC.getGame().getSmallFakeRandNum(100, *pCity->plot());
-				if(iNewResult >= 85)
-				{
-					LevelUpSpy(uiSpyIndex);
-				}
+				LevelUpSpy(uiSpyIndex, /*25*/ GD_INT_GET(ESPIONAGE_DIPLOMAT_SPY_EXPERIENCE));
 			}
 		}
 	}
@@ -3055,7 +3055,7 @@ void CvPlayerEspionage::LevelUpSpy(uint uiSpyIndex, int iExperience)
 			}
 			else
 			{
-				m_aSpyList[uiSpyIndex].m_iExperience = 0;
+				m_aSpyList[uiSpyIndex].m_iExperience -= /*100*/ GD_INT_GET(ESPIONAGE_SPY_EXPERIENCE_DENOMINATOR);
 			}
 		}
 		if (bCanLevel)

@@ -179,25 +179,12 @@ SET PrereqTech = 'TECH_COMPASS'
 WHERE Type = 'BUILD_FEITORIA';
 
 UPDATE Improvements
-SET GrantsVisionXTiles = '2'
-WHERE Type = 'IMPROVEMENT_FEITORIA';
-
-UPDATE Improvements
-SET OnlyCityStateTerritory = '0'
-WHERE Type = 'IMPROVEMENT_FEITORIA';
-
-UPDATE Improvements
-SET NoTwoAdjacent = '1'
-WHERE Type = 'IMPROVEMENT_FEITORIA';
-
-UPDATE Improvements
-SET DefenseModifier = '25'
+SET GrantsVisionXTiles = 2, OnlyCityStateTerritory = 0, NoTwoAdjacent = 1, DefenseModifier = 25, MakesPassable = 1
 WHERE Type = 'IMPROVEMENT_FEITORIA';
 
 UPDATE Traits
 SET TradeRouteResourceModifier = '0'
 WHERE Type = 'TRAIT_EXTRA_TRADE';
-
 
 -- Shoshone
 UPDATE Traits
@@ -417,6 +404,16 @@ VALUES
 	('BUILDING_PIAZZA_SAN_MARCO', 'YIELD_SCIENCE', 1),
 	('BUILDING_PIAZZA_SAN_MARCO', 'YIELD_PRODUCTION', 2),
 	('BUILDING_PIAZZA_SAN_MARCO', 'YIELD_FOOD', 2);
+
+INSERT INTO Building_YieldFromBirth
+	(BuildingType, YieldType, Yield)
+VALUES
+	('BUILDING_PIAZZA_SAN_MARCO', 'YIELD_CULTURE', 15);
+	
+INSERT INTO Building_YieldFromPolicyUnlock
+	(BuildingType, YieldType, Yield)
+VALUES
+	('BUILDING_PIAZZA_SAN_MARCO', 'YIELD_GOLDEN_AGE_POINTS', 50);
 
 INSERT INTO Building_ThemingBonuses
 	(BuildingType, Description, Bonus, RequiresAnyButOwner, AIPriority)

@@ -143,6 +143,9 @@ local g_LeadersManager = InstanceManager:new( "LeaderInstance", "LeaderButton", 
 local g_UniqueUnitsManager = InstanceManager:new( "UniqueUnitInstance", "UniqueUnitButton", Controls.UniqueUnitsInnerFrame );
 local g_UniqueBuildingsManager = InstanceManager:new( "UniqueBuildingInstance", "UniqueBuildingButton", Controls.UniqueBuildingsInnerFrame );
 local g_UniqueImprovementsManager = InstanceManager:new( "UniqueImprovementInstance", "UniqueImprovementButton", Controls.UniqueImprovementsInnerFrame );
+local g_StartAlongRegionManager = InstanceManager:new( "StartAlongRegionInstance", "StartAlongRegionButton", Controls.StartAlongRegionInnerFrame );
+local g_StartPriorityRegionManager = InstanceManager:new( "StartPriorityRegionInstance", "StartPriorityRegionButton", Controls.StartPriorityRegionInnerFrame );
+local g_StartAvoidRegionManager = InstanceManager:new( "StartAvoidRegionInstance", "StartAvoidRegionButton", Controls.StartAvoidRegionInnerFrame );
 local g_CivilizationsManager = InstanceManager:new( "CivilizationInstance", "CivilizationButton", Controls.CivilizationsInnerFrame );
 local g_TraitsManager = InstanceManager:new( "TraitInstance", "TraitButton", Controls.TraitsInnerFrame );
 local g_FeaturesManager = InstanceManager:new( "FeatureInstance", "FeatureButton", Controls.FeaturesInnerFrame );
@@ -1384,7 +1387,7 @@ CivilopediaCategory[CategoryImprovements].PopulateList = function()
 
 	-- for each improvement
 	for row in GameInfo.Improvements() do
-		if not row.GraphicalOnly then
+		if (not row.GraphicalOnly and row.ShowInPedia == 1) then
 			-- add an article to the list (localized name, unit tag, etc.)
 			local article = {};
 			local name = Locale.ConvertTextKey( row.Description );
@@ -1481,7 +1484,11 @@ CivilopediaCategory[CategoryBeliefs].PopulateList = function()
 			-- add a tech entry to a list (localized name, tag, etc.)
  			local article = {};
  			local name = Locale.ConvertTextKey( belief.ShortDescription )
- 			article.entryName = name;
+			if (belief.CivilizationType ~= nil and GameInfo.Civilizations[belief.CivilizationType] ~= nil) then
+				article.entryName = "([COLOR_POSITIVE_TEXT]" .. Locale.ConvertTextKey(GameInfo.Civilizations[belief.CivilizationType].Adjective) .. "[ENDCOLOR]) " .. name;
+			else
+				article.entryName = name;
+			end
  			article.entryID = {"Beliefs", belief.ID};
 			article.entryCategory = CategoryBeliefs;
 
@@ -5382,6 +5389,153 @@ CivilopediaCategory[CategoryCivilizations].SelectArticle = function( rawCivID, s
 				end
 				UpdateButtonFrame( buttonAdded, Controls.UniqueImprovementsInnerFrame, Controls.UniqueImprovementsFrame );
 
+ 				g_StartAlongRegionManager:ResetInstances();
+				buttonAdded = 0;
+				for row in GameInfo.Civilization_Start_Place_First_Along_Ocean( condition ) do
+					local thisTerrain = GameInfo.Terrains["TERRAIN_OCEAN"]
+					if thisTerrain then
+						local thisTerrainInstance = g_StartAlongRegionManager:GetInstance();
+						if thisTerrainInstance then
+							local textureOffset, textureSheet = IconLookup( thisTerrain.PortraitIndex, buttonSize, thisTerrain.IconAtlas );
+							if textureOffset == nil then
+								textureSheet = defaultErrorTextureSheet;
+								textureOffset = nullOffset;
+							end
+							UpdateSmallButton( buttonAdded, thisTerrainInstance.TerrainImage, thisTerrainInstance.StartAlongRegionButton, textureSheet, textureOffset, CategoryTerrain, Locale.ConvertTextKey( thisTerrain.Description ), thisTerrain.ID );
+							buttonAdded = buttonAdded + 1;
+						end
+					end
+				end
+				for row in GameInfo.Civilization_Start_Along_Ocean( condition ) do
+					local thisTerrain = GameInfo.Terrains["TERRAIN_COAST"]
+					if thisTerrain then
+						local thisTerrainInstance = g_StartAlongRegionManager:GetInstance();
+						if thisTerrainInstance then
+							local textureOffset, textureSheet = IconLookup( thisTerrain.PortraitIndex, buttonSize, thisTerrain.IconAtlas );
+							if textureOffset == nil then
+								textureSheet = defaultErrorTextureSheet;
+								textureOffset = nullOffset;
+							end
+							UpdateSmallButton( buttonAdded, thisTerrainInstance.TerrainImage, thisTerrainInstance.StartAlongRegionButton, textureSheet, textureOffset, CategoryTerrain, Locale.ConvertTextKey( thisTerrain.Description ), thisTerrain.ID );
+							buttonAdded = buttonAdded + 1;
+						end
+					end
+				end
+				for row in GameInfo.Civilization_Start_Along_River( condition ) do
+					local thisTerrain = GameInfo.FakeFeatures["FEATURE_RIVER"]
+					if thisTerrain then
+						local thisTerrainInstance = g_StartAlongRegionManager:GetInstance();
+						if thisTerrainInstance then
+							local textureOffset, textureSheet = IconLookup( thisTerrain.PortraitIndex, buttonSize, thisTerrain.IconAtlas );
+							if textureOffset == nil then
+								textureSheet = defaultErrorTextureSheet;
+								textureOffset = nullOffset;
+							end
+							UpdateSmallButton( buttonAdded, thisTerrainInstance.TerrainImage, thisTerrainInstance.StartAlongRegionButton, textureSheet, textureOffset, CategoryTerrain, Locale.ConvertTextKey( thisTerrain.Description ), thisTerrain.ID );
+							buttonAdded = buttonAdded + 1;
+						end
+					end
+				end
+				for row in GameInfo.Civilization_Start_Prefer_Mountain( condition ) do
+					local thisTerrain = GameInfo.Terrains["TERRAIN_MOUNTAIN"]
+					if thisTerrain then
+						local thisTerrainInstance = g_StartAlongRegionManager:GetInstance();
+						if thisTerrainInstance then
+							local textureOffset, textureSheet = IconLookup( thisTerrain.PortraitIndex, buttonSize, thisTerrain.IconAtlas );
+							if textureOffset == nil then
+								textureSheet = defaultErrorTextureSheet;
+								textureOffset = nullOffset;
+							end
+							UpdateSmallButton( buttonAdded, thisTerrainInstance.TerrainImage, thisTerrainInstance.StartAlongRegionButton, textureSheet, textureOffset, CategoryTerrain, Locale.ConvertTextKey( thisTerrain.Description ), thisTerrain.ID );
+							buttonAdded = buttonAdded + 1;
+						end
+					end
+				end
+				for row in GameInfo.Civilization_Start_Prefer_Snow ( condition ) do
+					local thisTerrain = GameInfo.Terrains["TERRAIN_SNOW"]
+					if thisTerrain then
+						local thisTerrainInstance = g_StartAlongRegionManager:GetInstance();
+						if thisTerrainInstance then
+							local textureOffset, textureSheet = IconLookup( thisTerrain.PortraitIndex, buttonSize, thisTerrain.IconAtlas );
+							if textureOffset == nil then
+								textureSheet = defaultErrorTextureSheet;
+								textureOffset = nullOffset;
+							end
+							UpdateSmallButton( buttonAdded, thisTerrainInstance.TerrainImage, thisTerrainInstance.StartAlongRegionButton, textureSheet, textureOffset, CategoryTerrain, Locale.ConvertTextKey( thisTerrain.Description ), thisTerrain.ID );
+							buttonAdded = buttonAdded + 1;
+						end
+					end
+				end
+				UpdateButtonFrame( buttonAdded, Controls.StartAlongRegionInnerFrame, Controls.StartAlongRegionFrame );
+				
+				g_StartPriorityRegionManager:ResetInstances();
+				buttonAdded = 0;
+				for row in GameInfo.Civilization_Start_Region_Priority( condition ) do
+					local thisTerrain = GameInfo.Terrains["TERRAIN_SNOW"]
+					if row.RegionType == "REGION_TUNDRA" then
+						thisTerrain = GameInfo.Terrains["TERRAIN_TUNDRA"]
+					elseif row.RegionType == "REGION_JUNGLE" then
+						thisTerrain = GameInfo.Features["FEATURE_JUNGLE"]
+					elseif row.RegionType == "REGION_FOREST" then
+						thisTerrain = GameInfo.Features["FEATURE_FOREST"]
+					elseif row.RegionType == "REGION_DESERT" then
+						thisTerrain = GameInfo.Terrains["TERRAIN_DESERT"]
+					elseif row.RegionType == "REGION_HILLS" then
+						thisTerrain = GameInfo.Terrains["TERRAIN_HILL"]
+					elseif row.RegionType == "REGION_PLAINS" then
+						thisTerrain = GameInfo.Terrains["TERRAIN_PLAINS"]
+					elseif row.RegionType == "REGION_GRASS" then
+						thisTerrain = GameInfo.Terrains["TERRAIN_GRASS"]
+					end
+					if thisTerrain then
+						local thisTerrainInstance = g_StartPriorityRegionManager:GetInstance();
+						if thisTerrainInstance then
+							local textureOffset, textureSheet = IconLookup( thisTerrain.PortraitIndex, buttonSize, thisTerrain.IconAtlas );
+							if textureOffset == nil then
+								textureSheet = defaultErrorTextureSheet;
+								textureOffset = nullOffset;
+							end
+							UpdateSmallButton( buttonAdded, thisTerrainInstance.TerrainImage, thisTerrainInstance.StartPriorityRegionButton, textureSheet, textureOffset, CategoryTerrain, Locale.ConvertTextKey( thisTerrain.Description ), thisTerrain.ID );
+							buttonAdded = buttonAdded + 1;
+						end
+					end
+				end
+				UpdateButtonFrame( buttonAdded, Controls.StartPriorityRegionInnerFrame, Controls.StartPriorityRegionFrame );
+				
+				g_StartAvoidRegionManager:ResetInstances();
+				buttonAdded = 0;
+				for row in GameInfo.Civilization_Start_Region_Avoid( condition ) do
+					local thisTerrain = GameInfo.Terrains["TERRAIN_SNOW"]
+					if row.RegionType == "REGION_TUNDRA" then
+						thisTerrain = GameInfo.Terrains["TERRAIN_TUNDRA"]
+					elseif row.RegionType == "REGION_JUNGLE" then
+						thisTerrain = GameInfo.Features["FEATURE_JUNGLE"]
+					elseif row.RegionType == "REGION_FOREST" then
+						thisTerrain = GameInfo.Features["FEATURE_FOREST"]
+					elseif row.RegionType == "REGION_DESERT" then
+						thisTerrain = GameInfo.Terrains["TERRAIN_DESERT"]
+					elseif row.RegionType == "REGION_HILLS" then
+						thisTerrain = GameInfo.Terrains["TERRAIN_HILL"]
+					elseif row.RegionType == "REGION_PLAINS" then
+						thisTerrain = GameInfo.Terrains["TERRAIN_PLAINS"]
+					elseif row.RegionType == "REGION_GRASS" then
+						thisTerrain = GameInfo.Terrains["TERRAIN_GRASS"]
+					end
+					if thisTerrain then
+						local thisTerrainInstance = g_StartAvoidRegionManager:GetInstance();
+						if thisTerrainInstance then
+							local textureOffset, textureSheet = IconLookup( thisTerrain.PortraitIndex, buttonSize, thisTerrain.IconAtlas );
+							if textureOffset == nil then
+								textureSheet = defaultErrorTextureSheet;
+								textureOffset = nullOffset;
+							end
+							UpdateSmallButton( buttonAdded, thisTerrainInstance.TerrainImage, thisTerrainInstance.StartAvoidRegionButton, textureSheet, textureOffset, CategoryTerrain, Locale.ConvertTextKey( thisTerrain.Description ), thisTerrain.ID );
+							buttonAdded = buttonAdded + 1;
+						end
+					end
+				end
+				UpdateButtonFrame( buttonAdded, Controls.StartAvoidRegionInnerFrame, Controls.StartAvoidRegionFrame );
+				
 				-- list of special abilities
 				buttonAdded = 0;
 
@@ -5840,6 +5994,63 @@ CivilopediaCategory[CategoryTerrain].SelectArticle = function( rawTerrainID, sho
 				else
 					Controls.YieldLabel:SetText( Locale.ConvertTextKey( yieldString ) );
 				end
+				
+				-- Yield per Era
+				Controls.YieldPerEraFrame:SetHide( false );
+				local numYields = 0;
+				local yieldString = "";
+				for row in GameInfo.Feature_EraYieldChanges( condition ) do
+					numYields = numYields + 1;
+					yieldString = yieldString..tostring(row.Yield).." ";
+					yieldString = yieldString..GameInfo.Yields[row.YieldType].IconString.." ";
+				end
+				if numYields == 0 then
+					Controls.YieldPerEraFrame:SetHide( true );
+				else
+					Controls.YieldPerEraLabel:SetText( Locale.ConvertTextKey( yieldString ) );
+					Controls.YieldPerEraFrame:SetHide( false );
+				end
+				
+				-- Plot Adjacency Yield
+				Controls.PlotAdjacentTerrainYieldFrame:SetHide( false );
+				Controls.PlotAdjacentTerrainYieldFrame:SetSizeY(36);
+				Controls.PlotAdjacentTerrainYieldFrame2:SetSizeY(40);
+				local numYields = 0;
+				local yieldString = "";
+				local plotString = "";
+				local fullstring = "";
+				local basePlot = "";
+				for row in GameInfo.Plot_AdjacentFeatureYieldChanges( condition ) do
+					numYields = numYields + 1;
+					local Plot = GameInfo.Plots[row.PlotType];
+					if Plot then
+						plotString = Locale.ConvertTextKey(Plot.Description)..": ";
+						if(Plot ~= basePlot) then
+							basePlot = Plot;
+							if(fullstring == "") then
+								fullstring = fullstring .. plotString;
+							else
+								fullstring = fullstring .. "[NEWLINE]" .. plotString;
+								Controls.PlotAdjacentTerrainYieldFrame:SetSizeY( Controls.PlotAdjacentTerrainYieldFrame:GetSizeY() + 40 );
+								Controls.PlotAdjacentTerrainYieldFrame2:SetSizeY( Controls.PlotAdjacentTerrainYieldFrame2:GetSizeY() + 40 );
+							end
+						end
+						if (row.Yield > 0) then
+							yieldString = "+" .. tostring(row.Yield)..GameInfo.Yields[row.YieldType].IconString.." ";
+						else
+							yieldString = tostring(row.Yield)..GameInfo.Yields[row.YieldType].IconString.." ";
+						end
+						fullstring = fullstring .. Locale.ConvertTextKey( yieldString );
+					end
+				end
+				if numYields == 0 then
+					Controls.PlotAdjacentTerrainYieldFrame:SetHide( true );
+				else
+					Controls.PlotAdjacentTerrainYieldLabel:SetText( fullstring );
+					Controls.PlotAdjacentTerrainYieldFrame:SetHide( false );
+				end
+				
+				
 
 				-- Movement
 				Controls.MovementCostFrame:SetHide( false );
@@ -6423,8 +6634,24 @@ CivilopediaCategory[CategoryImprovements].SelectArticle = function( improvementI
 				Controls.AdjacentImprovYieldLabel:SetText( fullstring );
 				Controls.AdjacentImprovYieldFrame:SetHide( false );
 			end
-			--END
 
+			local numYields = 0;
+			local yieldString = "";
+			for row in GameInfo.Improvement_YieldPerEra( condition ) do
+				numYields = numYields + 1;
+				if row.Yield > 0 then
+					yieldString = yieldString.."+";
+				end
+				yieldString = yieldString..tostring(row.Yield)..GameInfo.Yields[row.YieldType].IconString.." ";
+			end
+			if numYields == 0 then
+				Controls.ImprovYieldPerEraFrame:SetHide( true );
+			else
+				Controls.ImprovYieldPerEraLabel:SetText( Locale.ConvertTextKey( yieldString ) );
+				Controls.ImprovYieldPerEraFrame:SetHide( false );
+			end
+			--END
+			
 			buttonAdded = 0;
 			if thisImprovement.CivilizationType then
 				local thisCiv = GameInfo.Civilizations[thisImprovement.CivilizationType];
@@ -8994,12 +9221,17 @@ function ClearArticle()
 	Controls.UniqueUnitsFrame:SetHide( true );
 	Controls.UniqueBuildingsFrame:SetHide( true );
 	Controls.UniqueImprovementsFrame:SetHide( true );
+	Controls.StartAlongRegionFrame:SetHide( true );
+	Controls.StartPriorityRegionFrame:SetHide( true );
+	Controls.StartAvoidRegionFrame:SetHide( true );
 	Controls.CivilizationsFrame:SetHide ( true );
 	Controls.TraitsFrame:SetHide( true );
 	Controls.LivedFrame:SetHide( true );
 	Controls.TitlesFrame:SetHide( true );
 	Controls.SubtitleID:SetHide( true );
 	Controls.YieldFrame:SetHide( true );
+	Controls.YieldPerEraFrame:SetHide( true );
+	Controls.PlotAdjacentTerrainYieldFrame:SetHide( true );
 	Controls.MountainYieldFrame:SetHide( true );
 	--CBP
 	Controls.CorporationResourceBonusFrame:SetHide( true );
@@ -9010,6 +9242,7 @@ function ClearArticle()
 	Controls.AdjacentTerrainYieldFrame:SetHide( true );
 	Controls.AdjacentImprovYieldFrame:SetHide( true );
 	Controls.TwoAdjacentImprovYieldFrame:SetHide( true );
+	Controls.ImprovYieldPerEraFrame:SetHide( true );
 	Controls.ImprovementYieldFrame:SetHide( true );
 	--END
 	Controls.MovementCostFrame:SetHide( true );

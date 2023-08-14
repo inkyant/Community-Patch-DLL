@@ -151,10 +151,10 @@ public:
 	void DoEvents(bool bEspionageOnly = false);
 	bool IsCityEventValid(CityEventTypes eEvent);
 	bool IsCityEventChoiceValid(CityEventChoiceTypes eEventChoice, CityEventTypes eParentEvent, bool bIgnoreActive = false, bool bIgnorePlayer = false);
-	bool IsCityEventChoiceValidEspionage(CityEventChoiceTypes eEventChoice, CityEventTypes eEvent, int uiSpyIndex, PlayerTypes eSpyOwner);
+	bool IsCityEventChoiceValidEspionage(CityEventChoiceTypes eEventChoice, CityEventTypes eEvent, int uiSpyIndex, PlayerTypes eSpyOwner, bool bStartMission = true);
 	bool IsCityEventChoiceValidEspionageTest(CityEventChoiceTypes eEventChoice, CityEventTypes eEvent, int iAssumedLevel, PlayerTypes eSpyOwner);
 	void DoCancelEventChoice(CityEventChoiceTypes eEventChoice);
-	void DoStartEvent(CityEventTypes eEvent);
+	void DoStartEvent(CityEventTypes eEvent, bool bSendMsg);
 	void DoEventChoice(CityEventChoiceTypes eEventChoice, CityEventTypes eCityEvent = NO_EVENT_CITY, bool bSendMsg = true, int iEspionageValue = -1, PlayerTypes eSpyOwner = NO_PLAYER);
 	CvString GetScaledHelpText(CityEventChoiceTypes eEventChoice, bool bYieldsOnly, int iSpyIndex = -1, PlayerTypes eSpyOwner = NO_PLAYER, bool bSpyMissionEnd = false);
 	CvString GetDisabledTooltip(CityEventChoiceTypes eEventChoice, int iSpyIndex = -1, PlayerTypes eSpyOwner = NO_PLAYER);
@@ -365,7 +365,7 @@ public:
 
 	// End Resource Demanded
 
-	int getFoodTurnsLeft(int iCorpMod = -1) const;
+	int getFoodTurnsLeft() const;
 	bool isProduction() const;
 	bool isProductionLimited() const;
 	bool isProductionUnit() const;
@@ -539,15 +539,17 @@ public:
 	void SetIgnoredForExpansionBickering(PlayerTypes ePlayer, bool bValue);
 	bool IsIgnoredForExpansionBickering(PlayerTypes ePlayer) const;
 #endif
+	int foodConsumptionNonSpecialistTimes100() const;
 	int foodConsumptionSpecialistTimes100() const;
 	int foodConsumption(bool bNoAngry = false, int iExtra = 0) const;
 	int foodConsumptionTimes100(bool bNoAngry = false, int iExtra = 0) const;
-	int foodDifference(bool bBottom = true, bool bJustCheckingStarve = false) const;
-	int foodDifferenceTimes100(bool bBottom = true, bool bJustCheckingStarve = false, int iCorpMod = -1, CvString* toolTipSink = NULL) const;
+	int foodDifference(bool bJustCheckingStarve = false) const;
+	int foodDifferenceTimes100(bool bJustCheckingStarve = false, CvString* toolTipSink = NULL) const;
 	int growthThreshold() const;
 
 	int getGrowthMods() const;
 #if defined(MOD_BALANCE_CORE)
+	int GetNumFreeSpecialists();
 	int GetUnhappinessFromCitySpecialists();
 #endif
 
@@ -1124,6 +1126,9 @@ public:
 	int GetYieldFromVictoryGlobal(YieldTypes eIndex) const;
 	void ChangeYieldFromVictoryGlobal(YieldTypes eIndex, int iChange);
 
+	int GetYieldFromVictoryGlobalEraScaling(YieldTypes eIndex) const;
+	void ChangeYieldFromVictoryGlobalEraScaling(YieldTypes eIndex, int iChange);
+
 	int GetYieldFromPillage(YieldTypes eIndex) const;
 	void ChangeYieldFromPillage(YieldTypes eIndex, int iChange);
 
@@ -1167,6 +1172,9 @@ public:
 
 	int GetYieldFromUnitLevelUp(YieldTypes eIndex) const;
 	void ChangeYieldFromUnitLevelUp(YieldTypes eIndex, int iChange);
+
+	int GetYieldFromCombatExperience(YieldTypes eIndex) const;
+	void ChangeYieldFromCombatExperience(YieldTypes eIndex, int iChange);
 
 	int GetYieldPerAlly(YieldTypes eIndex) const;
 	void ChangeYieldPerAlly(YieldTypes eYield, int iChange);
@@ -1724,8 +1732,8 @@ public:
 	void SetPlagueTurns(int iValue);
 
 	int GetSappedTurns() const;
-	void ChangeSappedTurns(int iValue);
 	void SetSappedTurns(int iValue);
+	void ChangeSappedTurns(int iValue);
 
 	int GetPlagueType() const;
 	void SetPlagueType(int iValue);
@@ -1918,6 +1926,7 @@ protected:
 	std::vector<int> m_aiYieldFromKnownPantheons;
 	std::vector<int> m_aiYieldFromVictory;
 	std::vector<int> m_aiYieldFromVictoryGlobal;
+	std::vector<int> m_aiYieldFromVictoryGlobalEraScaling;
 	std::vector<int> m_aiYieldFromPillage;
 	std::vector<int> m_aiYieldFromPillageGlobal;
 	std::vector<int> m_aiGoldenAgeYieldMod;
@@ -1931,6 +1940,7 @@ protected:
 	std::vector<int> m_aiYieldFromPurchase;
 	std::vector<int> m_aiYieldFromFaithPurchase;
 	std::vector<int> m_aiYieldFromUnitLevelUp;
+	std::vector<int> m_aiYieldFromCombatExperience;
 	std::vector<int> m_aiYieldPerAlly;
 	std::vector<int> m_aiYieldPerFriend;
 	std::vector<int> m_aiYieldFromInternalTREnd;
@@ -2306,6 +2316,7 @@ SYNC_ARCHIVE_VAR(std::vector<int>, m_aiNumTimesAttackedThisTurn)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromKnownPantheons)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromVictory)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromVictoryGlobal)
+SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromVictoryGlobalEraScaling)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromPillage)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromPillageGlobal)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiGoldenAgeYieldMod)
@@ -2319,6 +2330,7 @@ SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromPolicyUnlock)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromPurchase)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromFaithPurchase)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromUnitLevelUp)
+SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromCombatExperience)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldPerAlly)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldPerFriend)
 SYNC_ARCHIVE_VAR(std::vector<int>, m_aiYieldFromInternalTREnd)

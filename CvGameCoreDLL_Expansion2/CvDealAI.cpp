@@ -150,8 +150,11 @@ bool CvDealAI::WithinAcceptableRange(PlayerTypes ePlayer, int iMaxValue, int iNe
 	int iMaxDeviation = iMaxValue * iLeewayPercent + min(100, iMaxValue) * 15;
 	iMaxDeviation /= 100;
 
+	// a deal value of less than or equal to half the value of 1 GPT should always be acceptable, to avoid deals that can't be equalized with GPT
+	int iGPTValue = GetOneGPTValue();
+
 	//put some sanity checks
-	return abs(iNetValue) < min(max(iMaxDeviation,3),500);
+	return abs(iNetValue) <= min(max(iMaxDeviation,iGPTValue/2),500);
 }
 
 bool CvDealAI::BothSidesIncluded(CvDeal* pDeal)
@@ -163,7 +166,7 @@ bool CvDealAI::BothSidesIncluded(CvDeal* pDeal)
 		return true;
 
 	//humans sometimes give nice things!
-	if (GET_PLAYER(pDeal->m_eFromPlayer).isHuman() && GetDealValue(pDeal) > 0)
+	if (GET_PLAYER(pDeal->m_eFromPlayer).isHuman() && pDeal->GetNumItems() > 0 && GetDealValue(pDeal) >= 0)
 		return true;
 
 	return (pDeal->GetFromPlayerValue() > 0 && pDeal->GetToPlayerValue() > 0);
@@ -196,12 +199,6 @@ DealOfferResponseTypes CvDealAI::DoHumanOfferDealToThisAI(CvDeal* pDeal)
 	int iDealValue = GetDealValue(pDeal);
 
 	bool bCantMatchOffer = false;
-
-	//if a human sent this, don't modify their offer, that's annoying.
-	if (iDealValue > 0)
-		pDeal->SetDoNotModifyFrom(true);
-	else if (iDealValue < 0)
-		pDeal->SetDoNotModifyTo(true);
 
 	bool bDealAcceptable = IsDealWithHumanAcceptable(pDeal, eFromPlayer, iDealValue, &bCantMatchOffer, false);
 
@@ -437,8 +434,8 @@ DemandResponseTypes CvDealAI::DoHumanDemand(CvDeal* pDeal)
 	CvDiplomacyAI* pDiploAI = GET_PLAYER(eMyPlayer).GetDiplomacyAI();
 
 	CivApproachTypes eApproach = pDiploAI->GetCivApproach(eFromPlayer);
-	StrengthTypes eMilitaryStrength = pDiploAI->GetPlayerMilitaryStrengthComparedToUs(eFromPlayer);
-	StrengthTypes eEconomicStrength = pDiploAI->GetPlayerEconomicStrengthComparedToUs(eFromPlayer);
+	StrengthTypes eMilitaryStrength = pDiploAI->GetMilitaryStrengthComparedToUs(eFromPlayer);
+	StrengthTypes eEconomicStrength = pDiploAI->GetEconomicStrengthComparedToUs(eFromPlayer);
 	AggressivePostureTypes eMilitaryPosture = pDiploAI->GetMilitaryAggressivePosture(eFromPlayer);
 	PlayerProximityTypes eProximity = GET_PLAYER(eMyPlayer).GetProximityToPlayer(eFromPlayer);
 
@@ -455,65 +452,72 @@ DemandResponseTypes CvDealAI::DoHumanDemand(CvDeal* pDeal)
 		// Not too soon for a demand
 		else
 		{
-			bool bWeak = false;
-			bool bHostile = false;
-			// Initial odds of giving in to ANY demand are based on the player's boldness (which is also tied to the player's likelihood of going for world conquest)
-			int iOddsOfGivingIn = (10 - pDiploAI->GetBoldness()) * 10;
-
-			//much harder if vassalage on the table.
-			if (pDeal->IsVassalageTrade(eFromPlayer) || pDeal->IsVassalageTrade(eMyPlayer))
+			// Deal valued impossible?
+			if (GET_PLAYER(eMyPlayer).GetDealAI()->GetDealValue(pDeal) == INT_MAX)
 			{
-				if (GetPlayer()->IsAITeammateOfHuman())
+				eResponse = DEMAND_RESPONSE_REFUSE_TOO_MUCH;
+			}
+			else
+			{
+				bool bWeak = false;
+				bool bHostile = false;
+				// Initial odds of giving in to ANY demand are based on the player's boldness (which is also tied to the player's likelihood of going for world conquest)
+				int iOddsOfGivingIn = (10 - pDiploAI->GetBoldness()) * 10;
+
+				//much harder if vassalage on the table.
+				if (pDeal->IsVassalageTrade(eFromPlayer) || pDeal->IsVassalageTrade(eMyPlayer))
 				{
-					eResponse = DEMAND_RESPONSE_REFUSE_TOO_MUCH;
+					if (GetPlayer()->IsAITeammateOfHuman())
+					{
+						eResponse = DEMAND_RESPONSE_REFUSE_TOO_MUCH;
+					}
+					else
+					{
+						iOddsOfGivingIn -= 100;
+					}
 				}
-				else
+
+				//no third party war, that's weird.
+				if (pDeal->ContainsItemType(TRADE_ITEM_THIRD_PARTY_WAR, eFromPlayer) || pDeal->ContainsItemType(TRADE_ITEM_THIRD_PARTY_WAR, eMyPlayer))
+					iOddsOfGivingIn -= 1000;
+
+				// Unforgivable: AI will never give in
+				if (pDiploAI->GetCivOpinion(eFromPlayer) == CIV_OPINION_UNFORGIVABLE)
 				{
-					iOddsOfGivingIn -= 100;
+					bHostile = true;
+					iOddsOfGivingIn -= 50;
 				}
-			}
+				// Hostile: AI will never give in
+				if (eApproach == CIV_APPROACH_HOSTILE)
+				{
+					bHostile = true;
+					iOddsOfGivingIn -= 50;
+				}
+				// They are very far away and have no units near us (from what we can tell): AI will never give in
+				if (eProximity <= PLAYER_PROXIMITY_FAR && eMilitaryPosture == AGGRESSIVE_POSTURE_NONE)
+				{
+					bWeak = true;
+					iOddsOfGivingIn -= 50;
+				}
+				// Our military is stronger: AI will never give in
+				if (eMilitaryStrength < STRENGTH_AVERAGE && eEconomicStrength < STRENGTH_AVERAGE)
+				{
+					bWeak = true;
+					iOddsOfGivingIn -= 50;
+				}
 
-			//no third party war, that's weird.
-			if (pDeal->ContainsItemType(TRADE_ITEM_THIRD_PARTY_WAR, eFromPlayer) || pDeal->ContainsItemType(TRADE_ITEM_THIRD_PARTY_WAR, eMyPlayer))
-				iOddsOfGivingIn -= 1000;
+				iValueWillingToGiveUp = 0;
 
-			// Unforgivable: AI will never give in
-			if (pDiploAI->GetCivOpinion(eFromPlayer) == CIV_OPINION_UNFORGIVABLE)
-			{
-				bHostile = true;
-				iOddsOfGivingIn -= 50;
-			}
-			// Hostile: AI will never give in
-			if (eApproach == CIV_APPROACH_HOSTILE)
-			{
-				bHostile = true;
-				iOddsOfGivingIn -= 50;
-			}
-			// They are very far away and have no units near us (from what we can tell): AI will never give in
-			if (eProximity <= PLAYER_PROXIMITY_FAR && eMilitaryPosture == AGGRESSIVE_POSTURE_NONE)
-			{
-				bWeak = true;
-				iOddsOfGivingIn -= 50;
-			}
-			// Our military is stronger: AI will never give in
-			if (eMilitaryStrength < STRENGTH_AVERAGE && eEconomicStrength < STRENGTH_AVERAGE)
-			{
-				bWeak = true;
-				iOddsOfGivingIn -= 50;
-			}
+				//Vassals give in to demands more often, and give more away.
+				TeamTypes eMasterTeam = GET_TEAM(GET_PLAYER(eMyPlayer).getTeam()).GetMaster();
+				if (eMasterTeam == GET_PLAYER(eFromPlayer).getTeam())
+				{
+					iOddsOfGivingIn += 100;
+					iValueWillingToGiveUp += 500;
+				}
 
-			iValueWillingToGiveUp = 0;
-
-			//Vassals give in to demands more often, and give more away.
-			TeamTypes eMasterTeam = GET_TEAM(GET_PLAYER(eMyPlayer).getTeam()).GetMaster();
-			if (eMasterTeam == GET_PLAYER(eFromPlayer).getTeam())
-			{
-				iOddsOfGivingIn += 100;
-				iValueWillingToGiveUp += 500;
-			}
-
-			switch(pDiploAI->GetWarmongerThreat(eFromPlayer))
-			{
+				switch (pDiploAI->GetWarmongerThreat(eFromPlayer))
+				{
 				case THREAT_NONE:
 				{
 					iOddsOfGivingIn -= 10;
@@ -539,10 +543,10 @@ DemandResponseTypes CvDealAI::DoHumanDemand(CvDeal* pDeal)
 					iOddsOfGivingIn += 25;
 					break;
 				}
-			}
+				}
 
-			switch (pDiploAI->GetMilitaryAggressivePosture(eFromPlayer))
-			{
+				switch (pDiploAI->GetMilitaryAggressivePosture(eFromPlayer))
+				{
 				case AGGRESSIVE_POSTURE_NONE:
 				{
 					iOddsOfGivingIn -= 10;
@@ -568,101 +572,102 @@ DemandResponseTypes CvDealAI::DoHumanDemand(CvDeal* pDeal)
 					iOddsOfGivingIn += 50;
 					break;
 				}
-			}
-
-			// If we're afraid we're more likely to give in
-			if(eApproach == CIV_APPROACH_AFRAID)
-			{
-				iOddsOfGivingIn += 50;
-				iValueWillingToGiveUp += 200;
-			}
-			// Not afraid
-			else
-			{
-				// How strong are they compared to us?
-				switch(eMilitaryStrength)
-				{
-				case STRENGTH_PATHETIC:
-					iOddsOfGivingIn += -50;
-					iValueWillingToGiveUp += 5;
-					break;
-				case STRENGTH_WEAK:
-					iOddsOfGivingIn += -50;
-					iValueWillingToGiveUp += 10;
-					break;
-				case STRENGTH_POOR:
-					iOddsOfGivingIn += -25;
-					iValueWillingToGiveUp += 20;
-					break;
-				case STRENGTH_AVERAGE:
-					iOddsOfGivingIn += 0;
-					iValueWillingToGiveUp += 40;
-					break;
-				case STRENGTH_STRONG:
-					iOddsOfGivingIn += 15;
-					iValueWillingToGiveUp += 60;
-					break;
-				case STRENGTH_POWERFUL:
-					iOddsOfGivingIn += 25;
-					iValueWillingToGiveUp += 80;
-					break;
-				case STRENGTH_IMMENSE:
-					iOddsOfGivingIn += 50;
-					iValueWillingToGiveUp += 100;
-					break;
-				default:
-					break;
 				}
 
-				switch (eEconomicStrength)
+				// If we're afraid we're more likely to give in
+				if (eApproach == CIV_APPROACH_AFRAID)
 				{
-				case STRENGTH_PATHETIC:
-					iOddsOfGivingIn += -50;
-					iValueWillingToGiveUp += 5;
-					break;
-				case STRENGTH_WEAK:
-					iOddsOfGivingIn += -50;
-					iValueWillingToGiveUp += 10;
-					break;
-				case STRENGTH_POOR:
-					iOddsOfGivingIn += -25;
-					iValueWillingToGiveUp += 25;
-					break;
-				case STRENGTH_AVERAGE:
-					iOddsOfGivingIn += 0;
-					iValueWillingToGiveUp += 40;
-					break;
-				case STRENGTH_STRONG:
-					iOddsOfGivingIn += 15;
-					iValueWillingToGiveUp += 60;
-					break;
-				case STRENGTH_POWERFUL:
-					iOddsOfGivingIn += 25;
-					iValueWillingToGiveUp += 80;
-					break;
-				case STRENGTH_IMMENSE:
 					iOddsOfGivingIn += 50;
-					iValueWillingToGiveUp += 100;
-					break;
-				default:
-					break;
+					iValueWillingToGiveUp += 200;
 				}
-			}
-
-			// IMPORTANT NOTE: This APPEARS to be very bad for multiplayer, but the only changes made to the game state are the fact that the human
-			// made a demand, and if the deal went through. These are both sent over the network later in this function.
-
-			int iRand = GC.getGame().getSmallFakeRandNum(100, iValueWillingToGiveUp);
-
-			// Are they going to say no matter what?
-			if (iRand > iOddsOfGivingIn || iOddsOfGivingIn <= 0)
-			{
-				if (bHostile)
-					eResponse = DEMAND_RESPONSE_REFUSE_HOSTILE;
-				else if (bWeak)
-					eResponse = DEMAND_RESPONSE_REFUSE_WEAK;
+				// Not afraid
 				else
-					eResponse = DEMAND_RESPONSE_REFUSE_TOO_MUCH;
+				{
+					// How strong are they compared to us?
+					switch (eMilitaryStrength)
+					{
+					case STRENGTH_PATHETIC:
+						iOddsOfGivingIn += -50;
+						iValueWillingToGiveUp += 5;
+						break;
+					case STRENGTH_WEAK:
+						iOddsOfGivingIn += -50;
+						iValueWillingToGiveUp += 10;
+						break;
+					case STRENGTH_POOR:
+						iOddsOfGivingIn += -25;
+						iValueWillingToGiveUp += 20;
+						break;
+					case STRENGTH_AVERAGE:
+						iOddsOfGivingIn += 0;
+						iValueWillingToGiveUp += 40;
+						break;
+					case STRENGTH_STRONG:
+						iOddsOfGivingIn += 15;
+						iValueWillingToGiveUp += 60;
+						break;
+					case STRENGTH_POWERFUL:
+						iOddsOfGivingIn += 25;
+						iValueWillingToGiveUp += 80;
+						break;
+					case STRENGTH_IMMENSE:
+						iOddsOfGivingIn += 50;
+						iValueWillingToGiveUp += 100;
+						break;
+					default:
+						break;
+					}
+
+					switch (eEconomicStrength)
+					{
+					case STRENGTH_PATHETIC:
+						iOddsOfGivingIn += -50;
+						iValueWillingToGiveUp += 5;
+						break;
+					case STRENGTH_WEAK:
+						iOddsOfGivingIn += -50;
+						iValueWillingToGiveUp += 10;
+						break;
+					case STRENGTH_POOR:
+						iOddsOfGivingIn += -25;
+						iValueWillingToGiveUp += 25;
+						break;
+					case STRENGTH_AVERAGE:
+						iOddsOfGivingIn += 0;
+						iValueWillingToGiveUp += 40;
+						break;
+					case STRENGTH_STRONG:
+						iOddsOfGivingIn += 15;
+						iValueWillingToGiveUp += 60;
+						break;
+					case STRENGTH_POWERFUL:
+						iOddsOfGivingIn += 25;
+						iValueWillingToGiveUp += 80;
+						break;
+					case STRENGTH_IMMENSE:
+						iOddsOfGivingIn += 50;
+						iValueWillingToGiveUp += 100;
+						break;
+					default:
+						break;
+					}
+				}
+
+				// IMPORTANT NOTE: This APPEARS to be very bad for multiplayer, but the only changes made to the game state are the fact that the human
+				// made a demand, and if the deal went through. These are both sent over the network later in this function.
+
+				int iRand = GC.getGame().getSmallFakeRandNum(100, iValueWillingToGiveUp);
+
+				// Are they going to say no matter what?
+				if (iRand > iOddsOfGivingIn || iOddsOfGivingIn <= 0)
+				{
+					if (bHostile)
+						eResponse = DEMAND_RESPONSE_REFUSE_HOSTILE;
+					else if (bWeak)
+						eResponse = DEMAND_RESPONSE_REFUSE_WEAK;
+					else
+						eResponse = DEMAND_RESPONSE_REFUSE_TOO_MUCH;
+				}
 			}
 		}
 	}
@@ -941,11 +946,6 @@ bool CvDealAI::DoEqualizeDealWithHuman(CvDeal* pDeal, PlayerTypes eOtherPlayer, 
 	CvAssert(eOtherPlayer < MAX_MAJOR_CIVS);
 	CvAssertMsg(eMyPlayer != eOtherPlayer, "DEAL_AI: Trying to equalize human deal, but both players are the same.  Please send Jon this with your last 5 autosaves and what changelist # you're playing.");
 
-	//reset these
-	pDeal->SetDoNotModifyFrom(false);
-	pDeal->SetDoNotModifyTo(false);
-
-
 	if (pDeal->GetNumItems() <= 0)
 	{
 		return false;
@@ -967,38 +967,67 @@ bool CvDealAI::DoEqualizeDealWithHuman(CvDeal* pDeal, PlayerTypes eOtherPlayer, 
 		bMakeOffer = IsDealWithHumanAcceptable(pDeal, eOtherPlayer, /*Passed by reference*/ iTotalValue, &bCantMatchOffer, true);
 		bDealGoodToBeginWith = bMakeOffer;
 
-		// If we set this pointer again it clears the data out!
-		if (pDeal != GC.getGame().GetGameDeals().GetTempDeal())
+		if (!bMakeOffer)
 		{
-			GC.getGame().GetGameDeals().SetTempDeal(pDeal);
+			if (BothSidesIncluded(pDeal))
+			{
+				bMakeOffer = WithinAcceptableRange(eOtherPlayer, pDeal->GetMaxValue(), iTotalValue);
+			}
 		}
-
-		// WTF is this about
-		CvDeal* pCounterDeal = GC.getGame().GetGameDeals().GetTempDeal();
 
 		if(!bMakeOffer)
 		{
-			//if a human sent this, don't modify their offer, that's annoying.
+			/////////////////////////////
+			// Try to modify only the side of the deal on which something still needs to be added
+			/////////////////////////////
+
 			if (iTotalValue > 0)
-				pDeal->SetDoNotModifyFrom(true);
+			{
+				// first try to equalize the deal by adding gold
+				DoAddItemsToUs(pDeal, eOtherPlayer, iTotalValue, 0, /* bGoldOnly */ true);
+				bMakeOffer = WithinAcceptableRange(eOtherPlayer, pDeal->GetMaxValue(), iTotalValue);
+				// adding gold didn't work? reset the deal to starting terms and try to add items
+				if (!bMakeOffer)
+				{
+					pDeal->RemoveAllPossibleItems();
+					DoAddItemsToUs(pDeal, eOtherPlayer, iTotalValue);
+					bMakeOffer = WithinAcceptableRange(eOtherPlayer, pDeal->GetMaxValue(), iTotalValue);
+				}
+			}
 			else if (iTotalValue < 0)
-				pDeal->SetDoNotModifyTo(true);
+			{
+				// first try to equalize the deal by adding gold
+				DoAddItemsToThem(pDeal, eOtherPlayer, iTotalValue, 0, /* bGoldOnly */ true);
+				bMakeOffer = WithinAcceptableRange(eOtherPlayer, pDeal->GetMaxValue(), iTotalValue);
+				// adding gold didn't work? reset the deal to starting terms and try to add items
+				if (!bMakeOffer)
+				{
+					pDeal->RemoveAllPossibleItems();
+					DoAddItemsToThem(pDeal, eOtherPlayer, iTotalValue);
+					bMakeOffer = WithinAcceptableRange(eOtherPlayer, pDeal->GetMaxValue(), iTotalValue);
+				}
+			}
+			// neither adding gold nor adding items worked? reset the deal. in the next step, we'll try to add items to both sides
+			if (!bMakeOffer)
+			{
+				pDeal->RemoveAllPossibleItems();
+			}
 
 			/////////////////////////////
 			// See if there are items we can add or remove from either side to balance out the deal if it's not already even
 			/////////////////////////////
 			int iLoops = 0;
-			while (iLoops < 5 && !WithinAcceptableRange(eOtherPlayer, pCounterDeal->GetMaxValue(), iTotalValue))
+			while (iLoops < 5 && !WithinAcceptableRange(eOtherPlayer, pDeal->GetMaxValue(), iTotalValue))
 			{
 				int iPrevValue = GetDealValue(pDeal);
 
 				if (iTotalValue > 0)
 				{
-					DoAddItemsToUs(pCounterDeal, eOtherPlayer, iTotalValue);
+					DoAddItemsToUs(pDeal, eOtherPlayer, iTotalValue, -iTotalValue/2);
 				}
 				else if (iTotalValue < 0)
 				{
-					DoAddItemsToThem(pCounterDeal, eOtherPlayer, iTotalValue);
+					DoAddItemsToThem(pDeal, eOtherPlayer, iTotalValue, -iTotalValue / 2);
 				}
 
 				//bail if we're stuck
@@ -1008,31 +1037,9 @@ bool CvDealAI::DoEqualizeDealWithHuman(CvDeal* pDeal, PlayerTypes eOtherPlayer, 
 				iLoops++;
 			}
 
-			// Make sure we haven't removed everything from the deal!
-			if (BothSidesIncluded(pCounterDeal))
-			{
-				bMakeOffer = WithinAcceptableRange(eOtherPlayer, pCounterDeal->GetMaxValue(), iTotalValue);
-			}
+			bMakeOffer = WithinAcceptableRange(eOtherPlayer, pDeal->GetMaxValue(), iTotalValue);
 
-			// if we still don't have a deal, try to equalize with GPT only (may have been to greedy with other picks)
-			if (!bMakeOffer && pCounterDeal->RemoveAllByPlayer(eOtherPlayer))
-			{
-				iTotalValue = GetDealValue(pDeal);
-
-				//first try rounding up the GPT amount (better for us)
-				DoAddGPTToThem(pDeal, eOtherPlayer, iTotalValue);
-				bMakeOffer = WithinAcceptableRange(eOtherPlayer, pCounterDeal->GetMaxValue(), iTotalValue);
-
-				//alternatively try with one GPT less (worse for us)
-				if (!bMakeOffer && pDeal->GetGoldPerTurnTrade(eOtherPlayer) > 1)
-				{
-					DoRemoveGPTFromThem(pDeal, eOtherPlayer, 1);
-					iTotalValue = GetDealValue(pDeal);
-					bMakeOffer = WithinAcceptableRange(eOtherPlayer, pCounterDeal->GetMaxValue(), iTotalValue);
-				}
-			}
-
-			// Make sure we haven't removed everything from the deal!
+			// were we able to equalize the deal?
 			if (bMakeOffer)
 			{
 				bMakeOffer = IsDealWithHumanAcceptable(pDeal, eOtherPlayer, /*Passed by reference*/ iTotalValue, /*passed by reference*/&bCantMatchOffer, false);
@@ -1053,7 +1060,6 @@ bool CvDealAI::DoEqualizeDealWithHuman(CvDeal* pDeal, PlayerTypes eOtherPlayer, 
 				{
 					return true;
 				}
-
 			}
 		}
 	}
@@ -1078,10 +1084,6 @@ bool CvDealAI::DoEqualizeDealWithAI(CvDeal* pDeal, PlayerTypes eOtherPlayer)
 		return false;
 
 	bool bMakeOffer = false;
-
-	//reset these
-	pDeal->SetDoNotModifyFrom(false);
-	pDeal->SetDoNotModifyTo(false);
 
 	if (pDeal->IsPeaceTreatyTrade(eOtherPlayer))
 	{
@@ -1109,19 +1111,11 @@ bool CvDealAI::DoEqualizeDealWithAI(CvDeal* pDeal, PlayerTypes eOtherPlayer)
 	else
 	{
 		// Deal is already even enough for us
-		if (BothSidesIncluded(pDeal) && (iTotalValue > 0 || WithinAcceptableRange(eOtherPlayer, pDeal->GetMaxValue(), iTotalValue) && (iOtherTotalValue >= 0 || GET_PLAYER(eOtherPlayer).GetDealAI()->WithinAcceptableRange(eMyPlayer, pDeal->GetMaxValue(),iOtherTotalValue))))
+		if (BothSidesIncluded(pDeal) && (iTotalValue > 0 || WithinAcceptableRange(eOtherPlayer, pDeal->GetMaxValue(), iTotalValue)) && (iOtherTotalValue >= 0 || GET_PLAYER(eOtherPlayer).GetDealAI()->WithinAcceptableRange(eMyPlayer, pDeal->GetMaxValue(),iOtherTotalValue)))
 		{
 			bMakeOffer = true;
 		}
 	}
-
-	// If we set this pointer again it clears the data out!
-	if(pDeal != GC.getGame().GetGameDeals().GetTempDeal())
-	{
-		GC.getGame().GetGameDeals().SetTempDeal(pDeal);
-	}
-
-	CvDeal* pCounterDeal = GC.getGame().GetGameDeals().GetTempDeal();
 
 	if(!bMakeOffer)
 	{
@@ -1134,12 +1128,12 @@ bool CvDealAI::DoEqualizeDealWithAI(CvDeal* pDeal, PlayerTypes eOtherPlayer)
 			int iPrevValue = GetDealValue(pDeal);
 			if (iTotalValue > 0)
 			{
-				DoAddItemsToUs(pCounterDeal, eOtherPlayer, iTotalValue);
+				DoAddItemsToUs(pDeal, eOtherPlayer, iTotalValue);
 				iOtherTotalValue = GET_PLAYER(eOtherPlayer).GetDealAI()->GetDealValue(pDeal);
 			}
 			else if (iOtherTotalValue > 0)
 			{
-				GET_PLAYER(eOtherPlayer).GetDealAI()->DoAddItemsToUs(pCounterDeal, eMyPlayer, iOtherTotalValue);
+				GET_PLAYER(eOtherPlayer).GetDealAI()->DoAddItemsToUs(pDeal, eMyPlayer, iOtherTotalValue);
 				iTotalValue = GetDealValue(pDeal);
 			}			
 
@@ -1150,10 +1144,32 @@ bool CvDealAI::DoEqualizeDealWithAI(CvDeal* pDeal, PlayerTypes eOtherPlayer)
 			iLoops++;
 		}
 
-		// Make sure we haven't removed everything from the deal!
-		if(pCounterDeal->m_TradedItems.size() > 0)
+		bMakeOffer = BothSidesIncluded(pDeal) && (iTotalValue > 0 || WithinAcceptableRange(eOtherPlayer, pDeal->GetMaxValue(), iTotalValue)) && (iOtherTotalValue >= 0 || GET_PLAYER(eOtherPlayer).GetDealAI()->WithinAcceptableRange(eMyPlayer, pDeal->GetMaxValue(), iOtherTotalValue));
+
+		/////////////////////////////
+		// if we don't have a deal yet, we may have been too greedy with the items we picked at first. Try to equalize with gold only instead
+		/////////////////////////////
+		if (!bMakeOffer)
 		{
-			bMakeOffer = BothSidesIncluded(pCounterDeal) && (iTotalValue > 0 || WithinAcceptableRange(eOtherPlayer, pDeal->GetMaxValue(), iTotalValue) && (iOtherTotalValue >= 0 || GET_PLAYER(eOtherPlayer).GetDealAI()->WithinAcceptableRange(eMyPlayer, pDeal->GetMaxValue(), iOtherTotalValue)));
+			pDeal->RemoveAllPossibleItems();
+			iTotalValue = GetDealValue(pDeal);
+			iOtherTotalValue = GET_PLAYER(eOtherPlayer).GetDealAI()->GetDealValue(pDeal);
+			if (iTotalValue > 0)
+			{
+				DoAddItemsToUs(pDeal, eOtherPlayer, iTotalValue, 0, /* bGoldOnly*/ true);
+				iOtherTotalValue = GET_PLAYER(eOtherPlayer).GetDealAI()->GetDealValue(pDeal);
+			}
+			else if (iOtherTotalValue > 0)
+			{
+				GET_PLAYER(eOtherPlayer).GetDealAI()->DoAddItemsToUs(pDeal, eMyPlayer, iOtherTotalValue, 0, /* bGoldOnly*/ true);
+				iTotalValue = GetDealValue(pDeal);
+			}
+		}
+
+		// Make sure we haven't removed everything from the deal!
+		if(pDeal->m_TradedItems.size() > 0)
+		{
+			bMakeOffer = BothSidesIncluded(pDeal) && (iTotalValue > 0 || WithinAcceptableRange(eOtherPlayer, pDeal->GetMaxValue(), iTotalValue)) && (iOtherTotalValue >= 0 || GET_PLAYER(eOtherPlayer).GetDealAI()->WithinAcceptableRange(eMyPlayer, pDeal->GetMaxValue(), iOtherTotalValue));
 		}
 	}
 
@@ -1168,7 +1184,6 @@ int CvDealAI::GetDealValue(CvDeal* pDeal, bool bLogging)
 		pDeal->SetDuration(GC.getGame().getGameSpeedInfo().GetDealDuration());
 
 	PlayerTypes eMyPlayer = GetPlayer()->GetID();
-
 	int iItemValue = -1;
 
 	bool bFromMe = false;
@@ -1274,6 +1289,19 @@ int CvDealAI::GetDealValue(CvDeal* pDeal, bool bLogging)
 	}
 
 	return iDealValue;
+}
+
+
+/// What is the value of 1 GPT? This value is used as the minimum value for certain deal items
+int CvDealAI::GetOneGPTValue() const
+{
+	int iGPTValue = max(1, GC.getGame().getGameSpeedInfo().GetDealDuration());
+	//let's assume an interest rate of 0.5% per turn, no compounding
+	int iInterestPercent = 5 * /*5*/ GD_INT_GET(EACH_GOLD_PER_TURN_VALUE_PERCENT);
+	//subtract interest. 100 gold now is better than 100 gold in the future
+	iGPTValue *= 100;
+	iGPTValue /= max(1, 100 + iInterestPercent);
+	return(iGPTValue);
 }
 
 /// What is a particular item worth?
@@ -1418,9 +1446,26 @@ int CvDealAI::GetGPTforForValueExchange(int iGPTorValue, bool bNumGPTFromValue, 
 	}
 	else
 	{
-		if (!GetPlayer()->isHuman() && bFromMe && iGPTorValue > (GetPlayer()->calculateGoldRate() - 2))
-			return INT_MAX;
-
+		if (!GetPlayer()->isHuman() && bFromMe)
+		{
+			int iNetGold = GetPlayer()->calculateGoldRate();
+			std::vector<CvDeal*> pRenewDeals = GetPlayer()->GetDiplomacyAI()->GetDealsToRenew(eOtherPlayer);
+			if (pRenewDeals.size() > 0)
+			{
+				for (uint i = 0; i < pRenewDeals.size(); i++)
+				{
+					// include the gold of the renew deals if the AI is currently evaluating if it should propose the deal again (deals that are not yet checked for renewal)
+					// if the renewed deal is being offered to the human, don't include it as AI values have already been reset
+					if (!pRenewDeals[i]->IsCheckedForRenewal())
+					{
+						iNetGold += pRenewDeals[i]->GetGoldPerTurnTrade(GetPlayer()->GetID());
+						iNetGold -= pRenewDeals[i]->GetGoldPerTurnTrade(eOtherPlayer);
+					}
+				}
+			}
+			if (iGPTorValue > (iNetGold - 2))
+				return INT_MAX;
+		}
 		iValueTimes100 = (iGPTorValue * iNumTurns);
 
 		//let's assume an interest rate of 0.5% per turn, no compounding
@@ -1483,8 +1528,15 @@ int CvDealAI::GetLuxuryResourceValue(ResourceTypes eResource, int iNumTurns, boo
 	{
 		for (uint i = 0; i < pRenewDeals.size(); i++)
 		{
-			iNumAvailableToUs += pRenewDeals[i]->GetNumResourcesInDeal(GetPlayer()->GetID(), eResource);
-			iNumAvailableToUs -= pRenewDeals[i]->GetNumResourcesInDeal(eOtherPlayer, eResource);
+			// include the gold of the renew deals if the AI is currently evaluating if it should propose the deal again (deals that are not yet checked for renewal)
+			// if the renewed deal is being offered to the human, don't include it as AI values have already been reset
+			if (!pRenewDeals[i]->IsCheckedForRenewal())
+			{
+				iNumAvailableToUs += pRenewDeals[i]->GetNumResourcesInDeal(GetPlayer()->GetID(), eResource);
+				iNumAvailableToUs -= pRenewDeals[i]->GetNumResourcesInDeal(eOtherPlayer, eResource);
+				iCurrentNetGoldOfReceivingPlayer -= pRenewDeals[i]->GetGoldPerTurnTrade(GetPlayer()->GetID());
+				iCurrentNetGoldOfReceivingPlayer += pRenewDeals[i]->GetGoldPerTurnTrade(eOtherPlayer);
+			}
 		}
 	}
 
@@ -2056,13 +2108,23 @@ int CvDealAI::GetStrategicResourceValue(ResourceTypes eResource, int iResourceQu
 	{
 		for (uint i = 0; i < pRenewDeals.size(); i++)
 		{
-			iNumberAvailableToUs += pRenewDeals[i]->GetNumResourcesInDeal(GetPlayer()->GetID(), eResource);
-			iNumberAvailableToUs -= pRenewDeals[i]->GetNumResourcesInDeal(eOtherPlayer, eResource);
+			// include the gold of the renew deals if the AI is currently evaluating if it should propose the deal again (deals that are not yet checked for renewal)
+			// if the renewed deal is being offered to the human, don't include it as AI values have already been reset
+			if (!pRenewDeals[i]->IsCheckedForRenewal())
+			{
+				iNumberAvailableToUs += pRenewDeals[i]->GetNumResourcesInDeal(GetPlayer()->GetID(), eResource);
+				iNumberAvailableToUs -= pRenewDeals[i]->GetNumResourcesInDeal(eOtherPlayer, eResource);
+				iCurrentNetGoldOfReceivingPlayer -= pRenewDeals[i]->GetGoldPerTurnTrade(GetPlayer()->GetID());
+				iCurrentNetGoldOfReceivingPlayer += pRenewDeals[i]->GetGoldPerTurnTrade(eOtherPlayer);
+			}
 		}
 	}
 
 	//this is to reduce rounding errors
 	int iValueScale = 10;
+
+	//each item of a strategic resource has as minimum value the value of 1 GPT
+	int iGPTValue = GetOneGPTValue();
 
 	//more or less arbitrary base value
 	int iItemValue = (GC.getGame().getCurrentEra()+2) * 5;
@@ -2165,22 +2227,34 @@ int CvDealAI::GetStrategicResourceValue(ResourceTypes eResource, int iResourceQu
 
 		//Scale with game speed.
 		iItemValue *= iNumTurns;
+		iItemValue /= iValueScale;
 
 		// Scale with resource quantity.
 		// If this trade leaves us with 1 or 2 of the resource, we'll charge way more for those.
 		int iFinalValue = 0;
-
+		int iValueToAdd = 0;
 		for (int iLoop = 1; iLoop <= iResourceQuantity; iLoop++)
 		{
 			int iAmountAfterThisResource = iNumberAvailableToUs - iLoop;
 
 			if (iAmountAfterThisResource <= 2)
-				iFinalValue += iItemValue * 10;
+				iValueToAdd = iItemValue * 10;
 			else
-				iFinalValue += iItemValue;
+				iValueToAdd = iItemValue;
+
+			//round to the next multiple of iGPTValue, but at least 1
+			//if (iValueToAdd > 0)
+			//{
+			//	iValueToAdd = max(1, iValueToAdd / iGPTValue + ((iValueToAdd % iGPTValue >= (iGPTValue / 2)) ? 1 : 0));
+			//	iValueToAdd *= iGPTValue;
+			//}
+			if(iValueToAdd > 0)
+				iValueToAdd = max(iValueToAdd, iGPTValue);
+			
+			iFinalValue += iValueToAdd;
 		}
 
-		return iFinalValue/iValueScale;
+		return iFinalValue;
 	}
 	else
 	{
@@ -2273,16 +2347,17 @@ int CvDealAI::GetStrategicResourceValue(ResourceTypes eResource, int iResourceQu
 
 		//Scale with game speed.
 		iItemValue *= iNumTurns;
+		iItemValue /= iValueScale;
 
 		// Scale with resource quantity.
 		// How much of an excess would we have after this purchase? Diminishing returns, bby.
 		int iFinalValue = 0;
-
+		int iValueToAdd = 0;
 		for (int iLoop = 1; iLoop <= iResourceQuantity; iLoop++)
 		{
-			int iValueToAdd = iItemValue;
 			int iAmountAfterThisResource = iLoop + iNumberAvailableToUs;
 
+			iValueToAdd = iItemValue;
 			if (iAmountAfterThisResource > 5)
 			{
 				iValueToAdd = 0;
@@ -2297,10 +2372,19 @@ int CvDealAI::GetStrategicResourceValue(ResourceTypes eResource, int iResourceQu
 				iValueToAdd += iItemValue / 2;
 			}
 
+			//round to the next multiple of iGPTValue, but at least 1
+			//if (iValueToAdd != 0)
+			//{
+			//	iValueToAdd = max(1, iValueToAdd / iGPTValue + ((iValueToAdd % iGPTValue >= (iGPTValue / 2)) ? 1 : 0));
+			//	iValueToAdd *= iGPTValue;
+			//}
+
+			if (iValueToAdd > 0)
+				iValueToAdd = max(iValueToAdd, iGPTValue);
 			iFinalValue += iValueToAdd;
 		}
 
-		return iFinalValue/iValueScale;
+		return iFinalValue;
 	}
 }
 
@@ -2814,7 +2898,7 @@ int CvDealAI::GetOpenBordersValue(bool bFromMe, PlayerTypes eOtherPlayer, bool b
 			iItemValue = (iItemValue + iReverseValue)/2;
 	}
 
-	return iItemValue;
+	return max(iItemValue, GetOneGPTValue());
 }
 
 /// How much is a Defensive Pact worth?
@@ -3264,11 +3348,11 @@ int CvDealAI::GetThirdPartyWarValue(bool bFromMe, PlayerTypes eOtherPlayer, Team
 	// AI sanity check - who else would we go to war with?
 	if (!GET_PLAYER(ePlayerDeclaringWar).isHuman())
 	{
-		vector<PlayerTypes> vLinkedWarPlayers = pDiploAI->GetLinkedWarPlayers(eWithPlayer, false, true, false);
-		for (std::vector<PlayerTypes>::iterator it = vLinkedWarPlayers.begin(); it != vLinkedWarPlayers.end(); it++)
+		vector<PlayerTypes> vDefensiveWarAllies = pDiploAI->GetDefensiveWarAllies(eWithPlayer, /*bIncludeMinors*/ true, /*bReverseMode*/ true, /*bNewWarsOnly*/ true);
+		for (std::vector<PlayerTypes>::iterator it = vDefensiveWarAllies.begin(); it != vDefensiveWarAllies.end(); it++)
 		{
 			// Would we be declaring war on a powerful neighbor?
-			if (GET_PLAYER(ePlayerDeclaringWar).GetProximityToPlayer(*it) >= PLAYER_PROXIMITY_CLOSE)
+			if (GET_PLAYER(*it).GetProximityToPlayer(ePlayerDeclaringWar) >= PLAYER_PROXIMITY_CLOSE)
 			{
 				if (GET_PLAYER(*it).isMajorCiv())
 				{
@@ -3279,13 +3363,7 @@ int CvDealAI::GetThirdPartyWarValue(bool bFromMe, PlayerTypes eOtherPlayer, Team
 					// If we're already planning a war/demand against them, then we don't care.
 					else if (pDiploAI->GetCivApproach(*it) != CIV_APPROACH_WAR && pDiploAI->GetDemandTargetPlayer() != GET_PLAYER(*it).GetID())
 					{
-						// Bold AIs will take more risks.
-						if (pDiploAI->GetBoldness() > 6)
-						{
-							if (pDiploAI->GetPlayerMilitaryStrengthComparedToUs(*it) > STRENGTH_STRONG)
-								return INT_MAX;
-						}
-						else if (pDiploAI->GetPlayerMilitaryStrengthComparedToUs(*it) > STRENGTH_AVERAGE)
+						if (pDiploAI->GetMilitaryStrengthComparedToUs(*it) > STRENGTH_AVERAGE)
 						{
 							return INT_MAX;
 						}
@@ -3299,7 +3377,7 @@ int CvDealAI::GetThirdPartyWarValue(bool bFromMe, PlayerTypes eOtherPlayer, Team
 				{
 					if (pDiploAI->GetCivApproach(*it) > CIV_APPROACH_HOSTILE)
 					{
-						if (pDiploAI->GetPlayerMilitaryStrengthComparedToUs(*it) > STRENGTH_AVERAGE)
+						if (pDiploAI->GetMilitaryStrengthComparedToUs(*it) > STRENGTH_AVERAGE)
 						{
 							return INT_MAX;
 						}
@@ -3310,12 +3388,12 @@ int CvDealAI::GetThirdPartyWarValue(bool bFromMe, PlayerTypes eOtherPlayer, Team
 	}
 
 	//what does a basic unit cost these days, use that as a base
-	UnitTypes eUnit = GC.getGame().GetCompetitiveSpawnUnitType(ePlayerDeclaringWar, true, true, false, false, true);
+	UnitTypes eUnit = GC.getGame().GetCompetitiveSpawnUnitType(ePlayerDeclaringWar, true, true, false, false, true, false);
 	int iItemValue = pCapital->GetPurchaseCost(eUnit);
 
-	// How much does this AI like to go to war?
-	int iWarApproachWeight = pDiploAI->GetMajorCivApproachBias(CIV_APPROACH_WAR);
-	iItemValue *= max(1, (5 - iWarApproachWeight/2));
+	// Scale with WarmongerHate flavor
+	// Rationale: If the AI hates warmongers, they'll require more in order to go to war, and they'll also pay more to have others wage their battles
+	iItemValue *= bFromMe ? GetPlayer()->GetDiplomacyAI()->GetWarmongerHate() : GetPlayer()->GetDiplomacyAI()->GetWarmongerHate() / 2;
 
 	if (!GET_PLAYER(ePlayerDeclaringWar).isHuman())
 	{
@@ -3476,25 +3554,10 @@ int CvDealAI::GetVoteCommitmentValue(bool bFromMe, PlayerTypes eOtherPlayer, int
 			iValue /= 100;
 			break;
 		}
-		CvEnactProposal* pProposal = pLeague->GetEnactProposal(iProposalID);
-		if (pProposal != NULL)
+		if (bRepeal)
 		{
-			// Is this the World Leader vote?
-			if (pProposal->GetEffects()->bDiplomaticVictory)
-			{
-				int iOurVotes = pLeague->CalculateStartingVotesForMember(GetPlayer()->GetID());
-				int iNeededVotes = GC.getGame().GetVotesNeededForDiploVictory();
-				int iOurPercent = (iOurVotes * 100) / max(1,iNeededVotes);
-				if (iOurPercent >= 50)
-				{
-					return INT_MAX;
-				}
-				else
-				{
-					iValue *= 20;
-				}
-			}
-			else
+			CvRepealProposal* pProposal = pLeague->GetRepealProposal(iProposalID);
+			if (pProposal != NULL)
 			{
 				PlayerTypes eTargetPlayer = NO_PLAYER;
 				ResolutionDecisionTypes eProposerDecision = pProposal->GetProposerDecision()->GetType();
@@ -3502,7 +3565,7 @@ int CvDealAI::GetVoteCommitmentValue(bool bFromMe, PlayerTypes eOtherPlayer, int
 					eProposerDecision == RESOLUTION_DECISION_MAJOR_CIV_MEMBER ||
 					eProposerDecision == RESOLUTION_DECISION_OTHER_MAJOR_CIV_MEMBER)
 				{
-					eTargetPlayer = (PlayerTypes) pProposal->GetProposerDecision()->GetDecision();
+					eTargetPlayer = (PlayerTypes)pProposal->GetProposerDecision()->GetDecision();
 					// They shouldn't ask us to vote on things that have to do with us personally.
 					if (eTargetPlayer != NO_PLAYER && GET_PLAYER(eTargetPlayer).getTeam() == GetPlayer()->getTeam())
 					{
@@ -3511,12 +3574,48 @@ int CvDealAI::GetVoteCommitmentValue(bool bFromMe, PlayerTypes eOtherPlayer, int
 				}
 			}
 		}
+		else
+		{
+			CvEnactProposal* pProposal = pLeague->GetEnactProposal(iProposalID);
+			if (pProposal != NULL)
+			{
+				// Is this the World Leader vote?
+				if (pProposal->GetEffects()->bDiplomaticVictory)
+				{
+					int iOurVotes = pLeague->CalculateStartingVotesForMember(GetPlayer()->GetID());
+					int iNeededVotes = GC.getGame().GetVotesNeededForDiploVictory();
+					int iOurPercent = (iOurVotes * 100) / max(1, iNeededVotes);
+					if (iOurPercent >= 50)
+					{
+						return INT_MAX;
+					}
+					else
+					{
+						iValue *= 20;
+					}
+				}
+				else
+				{
+					PlayerTypes eTargetPlayer = NO_PLAYER;
+					ResolutionDecisionTypes eProposerDecision = pProposal->GetProposerDecision()->GetType();
+					if (eProposerDecision == RESOLUTION_DECISION_ANY_MEMBER ||
+						eProposerDecision == RESOLUTION_DECISION_MAJOR_CIV_MEMBER ||
+						eProposerDecision == RESOLUTION_DECISION_OTHER_MAJOR_CIV_MEMBER)
+					{
+						eTargetPlayer = (PlayerTypes)pProposal->GetProposerDecision()->GetDecision();
+						// They shouldn't ask us to vote on things that have to do with us personally.
+						if (eTargetPlayer != NO_PLAYER && GET_PLAYER(eTargetPlayer).getTeam() == GetPlayer()->getTeam())
+						{
+							return INT_MAX;
+						}
+					}
+				}
+			}
+		}
 	}
 	// Giving their votes to something we want - Higher value for voting on things we like
 	else
 	{
-		CvEnactProposal* pProposal = pLeague->GetEnactProposal(iProposalID);
-
 		// Adjust based on how favorable this proposal is for us
 		CvLeagueAI::DesireLevels eDesire = GetPlayer()->GetLeagueAI()->EvaluateVoteForTrade(iProposalID, iVoteChoice, iNumVotes, bRepeal);
 		switch (eDesire)
@@ -3578,28 +3677,10 @@ int CvDealAI::GetVoteCommitmentValue(bool bFromMe, PlayerTypes eOtherPlayer, int
 			break;
 		}
 
-		if (pProposal != NULL)
+		if (bRepeal)
 		{
-			if (pProposal->GetEffects()->bDiplomaticVictory)
-			{
-				PlayerTypes eLeader = GET_TEAM(GetPlayer()->getTeam()).getLeaderID();
-				if (eLeader == NO_PLAYER)
-					return INT_MAX;
-
-				int iOurVotes = pLeague->CalculateStartingVotesForMember(eLeader);
-				int iNeededVotes = GC.getGame().GetVotesNeededForDiploVictory();
-				PlayerTypes eChoicePlayer = (PlayerTypes)iVoteChoice;
-				
-				if (iOurVotes + iNumVotes < iNeededVotes || eChoicePlayer != eLeader)
-				{
-					return INT_MAX;
-				}
-				else
-				{
-					iValue *= 10;
-				}
-			}
-			else
+			CvRepealProposal* pProposal = pLeague->GetRepealProposal(iProposalID);
+			if (pProposal != NULL)
 			{
 				PlayerTypes eTargetPlayer = NO_PLAYER;
 				ResolutionDecisionTypes eProposerDecision = pProposal->GetProposerDecision()->GetType();
@@ -3612,6 +3693,48 @@ int CvDealAI::GetVoteCommitmentValue(bool bFromMe, PlayerTypes eOtherPlayer, int
 					if (eTargetPlayer != NO_PLAYER && GET_PLAYER(eTargetPlayer).getTeam() == GET_PLAYER(eOtherPlayer).getTeam())
 					{
 						return INT_MAX;
+					}
+				}
+			}
+		}
+		else
+		{
+			CvEnactProposal* pProposal = pLeague->GetEnactProposal(iProposalID);
+			if (pProposal != NULL)
+			{
+				if (pProposal->GetEffects()->bDiplomaticVictory)
+				{
+					PlayerTypes eLeader = GET_TEAM(GetPlayer()->getTeam()).getLeaderID();
+					if (eLeader == NO_PLAYER)
+						return INT_MAX;
+
+					int iOurVotes = pLeague->CalculateStartingVotesForMember(eLeader);
+					int iNeededVotes = GC.getGame().GetVotesNeededForDiploVictory();
+					PlayerTypes eChoicePlayer = (PlayerTypes)iVoteChoice;
+
+					if (iOurVotes + iNumVotes < iNeededVotes || eChoicePlayer != eLeader)
+					{
+						return INT_MAX;
+					}
+					else
+					{
+						iValue *= 10;
+					}
+				}
+				else
+				{
+					PlayerTypes eTargetPlayer = NO_PLAYER;
+					ResolutionDecisionTypes eProposerDecision = pProposal->GetProposerDecision()->GetType();
+					if (eProposerDecision == RESOLUTION_DECISION_ANY_MEMBER ||
+						eProposerDecision == RESOLUTION_DECISION_MAJOR_CIV_MEMBER ||
+						eProposerDecision == RESOLUTION_DECISION_OTHER_MAJOR_CIV_MEMBER)
+					{
+						eTargetPlayer = (PlayerTypes)pProposal->GetProposerDecision()->GetDecision();
+						//we don't ask them about things that involve themselves!
+						if (eTargetPlayer != NO_PLAYER && GET_PLAYER(eTargetPlayer).getTeam() == GET_PLAYER(eOtherPlayer).getTeam())
+						{
+							return INT_MAX;
+						}
 					}
 				}
 			}
@@ -3631,7 +3754,7 @@ int CvDealAI::GetVoteCommitmentValue(bool bFromMe, PlayerTypes eOtherPlayer, int
 }
 
 /// See if adding a Vote Commitment to their side of the deal helps even out pDeal
-void CvDealAI::DoAddVoteCommitmentToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddVoteCommitmentToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
@@ -3644,7 +3767,7 @@ void CvDealAI::DoAddVoteCommitmentToThem(CvDeal* pDeal, PlayerTypes eThem, int& 
 		return;
 	}
 
-	if(iTotalValue < 0)
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue > iThresholdValue))
 	{
 		PlayerTypes eMyPlayer = GetPlayer()->GetID();
 
@@ -3694,9 +3817,9 @@ void CvDealAI::DoAddVoteCommitmentToThem(CvDeal* pDeal, PlayerTypes eThem, int& 
 							bool bRepeal = !it->bEnact;
 							if(iProposalID == ID)
 							{
-								if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iWeight, false))
+								if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iWeight, false))
 								{
-									pDeal->AddVoteCommitment(eThem, iProposalID, iVoteChoice, iNumVotes, bRepeal);
+									pDeal->AddVoteCommitment(eThem, iProposalID, iVoteChoice, iNumVotes, bRepeal, false);
 									iTotalValue = GetDealValue(pDeal);
 									return;
 								}
@@ -3711,7 +3834,7 @@ void CvDealAI::DoAddVoteCommitmentToThem(CvDeal* pDeal, PlayerTypes eThem, int& 
 }
 
 /// See if adding a Vote Commitment to our side of the deal helps even out pDeal
-void CvDealAI::DoAddVoteCommitmentToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddVoteCommitmentToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS)
@@ -3723,7 +3846,7 @@ void CvDealAI::DoAddVoteCommitmentToUs(CvDeal* pDeal, PlayerTypes eThem, int& iT
 		return;
 	}
 
-	if(iTotalValue > 0)
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue < iThresholdValue))
 	{
 		PlayerTypes eMyPlayer = GetPlayer()->GetID();
 
@@ -3780,9 +3903,9 @@ void CvDealAI::DoAddVoteCommitmentToUs(CvDeal* pDeal, PlayerTypes eThem, int& iT
 							{
 								if (iProposalID == ID)
 								{
-									if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iWeight, true))
+									if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iWeight, true))
 									{
-										pDeal->AddVoteCommitment(eMyPlayer, iProposalID, iVoteChoice, iNumVotes, bRepeal);
+										pDeal->AddVoteCommitment(eMyPlayer, iProposalID, iVoteChoice, iNumVotes, bRepeal, false);
 										iTotalValue = GetDealValue(pDeal);
 										return;
 									}
@@ -3798,7 +3921,7 @@ void CvDealAI::DoAddVoteCommitmentToUs(CvDeal* pDeal, PlayerTypes eThem, int& iT
 
 
 /// See if adding 3rd Party War to their side of the deal helps even out pDeal
-void CvDealAI::DoAddThirdPartyWarToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddThirdPartyWarToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
@@ -3808,7 +3931,7 @@ void CvDealAI::DoAddThirdPartyWarToThem(CvDeal* pDeal, PlayerTypes eThem, int& i
 	CvWeightedVector<int> viTradeValues;
 
 	
-	if(iTotalValue < 0)
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue > iThresholdValue))
 	{
 		PlayerTypes eMyPlayer = GetPlayer()->GetID();
 		PlayerTypes eLoopPlayer;
@@ -3860,9 +3983,9 @@ void CvDealAI::DoAddThirdPartyWarToThem(CvDeal* pDeal, PlayerTypes eThem, int& i
 						
 					TeamTypes eOtherTeam = GET_PLAYER(eLoopPlayer).getTeam();
 
-					if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iWeight, false))
+					if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iWeight, false))
 					{
-						pDeal->AddThirdPartyWar(eThem, eOtherTeam);
+						pDeal->AddThirdPartyWar(eThem, eOtherTeam, false);
 						iTotalValue = GetDealValue(pDeal);
 						return;
 					}
@@ -3874,13 +3997,13 @@ void CvDealAI::DoAddThirdPartyWarToThem(CvDeal* pDeal, PlayerTypes eThem, int& i
 }
 
 /// See if adding 3rd Party War to our side of the deal helps even out pDeal
-void CvDealAI::DoAddThirdPartyWarToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddThirdPartyWarToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS)
 	CvAssertMsg(eThem != GetPlayer()->GetID(), "DEAL_AI: Trying to add Vote Commitment to Us, but them is us. Please send Anton your save file and version.");
 	
-	if(iTotalValue > 0)
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue < iThresholdValue))
 	{
 		PlayerTypes eMyPlayer = GetPlayer()->GetID();
 		PlayerTypes eLoopPlayer;
@@ -3908,9 +4031,9 @@ void CvDealAI::DoAddThirdPartyWarToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTo
 						{
 							continue;
 						}
-						if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iItemValue, true))
+						if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iItemValue, true))
 						{
-							pDeal->AddThirdPartyWar(eMyPlayer, eOtherTeam);
+							pDeal->AddThirdPartyWar(eMyPlayer, eOtherTeam, false);
 							iTotalValue = GetDealValue(pDeal);
 							return;
 						}
@@ -3921,7 +4044,7 @@ void CvDealAI::DoAddThirdPartyWarToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTo
 	}
 }
 /// See if adding 3rd Party Peace to their side of the deal helps even out pDeal
-void CvDealAI::DoAddThirdPartyPeaceToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddThirdPartyPeaceToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
@@ -3930,7 +4053,7 @@ void CvDealAI::DoAddThirdPartyPeaceToThem(CvDeal* pDeal, PlayerTypes eThem, int&
 	CvWeightedVector<int> viTradeValues;
 
 
-	if(iTotalValue < 0)
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue > iThresholdValue))
 	{
 		PlayerTypes eMyPlayer = GetPlayer()->GetID();
 		PlayerTypes eLoopPlayer;
@@ -3978,9 +4101,9 @@ void CvDealAI::DoAddThirdPartyPeaceToThem(CvDeal* pDeal, PlayerTypes eThem, int&
 						
 					TeamTypes eOtherTeam = GET_PLAYER(eLoopPlayer).getTeam();
 
-					if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iWeight, false))
+					if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iWeight, false))
 					{
-						pDeal->AddThirdPartyWar(eThem, eOtherTeam);
+						pDeal->AddThirdPartyWar(eThem, eOtherTeam, false);
 						iTotalValue = GetDealValue(pDeal);
 						return;
 					}								
@@ -3991,13 +4114,13 @@ void CvDealAI::DoAddThirdPartyPeaceToThem(CvDeal* pDeal, PlayerTypes eThem, int&
 }
 
 /// See if adding a 3rd Party Peace deal to our side of the deal helps even out pDeal
-void CvDealAI::DoAddThirdPartyPeaceToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddThirdPartyPeaceToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS)
 	CvAssertMsg(eThem != GetPlayer()->GetID(), "DEAL_AI: Trying to add Vote Commitment to Us, but them is us. Please send Anton your save file and version.");
 
-	if(iTotalValue > 0)
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue < iThresholdValue))
 	{
 		PlayerTypes eMyPlayer = GetPlayer()->GetID();
 		PlayerTypes eLoopPlayer;
@@ -4021,9 +4144,9 @@ void CvDealAI::DoAddThirdPartyPeaceToUs(CvDeal* pDeal, PlayerTypes eThem, int& i
 						{
 							continue;
 						}
-						if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iItemValue, true))
+						if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iItemValue, true))
 						{
-							pDeal->AddThirdPartyWar(eMyPlayer, eOtherTeam);
+							pDeal->AddThirdPartyWar(eMyPlayer, eOtherTeam, false);
 							iTotalValue = GetDealValue(pDeal);
 						}
 					}
@@ -4034,7 +4157,7 @@ void CvDealAI::DoAddThirdPartyPeaceToUs(CvDeal* pDeal, PlayerTypes eThem, int& i
 }
 
 /// See if adding a Resource to their side of the deal helps even out pDeal
-void CvDealAI::DoAddLuxuryResourceToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddLuxuryResourceToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
@@ -4043,7 +4166,7 @@ void CvDealAI::DoAddLuxuryResourceToThem(CvDeal* pDeal, PlayerTypes eThem, int& 
 	CvWeightedVector<int> viTradeValues;
 
 	int iDealDuration = pDeal->GetDuration();
-	if(iTotalValue < 0 || pDeal->GetDemandingPlayer() != NO_PLAYER)
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue > iThresholdValue))
 	{
 		PlayerTypes eMyPlayer = GetPlayer()->GetID();
 
@@ -4145,12 +4268,12 @@ void CvDealAI::DoAddLuxuryResourceToThem(CvDeal* pDeal, PlayerTypes eThem, int& 
 
 					iResourceQuantity = 1;
 
-					if (pDeal->GetDemandingPlayer() != NO_PLAYER || !TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iWeight, false))
+					if (pDeal->GetDemandingPlayer() != NO_PLAYER || !TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iWeight, false))
 					{
 						// Try to change the current item if it already exists, otherwise add it
 						if (!pDeal->ChangeResourceTrade(eThem, eResource, iResourceQuantity, iDealDuration))
 						{
-							pDeal->AddResourceTrade(eThem, eResource, iResourceQuantity, iDealDuration);
+							pDeal->AddResourceTrade(eThem, eResource, iResourceQuantity, iDealDuration, false);
 							iTotalValue = GetDealValue(pDeal);
 						}
 					}
@@ -4161,7 +4284,7 @@ void CvDealAI::DoAddLuxuryResourceToThem(CvDeal* pDeal, PlayerTypes eThem, int& 
 }
 
 /// See if adding a Resource to our side of the deal helps even out pDeal
-void CvDealAI::DoAddLuxuryResourceToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddLuxuryResourceToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
@@ -4171,7 +4294,7 @@ void CvDealAI::DoAddLuxuryResourceToUs(CvDeal* pDeal, PlayerTypes eThem, int& iT
 
 
 	int iDealDuration = pDeal->GetDuration();
-	if(iTotalValue > 0)
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue < iThresholdValue))
 	{
 		PlayerTypes eMyPlayer = GetPlayer()->GetID();
 
@@ -4242,12 +4365,12 @@ void CvDealAI::DoAddLuxuryResourceToUs(CvDeal* pDeal, PlayerTypes eThem, int& iT
 							
 					iResourceQuantity = 1;
 
-					if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iWeight, true))
+					if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iWeight, true))
 					{
 						// Try to change the current item if it already exists, otherwise add it
 						if (!pDeal->ChangeResourceTrade(eMyPlayer, eResource, iResourceQuantity, iDealDuration))
 						{
-							pDeal->AddResourceTrade(eMyPlayer, eResource, iResourceQuantity, iDealDuration);
+							pDeal->AddResourceTrade(eMyPlayer, eResource, iResourceQuantity, iDealDuration, false);
 							iTotalValue = GetDealValue(pDeal);
 						}
 					}
@@ -4258,7 +4381,7 @@ void CvDealAI::DoAddLuxuryResourceToUs(CvDeal* pDeal, PlayerTypes eThem, int& iT
 }
 
 /// See if adding a Resource to their side of the deal helps even out pDeal
-void CvDealAI::DoAddStrategicResourceToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddStrategicResourceToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
@@ -4267,97 +4390,97 @@ void CvDealAI::DoAddStrategicResourceToThem(CvDeal* pDeal, PlayerTypes eThem, in
 	typedef pair<ResourceTypes, int> TradeItem;
 	vector<OptionWithScore<TradeItem>> vOptions;
 
-	if (iTotalValue < 1)
-		return;
-
-	PlayerTypes eMyPlayer = GetPlayer()->GetID();
-	// Now look at Strategic Resources
-	for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue > iThresholdValue))
 	{
-		ResourceTypes eResource = (ResourceTypes)iResourceLoop;
-
-		const CvResourceInfo* pkResourceInfo = GC.getResourceInfo(eResource);
-		if (pkResourceInfo == NULL || pkResourceInfo->getResourceUsage() != RESOURCEUSAGE_STRATEGIC)
-			continue;
-
-		//ignore if already in deal on the other side
-		if (pDeal->IsResourceTrade(eMyPlayer, eResource))
-			continue;
-
-		//AI should not sell if they are importing in parallel
-		if (!GET_PLAYER(eThem).isHuman() && GET_PLAYER(eThem).getResourceImportFromMajor(eResource)>0)
-			continue;
-
-		// Don't bother looking at this resource if they don't even have any of it
-		int iMaxResourceQuantity = GET_PLAYER(eThem).getNumResourceAvailable(eResource, false);
-		if (iMaxResourceQuantity < 1)
-			continue;
-
-		// Don't try to buy all of it
-		int iResourceQuantity = 0;
-		
-		int iAlreadyInDeal = pDeal->GetNumResourcesInDeal(eThem, eResource);
-		if (iAlreadyInDeal > 0)
+		PlayerTypes eMyPlayer = GetPlayer()->GetID();
+		// Now look at Strategic Resources
+		for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
 		{
-			iResourceQuantity = min(iAlreadyInDeal + 1, iMaxResourceQuantity);
-		}
-		else
-		{
-			iResourceQuantity = max((iMaxResourceQuantity / 3), 1);
-		}
+			ResourceTypes eResource = (ResourceTypes)iResourceLoop;
 
-		// Don't buy more than we're willing to pay for
-		int iNumberWeAlreadyHave = GetPlayer()->getNumResourceAvailable(eResource, true);
-		if (iNumberWeAlreadyHave >= 5)
-			continue;
-
-		if ((iNumberWeAlreadyHave + iResourceQuantity) > 5)
-		{
-			int iAmountToCap = 5 - iNumberWeAlreadyHave;
-
-			if (iAlreadyInDeal > iAmountToCap)
-			{
-				if (!pDeal->ChangeResourceTrade(eThem, eResource, iAmountToCap, pDeal->GetDuration()))
-					continue;
-			}
-
-			iResourceQuantity = min(iResourceQuantity, iAmountToCap);
-		}
-
-		// See if they can actually trade it to us
-		if (pDeal->IsPossibleToTradeItem(eThem, eMyPlayer, TRADE_ITEM_RESOURCES, eResource, iResourceQuantity))
-		{
-			int iItemValue = GetTradeItemValue(TRADE_ITEM_RESOURCES, /*bFromMe*/ false, eThem, eResource, iResourceQuantity, -1, /*bFlag1*/false, pDeal->GetDuration());
-
-			// If adding this to the deal doesn't take it over the limit, do it (pick best option below)
-			if (iItemValue == INT_MAX)
+			const CvResourceInfo* pkResourceInfo = GC.getResourceInfo(eResource);
+			if (pkResourceInfo == NULL || pkResourceInfo->getResourceUsage() != RESOURCEUSAGE_STRATEGIC)
 				continue;
 
-			vOptions.push_back(OptionWithScore<TradeItem>(TradeItem(eResource, iResourceQuantity), iItemValue));
-		}
-	}
+			//ignore if already in deal on the other side
+			if (pDeal->IsResourceTrade(eMyPlayer, eResource))
+				continue;
 
-	std::stable_sort(vOptions.begin(), vOptions.end());
-	for (size_t i=0; i<vOptions.size(); i++)
-	{
-		ResourceTypes eResource = vOptions[i].option.first;
-		int iQuantity = vOptions[i].option.second;
-		int iScore = vOptions[i].score;
+			//AI should not sell if they are importing in parallel
+			if (!GET_PLAYER(eThem).isHuman() && GET_PLAYER(eThem).getResourceImportFromMajor(eResource) > 0)
+				continue;
 
-		if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iScore, false))
-		{
-			// Try to change the current item if it already exists, otherwise add it
-			if (!pDeal->ChangeResourceTrade(eThem, eResource, iQuantity, pDeal->GetDuration()))
+			// Don't bother looking at this resource if they don't even have any of it
+			int iMaxResourceQuantity = GET_PLAYER(eThem).getNumResourceAvailable(eResource, false);
+			if (iMaxResourceQuantity < 1)
+				continue;
+
+			// Don't try to buy all of it
+			int iResourceQuantity = 0;
+
+			int iAlreadyInDeal = pDeal->GetNumResourcesInDeal(eThem, eResource);
+			if (iAlreadyInDeal > 0)
 			{
-				pDeal->AddResourceTrade(eThem, eResource, iQuantity, pDeal->GetDuration());
-				iTotalValue = GetDealValue(pDeal);
+				iResourceQuantity = min(iAlreadyInDeal + 1, iMaxResourceQuantity);
+			}
+			else
+			{
+				iResourceQuantity = max((iMaxResourceQuantity / 3), 1);
+			}
+
+			// Don't buy more than we're willing to pay for
+			int iNumberWeAlreadyHave = GetPlayer()->getNumResourceAvailable(eResource, true);
+			if (iNumberWeAlreadyHave >= 5)
+				continue;
+
+			if ((iNumberWeAlreadyHave + iResourceQuantity) > 5)
+			{
+				int iAmountToCap = 5 - iNumberWeAlreadyHave;
+
+				if (iAlreadyInDeal > iAmountToCap)
+				{
+					if (!pDeal->ChangeResourceTrade(eThem, eResource, iAmountToCap, pDeal->GetDuration()))
+						continue;
+				}
+
+				iResourceQuantity = min(iResourceQuantity, iAmountToCap);
+			}
+
+			// See if they can actually trade it to us
+			if (pDeal->IsPossibleToTradeItem(eThem, eMyPlayer, TRADE_ITEM_RESOURCES, eResource, iResourceQuantity))
+			{
+				int iItemValue = GetTradeItemValue(TRADE_ITEM_RESOURCES, /*bFromMe*/ false, eThem, eResource, iResourceQuantity, -1, /*bFlag1*/false, pDeal->GetDuration());
+
+				// If adding this to the deal doesn't take it over the limit, do it (pick best option below)
+				if (iItemValue == INT_MAX)
+					continue;
+
+				vOptions.push_back(OptionWithScore<TradeItem>(TradeItem(eResource, iResourceQuantity), iItemValue));
+			}
+		}
+
+		std::stable_sort(vOptions.begin(), vOptions.end());
+		for (size_t i = 0; i < vOptions.size(); i++)
+		{
+			ResourceTypes eResource = vOptions[i].option.first;
+			int iQuantity = vOptions[i].option.second;
+			int iScore = vOptions[i].score;
+
+			if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iScore, false))
+			{
+				// Try to change the current item if it already exists, otherwise add it
+				if (!pDeal->ChangeResourceTrade(eThem, eResource, iQuantity, pDeal->GetDuration()))
+				{
+					pDeal->AddResourceTrade(eThem, eResource, iQuantity, pDeal->GetDuration(), false);
+					iTotalValue = GetDealValue(pDeal);
+				}
 			}
 		}
 	}
 }
 
 /// See if adding a Resource to our side of the deal helps even out pDeal
-void CvDealAI::DoAddStrategicResourceToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddStrategicResourceToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
@@ -4366,81 +4489,82 @@ void CvDealAI::DoAddStrategicResourceToUs(CvDeal* pDeal, PlayerTypes eThem, int&
 	typedef pair<ResourceTypes, int> TradeItem;
 	vector<OptionWithScore<TradeItem>> vOptions;
 
-	if (iTotalValue < 1)
-		return;
-
-	PlayerTypes eMyPlayer = GetPlayer()->GetID();
-	for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue < iThresholdValue))
 	{
-		ResourceTypes eResource = (ResourceTypes)iResourceLoop;
 
-		const CvResourceInfo* pkResourceInfo = GC.getResourceInfo(eResource);
-		if (pkResourceInfo == NULL || pkResourceInfo->getResourceUsage() != RESOURCEUSAGE_STRATEGIC)
-			continue;
-
-		//ignore if already in the deal on the other side
-		if (pDeal->IsResourceTrade(eThem, eResource))
-			continue;
-
-		//don't sell if we're importing at the same time
-		//todo: or is this a chance for arbitrage?
-		if (GET_PLAYER(eMyPlayer).getResourceImportFromMajor(eResource) > 0)
-			continue;
-
-		//always keep some for ourselves
-		int iMaxResourceQuantity = GET_PLAYER(eMyPlayer).getNumResourceAvailable(eResource, false)/2;
-		if (iMaxResourceQuantity < 2)
-			continue;
-
-		//how do we judge this? A good rule of thumb: never give away more than we're getting
-		//but don't try to buy more than twice as much as were getting either
-		int iResourceQuantity = 1;
-		int iTheirResourceCount = pDeal->GetNumStrategicsOnTheirSide(eThem);
-		if (iMaxResourceQuantity < iTheirResourceCount / 2)
-			continue;
-		else if (iMaxResourceQuantity > iTheirResourceCount)
-			//offer max 2 copies more
-			iResourceQuantity = min(iMaxResourceQuantity,iTheirResourceCount+2);
-
-		//already in deal? add one more to the mix and reset quantity
-		if (pDeal->IsResourceTrade(eThem, eResource))
+		PlayerTypes eMyPlayer = GetPlayer()->GetID();
+		for (int iResourceLoop = 0; iResourceLoop < GC.getNumResourceInfos(); iResourceLoop++)
 		{
-			iResourceQuantity = pDeal->GetNumResourcesInDeal(eMyPlayer, eResource);
-			pDeal->RemoveResourceTrade(eResource);
-			//and bump the quantity.
-			iResourceQuantity++;
-			iTotalValue = GetDealValue(pDeal);
-		}
+			ResourceTypes eResource = (ResourceTypes)iResourceLoop;
 
-		//don't exceed total.
-		iResourceQuantity = min(iResourceQuantity, iMaxResourceQuantity);
-
-		// See if we can actually trade it to them
-		if (pDeal->IsPossibleToTradeItem(eMyPlayer, eThem, TRADE_ITEM_RESOURCES, eResource, iResourceQuantity))
-		{
-			int iItemValue = GetTradeItemValue(TRADE_ITEM_RESOURCES, /*bFromMe*/ true, eThem, eResource, iResourceQuantity, -1, /*bFlag1*/false, pDeal->GetDuration());
-			if (iItemValue == INT_MAX)
+			const CvResourceInfo* pkResourceInfo = GC.getResourceInfo(eResource);
+			if (pkResourceInfo == NULL || pkResourceInfo->getResourceUsage() != RESOURCEUSAGE_STRATEGIC)
 				continue;
 
-			vOptions.push_back(OptionWithScore<TradeItem>(TradeItem(eResource, iResourceQuantity), iItemValue));
-		}
-	}
+			//ignore if already in the deal on the other side
+			if (pDeal->IsResourceTrade(eThem, eResource))
+				continue;
 
-	std::stable_sort(vOptions.begin(), vOptions.end());
-	for (size_t i=0; i<vOptions.size(); i++)
-	{
-		ResourceTypes eResource = vOptions[i].option.first;
-		int iQuantity = vOptions[i].option.second;
-		int iScore = vOptions[i].score;
+			//don't sell if we're importing at the same time
+			//todo: or is this a chance for arbitrage?
+			if (GET_PLAYER(eMyPlayer).getResourceImportFromMajor(eResource) > 0)
+				continue;
 
-		// If adding this to the deal doesn't take it under the min limit, do it
-		if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iScore, true))
-		{
-			// Try to change the current item if it already exists, otherwise add it
-			if (!pDeal->ChangeResourceTrade(eMyPlayer, eResource, iQuantity, pDeal->GetDuration()))
+			//always keep some for ourselves
+			int iMaxResourceQuantity = GET_PLAYER(eMyPlayer).getNumResourceAvailable(eResource, false) / 2;
+			if (iMaxResourceQuantity < 2)
+				continue;
+
+			//how do we judge this? A good rule of thumb: never give away more than we're getting
+			//but don't try to buy more than twice as much as were getting either
+			int iResourceQuantity = 1;
+			int iTheirResourceCount = pDeal->GetNumStrategicsOnTheirSide(eThem);
+			if (iMaxResourceQuantity < iTheirResourceCount / 2)
+				continue;
+			else if (iMaxResourceQuantity > iTheirResourceCount)
+				//offer max 2 copies more
+				iResourceQuantity = min(iMaxResourceQuantity, iTheirResourceCount + 2);
+
+			//already in deal? add one more to the mix and reset quantity
+			if (pDeal->IsResourceTrade(eThem, eResource))
 			{
-				pDeal->AddResourceTrade(eMyPlayer, eResource, iQuantity, pDeal->GetDuration());
+				iResourceQuantity = pDeal->GetNumResourcesInDeal(eMyPlayer, eResource);
+				pDeal->RemoveResourceTrade(eResource);
+				//and bump the quantity.
+				iResourceQuantity++;
 				iTotalValue = GetDealValue(pDeal);
+			}
+
+			//don't exceed total.
+			iResourceQuantity = min(iResourceQuantity, iMaxResourceQuantity);
+
+			// See if we can actually trade it to them
+			if (pDeal->IsPossibleToTradeItem(eMyPlayer, eThem, TRADE_ITEM_RESOURCES, eResource, iResourceQuantity))
+			{
+				int iItemValue = GetTradeItemValue(TRADE_ITEM_RESOURCES, /*bFromMe*/ true, eThem, eResource, iResourceQuantity, -1, /*bFlag1*/false, pDeal->GetDuration());
+				if (iItemValue == INT_MAX)
+					continue;
+
+				vOptions.push_back(OptionWithScore<TradeItem>(TradeItem(eResource, iResourceQuantity), iItemValue));
+			}
+		}
+
+		std::stable_sort(vOptions.begin(), vOptions.end());
+		for (size_t i = 0; i < vOptions.size(); i++)
+		{
+			ResourceTypes eResource = vOptions[i].option.first;
+			int iQuantity = vOptions[i].option.second;
+			int iScore = vOptions[i].score;
+
+			// If adding this to the deal doesn't take it under the min limit, do it
+			if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iScore, true))
+			{
+				// Try to change the current item if it already exists, otherwise add it
+				if (!pDeal->ChangeResourceTrade(eMyPlayer, eResource, iQuantity, pDeal->GetDuration()))
+				{
+					pDeal->AddResourceTrade(eMyPlayer, eResource, iQuantity, pDeal->GetDuration(), false);
+					iTotalValue = GetDealValue(pDeal);
+				}
 			}
 		}
 	}
@@ -4448,13 +4572,17 @@ void CvDealAI::DoAddStrategicResourceToUs(CvDeal* pDeal, PlayerTypes eThem, int&
 
 
 /// See if adding Embassy to their side of the deal helps even out pDeal
-void CvDealAI::DoAddEmbassyToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddEmbassyToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
 	CvAssertMsg(eThem != GetPlayer()->GetID(), "DEAL_AI: Trying to add Embassy to Them, but them is us.  Please show Jon");
 
-	if(iTotalValue < 0)
+	// don't make a demand for an embassy
+	if (pDeal->GetDemandingPlayer() != NO_PLAYER)
+		return;
+
+	if(!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue > iThresholdValue))
 	{
 		if(!pDeal->IsAllowEmbassyTrade(eThem))
 		{
@@ -4470,9 +4598,9 @@ void CvDealAI::DoAddEmbassyToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalV
 				{
 					return;
 				}
-				if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iItemValue, false))
+				if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iItemValue, false))
 				{
-					pDeal->AddAllowEmbassy(eThem);
+					pDeal->AddAllowEmbassy(eThem, false);
 					iTotalValue = GetDealValue(pDeal);
 				}
 			}
@@ -4481,13 +4609,13 @@ void CvDealAI::DoAddEmbassyToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalV
 }
 
 /// See if adding Embassy to our side of the deal helps even out pDeal
-void CvDealAI::DoAddEmbassyToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddEmbassyToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
 	CvAssertMsg(eThem != GetPlayer()->GetID(), "DEAL_AI: Trying to add Embassy to Us, but them is us.  Please show Jon");
 
-	if(iTotalValue > 0)
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue < iThresholdValue))
 	{
 		PlayerTypes eMyPlayer = GetPlayer()->GetID();
 
@@ -4503,9 +4631,9 @@ void CvDealAI::DoAddEmbassyToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalVal
 				{
 					return;
 				}
-				if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iItemValue, true))
+				if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iItemValue, true))
 				{
-					pDeal->AddAllowEmbassy(eMyPlayer);
+					pDeal->AddAllowEmbassy(eMyPlayer, false);
 					iTotalValue = GetDealValue(pDeal);
 				}
 			}
@@ -4514,7 +4642,7 @@ void CvDealAI::DoAddEmbassyToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalVal
 }
 
 /// See if adding Open Borders to their side of the deal helps even out pDeal
-void CvDealAI::DoAddOpenBordersToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddOpenBordersToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
@@ -4522,7 +4650,7 @@ void CvDealAI::DoAddOpenBordersToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTo
 
 	int iDealDuration = pDeal->GetDuration();
 	
-	if(iTotalValue < 0)
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue > iThresholdValue))
 	{
 		if(!pDeal->IsOpenBordersTrade(eThem))
 		{
@@ -4538,9 +4666,9 @@ void CvDealAI::DoAddOpenBordersToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTo
 				{
 					return;
 				}
-				if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iItemValue, false))
+				if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iItemValue, false))
 				{
-					pDeal->AddOpenBorders(eThem, iDealDuration);
+					pDeal->AddOpenBorders(eThem, iDealDuration, false);
 					iTotalValue = GetDealValue(pDeal);
 				}
 			}
@@ -4549,7 +4677,7 @@ void CvDealAI::DoAddOpenBordersToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTo
 }
 
 /// See if adding Open Borders to our side of the deal helps even out pDeal
-void CvDealAI::DoAddOpenBordersToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddOpenBordersToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
@@ -4559,7 +4687,7 @@ void CvDealAI::DoAddOpenBordersToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTota
 
 	int iDealDuration = pDeal->GetDuration();
 
-	if (iTotalValue > 0)
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue < iThresholdValue))
 	{
 		if (!pDeal->IsOpenBordersTrade(eMyPlayer))
 		{
@@ -4573,9 +4701,9 @@ void CvDealAI::DoAddOpenBordersToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTota
 				{
 					return;
 				}
-				if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iItemValue, true))
+				if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iItemValue, true))
 				{
-					pDeal->AddOpenBorders(eMyPlayer, iDealDuration);
+					pDeal->AddOpenBorders(eMyPlayer, iDealDuration, false);
 					iTotalValue = GetDealValue(pDeal);
 				}
 			}
@@ -4584,11 +4712,14 @@ void CvDealAI::DoAddOpenBordersToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTota
 }
 
 /// See if adding Cities to our side of the deal helps even out pDeal
-void CvDealAI::DoAddCitiesToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddCitiesToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
 	CvAssertMsg(eThem != GetPlayer()->GetID(), "DEAL_AI: Trying to add Open Borders to Us, but them is us.  Please show Jon");
+
+	if (!pDeal->IsPossibleToTradeItem(GetPlayer()->GetID(), eThem, TRADE_ITEM_CITIES))
+		return;
 
 	// If we're not the one surrendering here, don't bother
 	if(pDeal->IsPeaceTreatyTrade(eThem) && pDeal->GetSurrenderingPlayer() != m_pPlayer->GetID())
@@ -4599,76 +4730,78 @@ void CvDealAI::DoAddCitiesToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValu
 		return;
 
 	// We don't owe them anything
-	if(iTotalValue <= 0)
-		return;
-
-	// Create vector of the losing players' Cities so we can see which are the closest to the winner
-	CvWeightedVector<int> viCityPriceRatio;
-
-	// Loop through all of our cities
-	int iCityLoop = 0;
-	CvPlayer* pSellingPlayer = GetPlayer();
-	for(CvCity* pLoopCity = pSellingPlayer->firstCity(&iCityLoop); pLoopCity != NULL; pLoopCity = pSellingPlayer->nextCity(&iCityLoop))
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue < iThresholdValue))
 	{
-		//make sure we're not just flipping two border towns
-		CvCity* pTheirClosest = GET_PLAYER(eThem).GetClosestCityByPathLength(pLoopCity->plot());
-		if (pTheirClosest && pDeal->IsCityTrade(eThem, pTheirClosest->getX(), pTheirClosest->getY()))
-			continue;
+		// Create vector of the losing players' Cities so we can see which are the closest to the winner
+		CvWeightedVector<int> viCityPriceRatio;
 
-		int iWhatTheyWouldPay = GetCityValueForDeal(pLoopCity, eThem);
-		int iWhatIWouldPay = GetCityValueForDeal(pLoopCity, m_pPlayer->GetID());
-
-		if (iWhatTheyWouldPay == INT_MAX || iWhatIWouldPay == INT_MAX)
+		// Loop through all of our cities
+		int iCityLoop = 0;
+		CvPlayer* pSellingPlayer = GetPlayer();
+		for(CvCity* pLoopCity = pSellingPlayer->firstCity(&iCityLoop); pLoopCity != NULL; pLoopCity = pSellingPlayer->nextCity(&iCityLoop))
 		{
-			continue;
-		}
-
-		int iRatio = (iWhatTheyWouldPay * 100) / max(1,iWhatIWouldPay);
-		//if the deal is good
-		if(iRatio>111)
-		{
-			viCityPriceRatio.push_back(pLoopCity->GetID(), iRatio);
-		}
-	}
-
-	// Sort the vector based on the price ratio we can achieve
-	viCityPriceRatio.StableSortItems();
-
-	// Loop through sorted Cities
-	int iSortedCityID = 0;
-	for(int iSortedCityIndex = 0; iSortedCityIndex < viCityPriceRatio.size(); iSortedCityIndex++)
-	{
-		iSortedCityID = viCityPriceRatio.GetElement(iSortedCityIndex);
-		CvCity* pLoopCity = pSellingPlayer->getCity(iSortedCityID);
-
-		// See if we can actually trade it to them
-		if(pDeal->IsPossibleToTradeItem(GetPlayer()->GetID(), eThem, TRADE_ITEM_CITIES, pLoopCity->getX(), pLoopCity->getY()))
-		{
-			int iItemValue = GetCityValueForDeal(pLoopCity, eThem);
-			if (iItemValue == INT_MAX)
+			//make sure we're not just flipping two border towns
+			CvCity* pTheirClosest = GET_PLAYER(eThem).GetClosestCityByPathLength(pLoopCity->plot());
+			if (pTheirClosest && pDeal->IsCityTrade(eThem, pTheirClosest->getX(), pTheirClosest->getY()))
 				continue;
 
-			// If adding this to the deal doesn't take it under the min limit, do it
-			if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iItemValue, true))
+			int iWhatTheyWouldPay = GetCityValueForDeal(pLoopCity, eThem);
+			int iWhatIWouldPay = GetCityValueForDeal(pLoopCity, m_pPlayer->GetID());
+
+			if (iWhatTheyWouldPay == INT_MAX || iWhatIWouldPay == INT_MAX)
 			{
-				OutputDebugString( CvString::format("Adding %s to deal. Seller %s, buyer %s, price ratio %d\n", 
-					pLoopCity->getName().c_str(), pSellingPlayer->getName(), GET_PLAYER(eThem).getName(), viCityPriceRatio.GetWeight(iSortedCityIndex) ).c_str() );
-				pDeal->AddCityTrade(m_pPlayer->GetID(), iSortedCityID);
-				iTotalValue = GetDealValue(pDeal);
-				return;
+				continue;
+			}
+
+			int iRatio = (iWhatTheyWouldPay * 100) / max(1,iWhatIWouldPay);
+			//if the deal is good
+			if(iRatio>111)
+			{
+				viCityPriceRatio.push_back(pLoopCity->GetID(), iRatio);
 			}
 		}
 
+		// Sort the vector based on the price ratio we can achieve
+		viCityPriceRatio.StableSortItems();
+
+		// Loop through sorted Cities
+		int iSortedCityID = 0;
+		for (int iSortedCityIndex = 0; iSortedCityIndex < viCityPriceRatio.size(); iSortedCityIndex++)
+		{
+			iSortedCityID = viCityPriceRatio.GetElement(iSortedCityIndex);
+			CvCity* pLoopCity = pSellingPlayer->getCity(iSortedCityID);
+
+			// See if we can actually trade it to them
+			if (pDeal->IsPossibleToTradeItem(GetPlayer()->GetID(), eThem, TRADE_ITEM_CITIES, pLoopCity->getX(), pLoopCity->getY()))
+			{
+				int iItemValue = GetCityValueForDeal(pLoopCity, eThem);
+				if (iItemValue == INT_MAX)
+					continue;
+
+				// If adding this to the deal doesn't take it under the min limit, do it
+				if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iItemValue, true))
+				{
+					OutputDebugString(CvString::format("Adding %s to deal. Seller %s, buyer %s, price ratio %d\n",
+						pLoopCity->getName().c_str(), pSellingPlayer->getName(), GET_PLAYER(eThem).getName(), viCityPriceRatio.GetWeight(iSortedCityIndex)).c_str());
+					pDeal->AddCityTrade(m_pPlayer->GetID(), iSortedCityID, false);
+					iTotalValue = GetDealValue(pDeal);
+					return;
+				}
+			}
+		}
 	}
 }
 
 
 /// See if adding Cities to their side of the deal helps even out pDeal
-void CvDealAI::DoAddCitiesToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddCitiesToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
 	CvAssertMsg(eThem != GetPlayer()->GetID(), "DEAL_AI: Trying to add Open Borders to Us, but them is us.  Please show Jon");
+
+	if(!pDeal->IsPossibleToTradeItem(eThem, GetPlayer()->GetID(), TRADE_ITEM_CITIES))
+		return;
 
 	// If they're not the one surrendering here, don't bother
 	if(pDeal->IsPeaceTreatyTrade(eThem) && pDeal->GetSurrenderingPlayer() != eThem)
@@ -4678,64 +4811,63 @@ void CvDealAI::DoAddCitiesToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalVa
 	if (!pDeal->ContainsItemType(TRADE_ITEM_CITIES, GetPlayer()->GetID()))
 		return;
 
-	// They don't owe us anything
-	if(iTotalValue > 0 && pDeal->GetDemandingPlayer() == NO_PLAYER)
-		return;
-
-	// Create vector of the losing players' Cities so we can see which are the closest to the winner
-	CvWeightedVector<int> viCityPriceRatio;
-
-	// Loop through all of the their Cities
-	int iCityLoop = 0;
-	CvPlayer* pSellingPlayer  = &GET_PLAYER(eThem);
-	for(CvCity* pLoopCity = pSellingPlayer->firstCity(&iCityLoop); pLoopCity != NULL; pLoopCity = pSellingPlayer->nextCity(&iCityLoop))
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue > iThresholdValue))
 	{
-		//make sure we're not just flipping two border towns
-		CvCity* pOurClosest = GetPlayer()->GetClosestCityByPathLength(pLoopCity->plot());
-		if (pOurClosest && pDeal->IsCityTrade(GetPlayer()->GetID(), pOurClosest->getX(), pOurClosest->getY()))
-			continue;
+		// Create vector of the losing players' Cities so we can see which are the closest to the winner
+		CvWeightedVector<int> viCityPriceRatio;
 
-		int iWhatTheyWouldPay = GetCityValueForDeal(pLoopCity, eThem);
-		int iWhatIWouldPay = GetCityValueForDeal(pLoopCity, m_pPlayer->GetID());
-
-		if (iWhatTheyWouldPay == INT_MAX || iWhatIWouldPay == INT_MAX)
+		// Loop through all of the their Cities
+		int iCityLoop = 0;
+		CvPlayer* pSellingPlayer = &GET_PLAYER(eThem);
+		for (CvCity* pLoopCity = pSellingPlayer->firstCity(&iCityLoop); pLoopCity != NULL; pLoopCity = pSellingPlayer->nextCity(&iCityLoop))
 		{
-			continue;
-		}
-
-		int iRatio = (iWhatTheyWouldPay * 100) / max(1,iWhatIWouldPay);
-		//if the deal is good
-		if (iRatio<88) 
-		{
-			viCityPriceRatio.push_back(pLoopCity->GetID(), iRatio);
-		}
-	}
-
-	// Sort the vector based on price ratio we can get
-	viCityPriceRatio.StableSortItems();
-
-	// Loop through sorted Cities.
-	int iSortedCityID = 0;
-	for (int iSortedCityIndex = 0; iSortedCityIndex < viCityPriceRatio.size(); iSortedCityIndex++)
-	{
-		iSortedCityID = viCityPriceRatio.GetElement(iSortedCityIndex);
-		CvCity* pLoopCity = pSellingPlayer->getCity(iSortedCityID);
-
-		// See if we can actually trade it to them
-		if (pDeal->IsPossibleToTradeItem(eThem, GetPlayer()->GetID(), TRADE_ITEM_CITIES, pLoopCity->getX(), pLoopCity->getY()))
-		{
-			int iItemValue = GetCityValueForDeal(pLoopCity, GetPlayer()->GetID());
-			if (iItemValue == INT_MAX)
+			//make sure we're not just flipping two border towns
+			CvCity* pOurClosest = GetPlayer()->GetClosestCityByPathLength(pLoopCity->plot());
+			if (pOurClosest && pDeal->IsCityTrade(GetPlayer()->GetID(), pOurClosest->getX(), pOurClosest->getY()))
 				continue;
 
-			// If adding this to the deal doesn't take it under the min limit, do it
-			if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iItemValue, false))
+			int iWhatTheyWouldPay = GetCityValueForDeal(pLoopCity, eThem);
+			int iWhatIWouldPay = GetCityValueForDeal(pLoopCity, m_pPlayer->GetID());
+
+			if (iWhatTheyWouldPay == INT_MAX || iWhatIWouldPay == INT_MAX)
 			{
-				OutputDebugString( CvString::format("Adding %s to deal. Seller %s, buyer %s, price ratio %d\n", 
-					pLoopCity->getName().c_str(), pSellingPlayer->getName(), GetPlayer()->getName(), viCityPriceRatio.GetWeight(iSortedCityIndex) ).c_str() );
-				pDeal->AddCityTrade(eThem, iSortedCityID);
-				iTotalValue = GetDealValue(pDeal);
-				return;
+				continue;
+			}
+
+			int iRatio = (iWhatTheyWouldPay * 100) / max(1, iWhatIWouldPay);
+			//if the deal is good
+			if (iRatio < 88)
+			{
+				viCityPriceRatio.push_back(pLoopCity->GetID(), iRatio);
+			}
+		}
+
+		// Sort the vector based on price ratio we can get
+		viCityPriceRatio.StableSortItems();
+
+		// Loop through sorted Cities.
+		int iSortedCityID = 0;
+		for (int iSortedCityIndex = 0; iSortedCityIndex < viCityPriceRatio.size(); iSortedCityIndex++)
+		{
+			iSortedCityID = viCityPriceRatio.GetElement(iSortedCityIndex);
+			CvCity* pLoopCity = pSellingPlayer->getCity(iSortedCityID);
+
+			// See if we can actually trade it to them
+			if (pDeal->IsPossibleToTradeItem(eThem, GetPlayer()->GetID(), TRADE_ITEM_CITIES, pLoopCity->getX(), pLoopCity->getY()))
+			{
+				int iItemValue = GetCityValueForDeal(pLoopCity, GetPlayer()->GetID());
+				if (iItemValue == INT_MAX)
+					continue;
+
+				// If adding this to the deal doesn't take it under the min limit, do it
+				if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iItemValue, false))
+				{
+					OutputDebugString(CvString::format("Adding %s to deal. Seller %s, buyer %s, price ratio %d\n",
+						pLoopCity->getName().c_str(), pSellingPlayer->getName(), GetPlayer()->getName(), viCityPriceRatio.GetWeight(iSortedCityIndex)).c_str());
+					pDeal->AddCityTrade(eThem, iSortedCityID, false);
+					iTotalValue = GetDealValue(pDeal);
+					return;
+				}
 			}
 		}
 	}
@@ -4743,11 +4875,15 @@ void CvDealAI::DoAddCitiesToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalVa
 
 
 /// See if adding Gold to their side of the deal helps even out pDeal
-void CvDealAI::DoAddGoldToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddGoldToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iDemandValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
 	CvAssertMsg(eThem != GetPlayer()->GetID(), "DEAL_AI: Trying to add Gold to Them, but them is us.  Please show Jon");
+
+	PlayerTypes eMyPlayer = GetPlayer()->GetID();
+	if (!pDeal->IsPossibleToTradeItem(eThem, eMyPlayer, TRADE_ITEM_GOLD))
+		return;
 
 	int iNumGoldAlreadyInTrade = pDeal->GetGoldTrade(eThem);
 	//if raw gold in deal, remove so we can refresh.
@@ -4757,14 +4893,13 @@ void CvDealAI::DoAddGoldToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValu
 		iNumGoldAlreadyInTrade = 0;
 		iTotalValue = GetDealValue(pDeal);
 	}
-	if (iTotalValue < 0 || pDeal->GetDemandingPlayer() != NO_PLAYER)
+	int iValueNeeded = -iTotalValue + iDemandValue;
+	if (iValueNeeded > 0)
 	{
-		PlayerTypes eMyPlayer = GetPlayer()->GetID();
-
 		// Can't already be Gold from the other player in the Deal
 		if(pDeal->GetGoldTrade(eMyPlayer) == 0)
 		{
-			int iNumGold = GetGoldForForValueExchange(-iTotalValue, /*bNumGoldFromValue*/ true, /*bFromMe*/ false, eThem, /*bUseEvenValue*/ false);
+			int iNumGold = GetGoldForForValueExchange(iValueNeeded, /*bNumGoldFromValue*/ true, /*bFromMe*/ false, eThem, /*bUseEvenValue*/ false);
 
 			if(iNumGold <= 0)
 			{
@@ -4777,7 +4912,7 @@ void CvDealAI::DoAddGoldToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValu
 			//iNumGold = min(iNumGold, GET_PLAYER(eThem).GetTreasury()->GetGold());
 			if(iNumGold != iNumGoldAlreadyInTrade && !pDeal->ChangeGoldTrade(eThem, iNumGold))
 			{
-				pDeal->AddGoldTrade(eThem, iNumGold);
+				pDeal->AddGoldTrade(eThem, iNumGold, false);
 			}
 
 			iTotalValue = GetDealValue(pDeal);
@@ -4794,6 +4929,9 @@ void CvDealAI::DoAddGoldToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
 	CvAssertMsg(eThem != GetPlayer()->GetID(), "DEAL_AI: Trying to add Gold to Us, but them is us.  Please show Jon");
 
 	PlayerTypes eMyPlayer = GetPlayer()->GetID();
+	if (!pDeal->IsPossibleToTradeItem(eMyPlayer, eThem, TRADE_ITEM_GOLD))
+		return;
+
 	int iNumGoldAlreadyInTrade = pDeal->GetGoldTrade(eMyPlayer);
 
 	//if raw gold in deal, remove so we can refresh.
@@ -4821,7 +4959,7 @@ void CvDealAI::DoAddGoldToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
 			//iNumGold = min(iNumGold, GET_PLAYER(eMyPlayer).GetTreasury()->GetGold());
 			if(iNumGold != iNumGoldAlreadyInTrade && !pDeal->ChangeGoldTrade(eMyPlayer, iNumGold))
 			{
-				pDeal->AddGoldTrade(eMyPlayer, iNumGold);
+				pDeal->AddGoldTrade(eMyPlayer, iNumGold, false);
 			}
 
 			iTotalValue = GetDealValue(pDeal);
@@ -4831,11 +4969,15 @@ void CvDealAI::DoAddGoldToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
 }
 
 /// See if adding Gold Per Turn to their side of the deal helps even out pDeal
-void CvDealAI::DoAddGPTToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddGPTToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iDemandValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
 	CvAssertMsg(eThem != GetPlayer()->GetID(), "DEAL_AI: Trying to add GPT to Them, but them is us.  Please show Jon");
+
+	PlayerTypes eMyPlayer = GetPlayer()->GetID();
+	if (!pDeal->IsPossibleToTradeItem(eThem, eMyPlayer, TRADE_ITEM_GOLD_PER_TURN))
+		return;
 
 	int iDealDuration = pDeal->GetDuration();
 	int iNumGPTAlreadyInTrade = pDeal->GetGoldPerTurnTrade(eThem);
@@ -4846,7 +4988,7 @@ void CvDealAI::DoAddGPTToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue
 		iNumGPTAlreadyInTrade = 0;
 		iTotalValue = GetDealValue(pDeal);
 	}
-	if (iTotalValue < 0 || pDeal->GetDemandingPlayer() != NO_PLAYER)
+	int iValueNeeded = -iTotalValue + iDemandValue;
 	{
 		int iGoldRate = GET_PLAYER(eThem).calculateGoldRate();
 		if (!GET_PLAYER(eThem).isHuman())
@@ -4855,12 +4997,11 @@ void CvDealAI::DoAddGPTToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue
 		}
 		if (iGoldRate > 0)
 		{
-			PlayerTypes eMyPlayer = GetPlayer()->GetID();
 
 			// Can't already be GPT from the other player in the Deal
 			if(pDeal->GetGoldPerTurnTrade(eMyPlayer) == 0)
 			{
-				int iNumGPT = GetGPTforForValueExchange(-iTotalValue, /*bNumGPTFromValue*/ true, iDealDuration, /*bFromMe*/ false, eThem, false);
+				int iNumGPT = GetGPTforForValueExchange(iValueNeeded, /*bNumGPTFromValue*/ true, iDealDuration, /*bFromMe*/ false, eThem, false);
 
 				if (iNumGPT < 0)
 					return;
@@ -4891,7 +5032,7 @@ void CvDealAI::DoAddGPTToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue
 
 				if (iNumGPT != iNumGPTAlreadyInTrade && !pDeal->ChangeGoldPerTurnTrade(eThem, iNumGPT, iDealDuration)&& bAcceptable)
 				{
-					pDeal->AddGoldPerTurnTrade(eThem, iNumGPT, iDealDuration);
+					pDeal->AddGoldPerTurnTrade(eThem, iNumGPT, iDealDuration, false);
 				}
 
 				iTotalValue = GetDealValue(pDeal);
@@ -4907,9 +5048,11 @@ void CvDealAI::DoAddGPTToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
 	CvAssert(eThem < MAX_MAJOR_CIVS);
 	CvAssertMsg(eThem != GetPlayer()->GetID(), "DEAL_AI: Trying to add GPT to Us, but them is us.  Please show Jon");
 
-	int iDealDuration = pDeal->GetDuration();
-
 	PlayerTypes eMyPlayer = GetPlayer()->GetID();
+	if (!pDeal->IsPossibleToTradeItem(eMyPlayer, eThem, TRADE_ITEM_GOLD_PER_TURN))
+		return;
+
+	int iDealDuration = pDeal->GetDuration();
 	int iNumGPTAlreadyInTrade = pDeal->GetGoldPerTurnTrade(eMyPlayer);
 
 	//if we already have GPT in this trade, remove it so we can refresh the value.
@@ -4965,7 +5108,7 @@ void CvDealAI::DoAddGPTToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
 				{
 					if(iNumGPT != iNumGPTAlreadyInTrade && !pDeal->ChangeGoldPerTurnTrade(eMyPlayer, iNumGPT, iDealDuration))
 					{
-						pDeal->AddGoldPerTurnTrade(eMyPlayer, iNumGPT, iDealDuration);
+						pDeal->AddGoldPerTurnTrade(eMyPlayer, iNumGPT, iDealDuration, false);
 					}
 
 					iTotalValue = GetDealValue(pDeal);
@@ -4975,96 +5118,75 @@ void CvDealAI::DoAddGPTToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
 	}
 }
 
-void CvDealAI::DoAddItemsToThem(CvDeal* pDeal, PlayerTypes eOtherPlayer, int& iTotalValue)
+void CvDealAI::DoAddItemsToThem(CvDeal* pDeal, PlayerTypes eOtherPlayer, int& iTotalValue, int iThresholdValue, bool bGoldOnly)
 {
-	if (pDeal->DoNotModifyFrom() && pDeal->GetFromPlayer() == eOtherPlayer)
+	// Add items to the deal while the deal value is below the threshold value. Each item added increases the deal value. iThresholdValue should be 0 if we want to equalize the deal.
+	// We use a positive value for iThresholdValue if a previous attempt to equalize the deal using iThresholdValue=0 has failed and we're now trying to add items on both sides. 
+
+	if (!bGoldOnly)
 	{
-		DoAddGPTToThem(pDeal, eOtherPlayer, iTotalValue);
-		DoAddGoldToThem(pDeal, eOtherPlayer, iTotalValue);
-		return;
-	}
-	if (GET_PLAYER(eOtherPlayer).isHuman())
-	{
-		DoAddGoldToThem(pDeal, eOtherPlayer, iTotalValue);
-		DoAddGPTToThem(pDeal, eOtherPlayer, iTotalValue);
-		if (WithinAcceptableRange(eOtherPlayer, pDeal->GetMaxValue(), iTotalValue))
+		DoAddVassalageToThem(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		DoAddCitiesToThem(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		DoAddTechToThem(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		DoAddRevokeVassalageToThem(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		DoAddMapsToThem(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		DoAddThirdPartyWarToThem(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		DoAddThirdPartyPeaceToThem(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		DoAddVoteCommitmentToThem(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		//if a strategics trade, try strategics first.
+		if (pDeal->IsStrategicsTrade())
 		{
-			return;
+			DoAddStrategicResourceToThem(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+			DoAddLuxuryResourceToThem(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
 		}
+		else
+		{
+			DoAddLuxuryResourceToThem(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+			DoAddStrategicResourceToThem(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		}
+		DoAddEmbassyToThem(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		DoAddOpenBordersToThem(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
 	}
-	DoAddVassalageToThem(pDeal, eOtherPlayer, iTotalValue);
-	DoAddCitiesToThem(pDeal, eOtherPlayer, iTotalValue);
-	DoAddTechToThem(pDeal, eOtherPlayer, iTotalValue);
-	DoAddRevokeVassalageToThem(pDeal, eOtherPlayer, iTotalValue);
-	DoAddMapsToThem(pDeal, eOtherPlayer, iTotalValue);
-	DoAddThirdPartyWarToThem(pDeal, eOtherPlayer, iTotalValue);
-	DoAddThirdPartyPeaceToThem(pDeal, eOtherPlayer, iTotalValue);
-	DoAddVoteCommitmentToThem(pDeal, eOtherPlayer, iTotalValue);
-	//if a strategics trade, try strategics first.
-	if (pDeal->IsStrategicsTrade())
-	{
-		DoAddStrategicResourceToThem(pDeal, eOtherPlayer, iTotalValue);
-		DoAddLuxuryResourceToThem(pDeal, eOtherPlayer, iTotalValue);
-	}
-	else
-	{
-		DoAddLuxuryResourceToThem(pDeal, eOtherPlayer, iTotalValue);
-		DoAddStrategicResourceToThem(pDeal, eOtherPlayer, iTotalValue);
-	}
-	DoAddEmbassyToThem(pDeal, eOtherPlayer, iTotalValue);
-	DoAddOpenBordersToThem(pDeal, eOtherPlayer, iTotalValue);
-	if (!GET_PLAYER(eOtherPlayer).isHuman())
-	{
-		DoAddGoldToThem(pDeal, eOtherPlayer, iTotalValue);
-		DoAddGPTToThem(pDeal, eOtherPlayer, iTotalValue);
-	}
+
+	// in the last step, when adding gold, we always want to bring the deal closer to 0, so we don't use iThresholdValue here. Exception: Demands
+	int iDemandValue = (pDeal->GetDemandingPlayer() != NO_PLAYER) ? iThresholdValue : 0;
+	DoAddGoldToThem(pDeal, eOtherPlayer, iTotalValue, iDemandValue);
+	DoAddGPTToThem(pDeal, eOtherPlayer, iTotalValue, iDemandValue);
 }
 
-void CvDealAI::DoAddItemsToUs(CvDeal* pDeal, PlayerTypes eOtherPlayer, int& iTotalValue)
+void CvDealAI::DoAddItemsToUs(CvDeal* pDeal, PlayerTypes eOtherPlayer, int& iTotalValue, int iThresholdValue, bool bGoldOnly)
 {
-	if (pDeal->DoNotModifyTo() && pDeal->GetToPlayer() == eOtherPlayer)
+	// Add items to the deal while the deal value is above the threshold value. Each item added decreases the deal value. iThresholdValue should be 0 if we want to equalize the deal.
+	// We use a negative value for iThresholdValue if a previous attempt to equalize the deal using iThresholdValue=0 has failed and we're now trying to add items on both sides. 
+	if (!bGoldOnly)
 	{
-		DoAddGPTToUs(pDeal, eOtherPlayer, iTotalValue);
-		DoAddGoldToUs(pDeal, eOtherPlayer, iTotalValue);
-		return;
-	}
-	if (GET_PLAYER(eOtherPlayer).isHuman())
-	{
-		DoAddGPTToUs(pDeal, eOtherPlayer, iTotalValue);
-		//do not offer lump sums of gold for resources
-		if (!pDeal->IsResourceTrade(eOtherPlayer, NO_RESOURCE))
-			DoAddGoldToUs(pDeal, eOtherPlayer, iTotalValue);
+
+		DoAddVassalageToUs(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		DoAddCitiesToUs(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		DoAddTechToUs(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		DoAddMapsToUs(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		DoAddThirdPartyWarToUs(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		DoAddThirdPartyPeaceToUs(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		DoAddVoteCommitmentToUs(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+
+		//if a strategics trade, try strategics first.
+		if (pDeal->IsStrategicsTrade())
+		{
+			DoAddStrategicResourceToUs(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+			DoAddLuxuryResourceToUs(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		}
+		else
+		{
+			DoAddLuxuryResourceToUs(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+			DoAddStrategicResourceToUs(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		}
+		DoAddEmbassyToUs(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
+		DoAddOpenBordersToUs(pDeal, eOtherPlayer, iTotalValue, iThresholdValue);
 	}
 
-	DoAddVassalageToUs(pDeal, eOtherPlayer, iTotalValue);
-	DoAddCitiesToUs(pDeal, eOtherPlayer, iTotalValue);
-	DoAddTechToUs(pDeal, eOtherPlayer, iTotalValue);
-	DoAddMapsToUs(pDeal, eOtherPlayer, iTotalValue);
-	DoAddThirdPartyWarToUs(pDeal, eOtherPlayer, iTotalValue);
-	DoAddThirdPartyPeaceToUs(pDeal, eOtherPlayer, iTotalValue);
-	DoAddVoteCommitmentToUs(pDeal, eOtherPlayer, iTotalValue);
-
-	//if a strategics trade, try strategics first.
-	if (pDeal->IsStrategicsTrade())
-	{
-		DoAddStrategicResourceToUs(pDeal, eOtherPlayer, iTotalValue);
-		DoAddLuxuryResourceToUs(pDeal, eOtherPlayer, iTotalValue);
-	}
-	else
-	{
-		DoAddLuxuryResourceToUs(pDeal, eOtherPlayer, iTotalValue);
-		DoAddStrategicResourceToUs(pDeal, eOtherPlayer, iTotalValue);
-	}
-	DoAddEmbassyToUs(pDeal, eOtherPlayer, iTotalValue);
-	DoAddOpenBordersToUs(pDeal, eOtherPlayer, iTotalValue);
-
-	if (!GET_PLAYER(eOtherPlayer).isHuman())
-	{
-		DoAddGPTToUs(pDeal, eOtherPlayer, iTotalValue);
-		//do not offer lump sums of gold for resources
-		if (!pDeal->IsResourceTrade(eOtherPlayer, NO_RESOURCE))
-			DoAddGoldToUs(pDeal, eOtherPlayer, iTotalValue);
-	}
+	// in the last step, when adding gold, we always want to bring the deal closer to 0, so we don't use iThresholdValue here
+	DoAddGPTToUs(pDeal, eOtherPlayer, iTotalValue);
+	DoAddGoldToUs(pDeal, eOtherPlayer, iTotalValue);
 }
 
 /// See if removing Gold Per Turn from their side of the deal helps even out pDeal
@@ -5441,7 +5563,7 @@ void CvDealAI::DoAddItemsToDealForPeaceTreaty(PlayerTypes eOtherPlayer, CvDeal* 
 		iGold = iGold * iPercentGoldToGive / 100;
 		if(iGold > 0)
 		{
-			pDeal->AddGoldTrade(eLosingPlayer, iGold);
+			pDeal->AddGoldTrade(eLosingPlayer, iGold, false);
 		}
 	}
 
@@ -5459,7 +5581,7 @@ void CvDealAI::DoAddItemsToDealForPeaceTreaty(PlayerTypes eOtherPlayer, CvDeal* 
 
 		if (iGPTToGive > 0)
 		{
-			pDeal->AddGoldPerTurnTrade(eLosingPlayer, iGPTToGive, iDuration);
+			pDeal->AddGoldPerTurnTrade(eLosingPlayer, iGPTToGive, iDuration, false);
 		}
 	}
 
@@ -5721,9 +5843,9 @@ int CvDealAI::GetPotentialDemandValue(PlayerTypes eOtherPlayer, CvDeal* pDeal, i
 
 	// Set that this CvDeal is a demand
 	pDeal->SetDemandingPlayer(GetPlayer()->GetID());
-	DoAddItemsToThem(pDeal, eOtherPlayer, iIdealValue);
 	int iTotalValue = GetDealValue(pDeal);
-
+	DoAddItemsToThem(pDeal, eOtherPlayer, iTotalValue, iIdealValue);
+	
 	if (pDeal->m_TradedItems.size() <= 0)
 	{
 		return 0;
@@ -5747,13 +5869,13 @@ bool CvDealAI::IsMakeDemand(PlayerTypes eOtherPlayer, CvDeal* pDeal)
 	pDeal->SetDemandingPlayer(GetPlayer()->GetID());
 
 	int iIdealValue = 25 * (GetPlayer()->GetDiplomacyAI()->GetMeanness() + GetPlayer()->GetCurrentEra());
-	int Value = NUM_STRENGTH_VALUES - (int)GetPlayer()->GetDiplomacyAI()->GetPlayerMilitaryStrengthComparedToUs(eOtherPlayer);
+	int Value = NUM_STRENGTH_VALUES - (int)GetPlayer()->GetDiplomacyAI()->GetMilitaryStrengthComparedToUs(eOtherPlayer);
 	if (Value > 0)
 		iIdealValue *= Value;
 
-	int iTotalValue = iIdealValue;
+	int iTotalValue = 0;
 
-	DoAddItemsToThem(pDeal, eOtherPlayer, iTotalValue);
+	DoAddItemsToThem(pDeal, eOtherPlayer, iTotalValue, iIdealValue);
 
 	return (pDeal->m_TradedItems.size() > 0 && iTotalValue > 0);
 }
@@ -5787,6 +5909,10 @@ bool CvDealAI::IsMakeOfferForLuxuryResource(PlayerTypes eOtherPlayer, CvDeal* pD
 
 		// Only look at Luxuries
 		const CvResourceInfo* pkResourceInfo = GC.getResourceInfo(eResource);
+
+		if (!pDeal->IsPossibleToTradeItem(eOtherPlayer, GetPlayer()->GetID(), TRADE_ITEM_RESOURCES, eResource))
+			continue;
+
 		if(pkResourceInfo == NULL || pkResourceInfo->getResourceUsage() != RESOURCEUSAGE_LUXURY)
 		{
 			continue;
@@ -5886,6 +6012,9 @@ bool CvDealAI::IsMakeOfferForStrategicResource(PlayerTypes eOtherPlayer, CvDeal*
 		// Only look at strategic resources here
 		const CvResourceInfo* pkResourceInfo = GC.getResourceInfo(eResource);
 		if(pkResourceInfo == NULL || pkResourceInfo->getResourceUsage() != RESOURCEUSAGE_STRATEGIC)
+			continue;
+
+		if (!pDeal->IsPossibleToTradeItem(eOtherPlayer, GetPlayer()->GetID(), TRADE_ITEM_RESOURCES, eResource))
 			continue;
 
 		// If we have some to spare, don't get more
@@ -6279,7 +6408,7 @@ bool CvDealAI::IsMakeOfferForThirdPartyWar(PlayerTypes eOtherPlayer, CvDeal* pDe
 		return false;
 
 	// Don't ask for war if they are weaker than us
-	if (GetPlayer()->GetDiplomacyAI()->GetPlayerMilitaryStrengthComparedToUs(eOtherPlayer) < STRENGTH_AVERAGE && GetPlayer()->GetDiplomacyAI()->GetPlayerEconomicStrengthComparedToUs(eOtherPlayer) < STRENGTH_AVERAGE)
+	if (GetPlayer()->GetDiplomacyAI()->GetMilitaryStrengthComparedToUs(eOtherPlayer) < STRENGTH_AVERAGE && GetPlayer()->GetDiplomacyAI()->GetEconomicStrengthComparedToUs(eOtherPlayer) < STRENGTH_AVERAGE)
 	{
 		return false;
 	}
@@ -6648,7 +6777,7 @@ void CvDealAI::DoTradeScreenClosed(bool bAIWasMakingOffer)
 
 	if (bAIWasMakingOffer)
 	{
-		m_pPlayer->GetDiplomacyAI()->CancelRenewDeal(eActivePlayer, REASON_HUMAN_REJECTION);
+		m_pPlayer->GetDiplomacyAI()->CancelRenewDeal(eActivePlayer, REASON_HUMAN_REJECTION, false, NULL, true);
 	}
 }
 
@@ -6675,6 +6804,11 @@ DemandResponseTypes CvDealAI::GetRequestForHelpResponse(CvDeal* pDeal)
 	// Not too soon for a help request
 	else
 	{
+		// Deal valued impossible?
+		if (GET_PLAYER(eMyPlayer).GetDealAI()->GetDealValue(pDeal) == INT_MAX)
+		{
+			return DEMAND_RESPONSE_GIFT_REFUSE_TOO_MUCH;
+		}
 		// Deceptive AIs won't ever accept a help request
 		if (pDiploAI->GetCivApproach(eFromPlayer) <= CIV_APPROACH_DECEPTIVE)
 		{
@@ -7320,7 +7454,7 @@ int CvDealAI::GetVassalageValue(bool bFromMe, PlayerTypes eOtherPlayer)
 		// ex: 2 wars and 2 vassals = 500 + 1000 + 1000 = a 2500 gold before modifiers!
 
 		// The point of Vassalage is protection, if they're not militarily dominant - what's the point?
-		switch (m_pDiploAI->GetPlayerMilitaryStrengthComparedToUs(eOtherPlayer))
+		switch (m_pDiploAI->GetMilitaryStrengthComparedToUs(eOtherPlayer))
 		{
 		case STRENGTH_IMMENSE:
 			iItemValue *= 80;
@@ -7423,7 +7557,7 @@ int CvDealAI::GetVassalageValue(bool bFromMe, PlayerTypes eOtherPlayer)
 		// ex: 2 wars and 2 vassals = 500 + 1000 + 1000 = a 2500 gold before modifiers!
 
 		// The point of Vassalage is protection, if they're militarily dominant - what's the point?
-		switch (m_pDiploAI->GetPlayerMilitaryStrengthComparedToUs(eOtherPlayer))
+		switch (m_pDiploAI->GetMilitaryStrengthComparedToUs(eOtherPlayer))
 		{
 		case STRENGTH_IMMENSE:
 		case STRENGTH_POWERFUL:
@@ -7566,7 +7700,7 @@ int CvDealAI::GetRevokeVassalageValue(bool bFromMe, PlayerTypes eOtherPlayer, bo
 		}
 
 		// What's the power of the asking party? They need to be real strong to push us out of this.
-		switch(m_pDiploAI->GetPlayerMilitaryStrengthComparedToUs(eOtherPlayer))
+		switch(m_pDiploAI->GetMilitaryStrengthComparedToUs(eOtherPlayer))
 		{
 			case STRENGTH_IMMENSE:
 				iItemValue *= 80;
@@ -8041,7 +8175,7 @@ bool CvDealAI::IsMakeOfferForRevokeVassalage(PlayerTypes eOtherPlayer, CvDeal* p
 }
 
 /// See if adding Maps to their side of the deal helps even out pDeal
-void CvDealAI::DoAddMapsToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddMapsToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
@@ -8049,7 +8183,7 @@ void CvDealAI::DoAddMapsToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValu
 
 //	if(!bDontChangeTheirExistingItems)
 	{
-		if (iTotalValue < 0 || pDeal->GetDemandingPlayer() != NO_PLAYER)
+		if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue > iThresholdValue))
 		{
 			PlayerTypes eMyPlayer = GetPlayer()->GetID();
 
@@ -8063,7 +8197,7 @@ void CvDealAI::DoAddMapsToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValu
 				{
 					return;
 				}
-				if (pDeal->GetDemandingPlayer() != NO_PLAYER || !TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iItemValue, false))
+				if (pDeal->GetDemandingPlayer() != NO_PLAYER || !TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iItemValue, false))
 				{
 					pDeal->AddMapTrade(eThem);
 					return;
@@ -8074,7 +8208,7 @@ void CvDealAI::DoAddMapsToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValu
 }
 
 /// See if adding Maps to our side of the deal helps even out pDeal
-void CvDealAI::DoAddMapsToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddMapsToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
@@ -8082,7 +8216,7 @@ void CvDealAI::DoAddMapsToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
 
 	//if(!bDontChangeMyExistingItems)
 	{
-		if(iTotalValue > 0)
+		if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue < iThresholdValue))
 		{
 			PlayerTypes eMyPlayer = GetPlayer()->GetID();
 
@@ -8096,7 +8230,7 @@ void CvDealAI::DoAddMapsToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
 				{
 					return;
 				}
-				if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iItemValue, true))
+				if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iItemValue, true))
 				{
 					pDeal->AddMapTrade(eThem);
 					pDeal->AddMapTrade(eMyPlayer);
@@ -8108,7 +8242,7 @@ void CvDealAI::DoAddMapsToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
 }
 
 /// See if adding Technology to their side of the deal helps even out pDeal
-void CvDealAI::DoAddTechToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddTechToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
@@ -8117,7 +8251,7 @@ void CvDealAI::DoAddTechToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValu
 	CvWeightedVector<int> viTradeValues;
 	//if(!bDontChangeTheirExistingItems)
 	{
-		if (iTotalValue < 0 || pDeal->GetDemandingPlayer() != NO_PLAYER)
+		if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue > iThresholdValue))
 		{
 			PlayerTypes eMyPlayer = GetPlayer()->GetID();
 
@@ -8160,7 +8294,7 @@ void CvDealAI::DoAddTechToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValu
 						if (eTech == NO_TECH)
 							continue;
 	
-						if (pDeal->GetDemandingPlayer() != NO_PLAYER || !TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iWeight, false))
+						if (pDeal->GetDemandingPlayer() != NO_PLAYER || !TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iWeight, false))
 						{
 							pDeal->AddTechTrade(eThem, eTech);
 							iTotalValue = GetDealValue(pDeal);
@@ -8174,7 +8308,7 @@ void CvDealAI::DoAddTechToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValu
 }
 
 /// See if adding Technology to our side of the deal helps even out pDeal
-void CvDealAI::DoAddTechToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddTechToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
@@ -8182,7 +8316,7 @@ void CvDealAI::DoAddTechToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
 
 	//if(!bDontChangeMyExistingItems)
 	{
-		if(iTotalValue < 0)
+		if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue < iThresholdValue))
 		{
 			PlayerTypes eMyPlayer = GetPlayer()->GetID();
 
@@ -8205,7 +8339,7 @@ void CvDealAI::DoAddTechToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
 					{
 						return;
 					}
-					if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iItemValue, true))
+					if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iItemValue, true))
 					{
 						pDeal->AddTechTrade(eMyPlayer, eTech);
 						iTotalValue = GetDealValue(pDeal);
@@ -8217,13 +8351,13 @@ void CvDealAI::DoAddTechToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
 	}
 }
 
-void CvDealAI::DoAddVassalageToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddVassalageToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
 	CvAssertMsg(eThem != GetPlayer()->GetID(), "DEAL_AI: Trying to add Technology to Them, but them is us.  Please show Jon");
 
-	if (iTotalValue < 0)
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue < iThresholdValue))
 	{
 		PlayerTypes eMyPlayer = GetPlayer()->GetID();
 
@@ -8237,7 +8371,7 @@ void CvDealAI::DoAddVassalageToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalV
 			{
 				return;
 			}
-			if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iItemValue, true))
+			if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iItemValue, true))
 			{
 				pDeal->AddVassalageTrade(eMyPlayer);
 				iTotalValue = GetDealValue(pDeal);
@@ -8246,13 +8380,13 @@ void CvDealAI::DoAddVassalageToUs(CvDeal* pDeal, PlayerTypes eThem, int& iTotalV
 	}
 }
 
-void CvDealAI::DoAddVassalageToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddVassalageToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
 	CvAssertMsg(eThem != GetPlayer()->GetID(), "DEAL_AI: Trying to add Technology to Them, but them is us.  Please show Jon");
 
-	if (iTotalValue > 0)
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue > iThresholdValue))
 	{
 		int iItemValue = 0;
 
@@ -8264,7 +8398,7 @@ void CvDealAI::DoAddVassalageToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTota
 			{
 				return;
 			}
-			if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iItemValue, true))
+			if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iItemValue, true))
 			{
 				pDeal->AddVassalageTrade(eThem);
 				iTotalValue = GetDealValue(pDeal);
@@ -8273,13 +8407,13 @@ void CvDealAI::DoAddVassalageToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTota
 	}
 }
 
-void CvDealAI::DoAddRevokeVassalageToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue)
+void CvDealAI::DoAddRevokeVassalageToThem(CvDeal* pDeal, PlayerTypes eThem, int& iTotalValue, int iThresholdValue)
 {
 	CvAssert(eThem >= 0);
 	CvAssert(eThem < MAX_MAJOR_CIVS);
 	CvAssertMsg(eThem != GetPlayer()->GetID(), "DEAL_AI: Trying to add Technology to Them, but them is us.  Please show Jon");
 
-	if (iTotalValue > 0)
+	if (!(iThresholdValue == 0 && WithinAcceptableRange(eThem, pDeal->GetMaxValue(), iTotalValue)) && !(iThresholdValue != 0 && iTotalValue < iThresholdValue))
 	{
 		int iItemValue = 0;
 
@@ -8291,7 +8425,7 @@ void CvDealAI::DoAddRevokeVassalageToThem(CvDeal* pDeal, PlayerTypes eThem, int&
 			{
 				return;
 			}
-			if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue, iItemValue, true))
+			if (!TooMuchAdded(eThem, pDeal->GetMaxValue(), iTotalValue-iThresholdValue, iItemValue, true))
 			{
 				pDeal->AddRevokeVassalageTrade(eThem);
 				iTotalValue = GetDealValue(pDeal);

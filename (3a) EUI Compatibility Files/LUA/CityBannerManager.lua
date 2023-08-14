@@ -488,6 +488,47 @@ local g_cityToolTips = {
 			return L"TXT_KEY_CITY_PUPPET".."[NEWLINE][NEWLINE]"..L"TXT_KEY_CITY_ANNEX_TT"
 		end
 	end,
+	
+	CityIsCityState = function( city )
+		local cityOriginalOwner = Players[city:GetOriginalOwner()];	
+		local strTraitTT = "";
+		if (cityOriginalOwner ~= nil) then
+			local iTrait = cityOriginalOwner:GetMinorCivTrait();
+			if (iTrait == MinorCivTraitTypes.MINOR_CIV_TRAIT_CULTURED) then
+				strTraitTT = Locale.ConvertTextKey("TXT_KEY_CITY_STATE_CULTURED_TT_ANNEXED");
+			elseif (iTrait == MinorCivTraitTypes.MINOR_CIV_TRAIT_MILITARISTIC) then
+				strTraitTT = Locale.ConvertTextKey("TXT_KEY_CITY_STATE_MILITARISTIC_NO_UU_TT_ANNEXED");
+				if (cityOriginalOwner:IsMinorCivHasUniqueUnit()) then
+					local eUniqueUnit = cityOriginalOwner:GetMinorCivUniqueUnit();
+					if (GameInfo.Units[eUniqueUnit] ~= nil) then
+						local ePrereqTech = GameInfo.Units[eUniqueUnit].PrereqTech;
+						if (ePrereqTech == nil) then
+							-- If no prereq then just make it Agriculture, but make sure that Agriculture is in our database. Otherwise, show the fallback tooltip.
+							if (GameInfo.Technologies["TECH_AGRICULTURE"] ~= nil) then
+								ePrereqTech = GameInfo.Technologies["TECH_AGRICULTURE"].ID;
+							end
+						end
+						
+						if (ePrereqTech ~= nil) then
+							if (GameInfo.Technologies[ePrereqTech] ~= nil) then
+								strTraitTT = Locale.ConvertTextKey("TXT_KEY_CITY_STATE_MILITARISTIC_TT_ANNEXED", GameInfo.Units[eUniqueUnit].Description, GameInfo.Technologies[ePrereqTech].Description);
+							end
+						end
+					else
+						print("Scripting error - City-State's unique unit not found!");
+					end
+				end
+			elseif (iTrait == MinorCivTraitTypes.MINOR_CIV_TRAIT_MARITIME) then
+				strTraitTT = Locale.ConvertTextKey("TXT_KEY_CITY_STATE_MARITIME_TT_ANNEXED");
+			elseif (iTrait == MinorCivTraitTypes.MINOR_CIV_TRAIT_MERCANTILE) then
+				strTraitTT = Locale.ConvertTextKey("TXT_KEY_CITY_STATE_MERCANTILE_TT_ANNEXED");
+			elseif (iTrait == MinorCivTraitTypes.MINOR_CIV_TRAIT_RELIGIOUS) then
+				strTraitTT = Locale.ConvertTextKey("TXT_KEY_CITY_STATE_RELIGIOUS_TT_ANNEXED");
+			end
+		end
+		return strTraitTT;
+	end,
+	
 	CityIsRazing = function( city )
 		return L( "TXT_KEY_CITY_BURNING", city:GetRazingTurns() )
 	end,
@@ -506,8 +547,12 @@ local g_cityToolTips = {
 		end
 		return connectionTip
 	end,
-	CityIsBlockaded = function()
-		return L"TXT_KEY_CITY_BLOCKADED"
+	CityIsBlockaded = function( city )
+		if (city:GetSappedTurns() > 0) then
+			return L("TXT_KEY_CITY_SAPPED", city:GetSappedTurns());
+		else	
+			return L"TXT_KEY_CITY_BLOCKADED"
+		end
 	end,
 	CityIsOccupied = function()
 		return L"TXT_KEY_CITY_OCCUPIED"
@@ -999,6 +1044,11 @@ local function RefreshCityBannersNow()
 
 			-- Puppet ?
 			instance.CityIsPuppet:SetHide( not isPuppet )
+			
+			-- Rome UA (Annexed City-States)
+			if Players[city:GetOriginalOwner()]:IsMinorCiv() and cityOwner:IsAnnexedCityStatesGiveYields() then
+				instance.CityIsCityState:SetHide ( not cityOwner:IsAnnexedCityStatesGiveYields())
+			end
 
 			-- Occupied ?
 			instance.CityIsOccupied:SetHide( not city:IsOccupied() or city:IsNoOccupiedUnhappiness() )
@@ -1009,8 +1059,13 @@ local function RefreshCityBannersNow()
 			-- Has airport ?
 			instance.CityHasAirport:SetHide( not city:IsHasBuilding(GameInfoTypes["BUILDING_AIRPORT"]) )
 
-			-- Blockaded ?
+			-- Blockaded ? / Sapped ?
 			instance.CityIsBlockaded:SetHide( not city:IsBlockaded() )
+			if (city:GetSappedTurns() > 0) then
+				instance.CityIsBlockaded:SetText("[ICON_VP_SAPPED]")
+			else
+				instance.CityIsBlockaded:SetText("[ICON_BLOCKADED]")
+			end
 			
 			-- Garrisoned ?
 			instance.GarrisonFrame:SetHide( not ( plot:IsVisible( activeTeamID, true ) and city:GetGarrisonedUnit() ) )
@@ -1152,7 +1207,13 @@ local function RefreshCityBannersNow()
 				UpdateRangeIcons( plotIndex, city, instance )
 
 				local ttText = Locale.ConvertTextKey("TXT_KEY_CITYVIEW_CITY_COMB_STRENGTH_TT")
-				local ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100)
+				--local ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100)
+				local iRange, iIndirect = city:GetBombardRange()
+				if (iIndirect == 1) then
+					ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100) .. "[NEWLINE][ICON_RANGE_STRENGTH] " .. L("TXT_KEY_COMBAT_RANGE_HEADING3_TITLE") .. ": " .. iRange .. "[NEWLINE][COLOR_POSITIVE_TEXT]" .. L("TXT_KEY_PROMOTION_INDIRECT_FIRE") .. "[ENDCOLOR]"
+				else 
+					ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100) .. "[NEWLINE][ICON_RANGE_STRENGTH] " .. L("TXT_KEY_COMBAT_RANGE_HEADING3_TITLE") .. ": " .. iRange .. "[NEWLINE][COLOR_NEGATIVE_TEXT]" .. L("TXT_KEY_PROMOTION_INDIRECT_FIRE") .. "[ENDCOLOR]"
+				end
 
 				instance.CityStrength:SetToolTipString(ttText)
 				instance.CityStrengthContainer:SetToolTipString(ttText)
@@ -1183,7 +1244,13 @@ local function RefreshCityBannersNow()
 						instance.Pledge2:SetHide( not free )
 						-- UndeadDevel: include tributing information on City Strength element
 						if plot:IsVisible( activeTeamID ) then
-							ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100)
+							--ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100)
+							local iRange, iIndirect = city:GetBombardRange()
+							if (iIndirect == 1) then
+								ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100) .. "[NEWLINE][ICON_RANGE_STRENGTH] " .. L("TXT_KEY_COMBAT_RANGE_HEADING3_TITLE") .. ": " .. iRange .. "[NEWLINE][COLOR_POSITIVE_TEXT]" .. L("TXT_KEY_PROMOTION_INDIRECT_FIRE") .. "[ENDCOLOR]"
+							else 
+								ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100) .. "[NEWLINE][ICON_RANGE_STRENGTH] " .. L("TXT_KEY_COMBAT_RANGE_HEADING3_TITLE") .. ": " .. iRange .. "[NEWLINE][COLOR_NEGATIVE_TEXT]" .. L("TXT_KEY_PROMOTION_INDIRECT_FIRE") .. "[ENDCOLOR]"
+							end
 						end
 
 						if cityOwner:IsMinorCiv() then
@@ -1201,7 +1268,13 @@ local function RefreshCityBannersNow()
 					local civInfo = GameInfo.Civilizations[ cityOwner:GetCivilizationType() ]
 
 					if plot:IsVisible( activeTeamID ) then
-						ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100)
+						--ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100)
+						local iRange, iIndirect = city:GetBombardRange()
+						if (iIndirect == 1) then
+							ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100) .. "[NEWLINE][ICON_RANGE_STRENGTH] " .. L("TXT_KEY_COMBAT_RANGE_HEADING3_TITLE") .. ": " .. iRange .. "[NEWLINE][COLOR_POSITIVE_TEXT]" .. L("TXT_KEY_PROMOTION_INDIRECT_FIRE") .. "[ENDCOLOR]"
+						else 
+							ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. math_floor(city:GetStrengthValue(true) / 100) .. "[NEWLINE][ICON_RANGE_STRENGTH] " .. L("TXT_KEY_COMBAT_RANGE_HEADING3_TITLE") .. ": " .. iRange .. "[NEWLINE][COLOR_NEGATIVE_TEXT]" .. L("TXT_KEY_PROMOTION_INDIRECT_FIRE") .. "[ENDCOLOR]"
+						end
 					end
 
 					instance.CityStrength:SetToolTipString(ttText )

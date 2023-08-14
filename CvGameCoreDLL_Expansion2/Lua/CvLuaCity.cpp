@@ -694,6 +694,10 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(IsProductionRoutes);
 	Method(IsFoodRoutes);
 
+	Method(GetSappedTurns);
+	Method(SetSappedTurns);
+	Method(ChangeSappedTurns);
+
 #if defined(MOD_BALANCE_CORE_EVENTS)
 	Method(GetDisabledTooltip);
 	Method(GetScaledEventChoiceValue);
@@ -1119,7 +1123,11 @@ int CvLuaCity::lGetPurchaseUnitTooltip(lua_State* L)
 	// City Production Modifier
 	pkCity->canTrain(eUnit, false, false, false, false, &toolTip);
 
-	if (MOD_BALANCE_CORE && GET_PLAYER(pkCity->getOwner()).GetNumUnitsOutOfSupply() > 0)
+	int iMaxSupplyPenalty = /*70*/ GD_INT_GET(MAX_UNIT_SUPPLY_PRODMOD);
+	int iSupplyPenaltyPerUnit = /*10 in CP, 5 in VP*/ GD_INT_GET(PRODUCTION_PENALTY_PER_UNIT_OVER_SUPPLY);
+	int iMaxUnitsOverSupply = (iMaxSupplyPenalty > 0 && iSupplyPenaltyPerUnit > 0) ? iMaxSupplyPenalty / iSupplyPenaltyPerUnit : INT_MAX;
+
+	if (MOD_BALANCE_VP && GET_PLAYER(pkCity->getOwner()).GetNumUnitsOutOfSupply() >= iMaxUnitsOverSupply)
 	{
 		Localization::String localizedText = Localization::Lookup("TXT_KEY_NO_ACTION_NO_SUPPLY_PURCHASE");
 
@@ -2102,9 +2110,11 @@ int CvLuaCity::lGetYieldModifierTooltip(lua_State* L)
 	// City Food Modifier
 	if(eYield == YIELD_FOOD)
 	{	
+		int iExcessNoMod = pkCity->foodDifference(true);
 		GC.getGame().BuildProdModHelpText(&toolTip, "TXT_KEY_FOODMOD_EATEN_FOOD", pkCity->foodConsumption());
+		GC.getGame().BuildProdModHelpText(&toolTip, iExcessNoMod >= 0 ? "TXT_KEY_FOODMOD_EXCESS_FOOD_POSITIVE" : "TXT_KEY_FOODMOD_EXCESS_FOOD_NEGATIVE", iExcessNoMod);
 		pkCity->GetTradeYieldModifier(YIELD_FOOD, &toolTip);
-		pkCity->foodDifferenceTimes100(true, false, pkCity->GetTradeRouteCityMod(YIELD_FOOD), &toolTip);
+		pkCity->foodDifferenceTimes100(false, &toolTip);
 	}
 
 	lua_pushstring(L, toolTip.c_str());
@@ -2369,7 +2379,7 @@ int CvLuaCity::lFoodDifference(lua_State* L)
 int CvLuaCity::lFoodDifferenceTimes100(lua_State* L)
 {
 	CvCity* pkCity = GetInstance(L);
-	const int iResult = pkCity->foodDifferenceTimes100(true, false,-1,NULL);
+	const int iResult = pkCity->foodDifferenceTimes100(false,NULL);
 	lua_pushinteger(L, iResult);
 	return 1;
 }
@@ -3711,8 +3721,7 @@ int CvLuaCity::lChangeCityAutomatonWorkersChange(lua_State* L)
 int CvLuaCity::lGetRemainingFreeSpecialists(lua_State* L)
 {
 	CvCity* pkCity = GetInstance(L);
-	int iCapital = pkCity->isCapital() ? GET_PLAYER(pkCity->getOwner()).GetNoUnhappfromXSpecialistsCapital() : 0;
-	int iTotalSpecialists = (pkCity->GetNoUnhappfromXSpecialists() + GET_PLAYER(pkCity->getOwner()).GetNoUnhappfromXSpecialists() + iCapital) - pkCity->GetCityCitizens()->GetTotalSpecialistCount();
+	int iTotalSpecialists = pkCity->GetNumFreeSpecialists() - pkCity->GetCityCitizens()->GetTotalSpecialistCount();
 	lua_pushinteger(L, iTotalSpecialists);
 	return 1;
 }
@@ -6331,7 +6340,7 @@ int CvLuaCity::lDoCityStartEvent(lua_State* L)
 {
 	CvCity* pkCity = GetInstance(L);
 	const CityEventTypes eEvent = (CityEventTypes)lua_tointeger(L, 2);
-	pkCity->DoStartEvent(eEvent);
+	pkCity->DoStartEvent(eEvent, true);
 	return 1;
 }
 int CvLuaCity::lDoCancelCityEventChoice(lua_State* L)
@@ -6410,6 +6419,27 @@ int CvLuaCity::lIsCityEventChoiceValidEspionage(lua_State* L)
 	return 1;
 }
 #endif
+
+int CvLuaCity::lGetSappedTurns(lua_State* L)
+{
+	CvCity* pkCity = GetInstance(L);
+	lua_pushinteger(L, pkCity->GetSappedTurns());
+	return 1;
+}
+int CvLuaCity::lSetSappedTurns(lua_State* L)
+{
+	CvCity* pkCity = GetInstance(L);
+	const int iValue = lua_tointeger(L, 2);
+	pkCity->SetSappedTurns(iValue);
+	return 1;
+}
+int CvLuaCity::lChangeSappedTurns(lua_State* L)
+{
+	CvCity* pkCity = GetInstance(L);
+	const int iValue = lua_tointeger(L, 2);
+	pkCity->ChangeSappedTurns(iValue);
+	return 1;
+}
 
 #if defined(MOD_BALANCE_CORE_JFD)
 int CvLuaCity::lIsColony(lua_State* L)

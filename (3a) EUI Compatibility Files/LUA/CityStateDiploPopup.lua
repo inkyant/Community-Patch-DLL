@@ -110,6 +110,7 @@ if not gk_mode then
 	--CBP
 	Controls.MarriageButton:SetHide ( true )
 	Controls.BullyAnnexButton:SetHide (true)
+	Controls.DenyInfluenceButton:SetHide (true)
 	--END
 	Controls.RevokePledgeButton:SetHide( true )
 	Controls.TakeButton:SetHide( true )
@@ -1051,6 +1052,17 @@ function PopulateGiftChoices()
 		Controls.TileImprovementGift:SetText(buttonText)
 		SetButtonSize(Controls.TileImprovementGift, Controls.TileImprovementGiftButton, Controls.TileImprovementGiftAnim, Controls.TileImprovementGiftButtonHL)
 	end
+	
+	--Controls.DenyInfluenceButton:SetHide(false);
+	--Controls.DenyInfluenceAnim:SetHide(false);
+	if (minorPlayer:IsQuestInfluenceDisabled(activePlayerID)) then
+		Controls.DenyInfluenceLabel:SetText(Locale.Lookup("TXT_KEY_CITY_STATE_DISABLED_QUEST_INFLUENCE_YES"))
+		Controls.DenyInfluenceButton:SetToolTipString(L("TXT_KEY_CITY_STATE_DISABLED_QUEST_INFLUENCE_YES_TT", minorPlayer:GetName()))
+	else
+		Controls.DenyInfluenceLabel:SetText(Locale.Lookup("TXT_KEY_CITY_STATE_DISABLED_QUEST_INFLUENCE_NO"))
+		Controls.DenyInfluenceButton:SetToolTipString(L("TXT_KEY_CITY_STATE_DISABLED_QUEST_INFLUENCE_NO_TT", minorPlayer:GetName()))
+	end
+	SetButtonSize(Controls.DenyInfluenceLabel, Controls.DenyInfluenceButton, Controls.DenyInfluenceAnim, Controls.DenyInfluenceButtonHL)
 
 	-- Tooltip info
 	local iFriendsAmount = GameDefines["FRIENDSHIP_THRESHOLD_FRIENDS"]
@@ -1181,23 +1193,9 @@ function PopulateTakeChoices()
 
 -- CBP
 	local iGoldTribute = minorPlayer:GetMinorCivBullyGoldAmount(activePlayerID, true);
-	local iTheftValue = minorPlayer:GetYieldTheftAmount(activePlayerID);
 	local iBullyUnitInfluenceLost = (-GameDefines.MINOR_FRIENDSHIP_DROP_BULLY_WORKER_SUCCESS / 100);
 	local pMajor = Players[activePlayerID];
-	local sBullyUnit = GameInfo.Units[minorPlayer:GetBullyUnit()].Description; --antonjs: todo: XML or fn
-	if(minorPlayer:GetMinorCivTrait() == MinorCivTraitTypes.MINOR_CIV_TRAIT_MARITIME) then
-		buttonText = Locale.Lookup("TXT_KEY_POPUP_MINOR_BULLY_FOOD_AMOUNT", iGoldTribute, iTheftValue, iBullyUnitInfluenceLost);
-	elseif(minorPlayer:GetMinorCivTrait() == MinorCivTraitTypes.MINOR_CIV_TRAIT_CULTURED) then
-		buttonText = Locale.Lookup("TXT_KEY_POPUP_MINOR_BULLY_CULTURE_AMOUNT", iGoldTribute, iTheftValue, iBullyUnitInfluenceLost);
-	elseif(minorPlayer:GetMinorCivTrait() == MinorCivTraitTypes.MINOR_CIV_TRAIT_MILITARISTIC) then
-		buttonText = Locale.Lookup("TXT_KEY_POPUP_MINOR_BULLY_SCIENCE_AMOUNT", iGoldTribute, iTheftValue, iBullyUnitInfluenceLost);
-	elseif(minorPlayer:GetMinorCivTrait() == MinorCivTraitTypes.MINOR_CIV_TRAIT_MERCANTILE) then
-		buttonText = Locale.Lookup("TXT_KEY_POPUP_MINOR_BULLY_PRODUCTION_AMOUNT", iGoldTribute, iTheftValue, iBullyUnitInfluenceLost);
-	elseif(minorPlayer:GetMinorCivTrait() == MinorCivTraitTypes.MINOR_CIV_TRAIT_RELIGIOUS) then
-		buttonText = Locale.Lookup("TXT_KEY_POPUP_MINOR_BULLY_FAITH_AMOUNT", iGoldTribute, iTheftValue, iBullyUnitInfluenceLost);
-	else
-		buttonText = Locale.Lookup("TXT_KEY_POPUP_MINOR_BULLY_UNIT_AMOUNT", sBullyUnit, iBullyUnitInfluenceLost);
-	end	
+	buttonText = Locale.Lookup("TXT_KEY_POPUP_MINOR_BULLY_UNIT_AMOUNT", iGoldTribute, iBullyUnitInfluenceLost);
 -- END
 	if minorPlayer.GetMajorBullyUnitDetails then
 		ttText = minorPlayer:GetMajorBullyUnitDetails(activePlayerID)
@@ -1327,6 +1325,23 @@ function OnBullyAnnexButtonClicked()
 	end
 end
 Controls.BullyAnnexButton:RegisterCallback( Mouse.eLClick, OnBullyAnnexButtonClicked );
+
+----------------------------------------------------------------
+-- CBP: Deny Quest Influence
+----------------------------------------------------------------
+function OnNoQuestInfluenceButtonClicked()
+	local minorPlayer = Players[g_minorCivID]
+	local activePlayerID = Game.GetActivePlayer()
+	
+	if (minorPlayer:IsQuestInfluenceDisabled(activePlayerID)) then
+		minorPlayer:SetQuestInfluenceDisabled(activePlayerID, false);
+		OnCloseTake();
+	else
+		minorPlayer:SetQuestInfluenceDisabled(activePlayerID, true);
+		OnCloseTake();
+	end
+end
+Controls.DenyInfluenceButton:RegisterCallback( Mouse.eLClick, OnNoQuestInfluenceButtonClicked );
 
 ----------------------------------------------------------------
 -- Close Take Submenu

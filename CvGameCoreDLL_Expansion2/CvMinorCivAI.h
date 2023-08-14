@@ -129,6 +129,7 @@ public:
 	int GetTertiaryData() const;
 
 	int GetInfluence() const;
+	int GetDisabledInfluence() const;
 	int GetGold() const;
 	int GetScience() const;
 	int GetCulture() const;
@@ -145,6 +146,7 @@ public:
 	int GetExperience() const;
 
 	void SetInfluence(int iValue);
+	void SetDisabledInfluence(int iValue);
 	void SetGold(int iValue);
 	void SetScience(int iValue);
 	void SetCulture(int iValue);
@@ -165,8 +167,11 @@ public:
 
 	// Handle rewards
 	void CalculateRewards(PlayerTypes ePlayer, bool bRecalc = false);
-	void DoRewards(PlayerTypes ePlayer);
+	void DoRewards(PlayerTypes ePlayer, bool bHeavyTribute = false);
 	CvString GetRewardString(PlayerTypes ePlayer, bool bFinish) const;
+
+	void EnableInfluence(PlayerTypes ePlayer);
+	void DisableInfluence(PlayerTypes ePlayer);
 
 	// Contest helper functions
 	int GetContestValueForPlayer(PlayerTypes ePlayer) const;
@@ -197,6 +202,7 @@ public:
 	int m_iData2;
 	int m_iData3;
 	int m_iInfluence;
+	int m_iDisabledInfluence;
 	int m_iGold;
 	int m_iScience;
 	int m_iCulture;
@@ -353,6 +359,8 @@ public:
 	void SetUniqueUnit(UnitTypes eUnit);
 	void DoPickUniqueUnit();
 
+	int GetQuestRewardModifier(PlayerTypes ePlayer);
+
 	// ******************************
 	// Main functions
 	// ******************************
@@ -367,6 +375,8 @@ public:
 
 	void DoTestEndSkirmishes(PlayerTypes eNewAlly);
 	void RecalculateRewards(PlayerTypes ePlayer);
+	void DisableQuestInfluence(PlayerTypes ePlayer);
+	void EnableQuestInfluence(PlayerTypes ePlayer);
 
 	void DoTurnStatus();
 	MinorCivStatusTypes GetStatus() const;
@@ -431,7 +441,7 @@ public:
 	WeightedCivsList CalculateFriendshipFromQuests();
 	void DoCompletedQuestsForPlayer(PlayerTypes ePlayer, MinorCivQuestTypes eSpecifyQuestType = NO_MINOR_CIV_QUEST_TYPE);
 	void DoObsoleteQuests();
-	void DoObsoleteQuestsForPlayer(PlayerTypes ePlayer, MinorCivQuestTypes eSpecifyQuestType = NO_MINOR_CIV_QUEST_TYPE, bool bWar = false);
+	void DoObsoleteQuestsForPlayer(PlayerTypes ePlayer, MinorCivQuestTypes eSpecifyQuestType = NO_MINOR_CIV_QUEST_TYPE, bool bWar = false, bool bHeavyTribute = false);
 	void DoQuestsCleanup();
 	void DoQuestsCleanupForPlayer(PlayerTypes ePlayer);
 
@@ -700,6 +710,10 @@ public:
 	int GetSpawnBaseTurns(PlayerTypes ePlayer, bool bCityStateAnnexed = false);
 	int GetCurrentSpawnEstimate(PlayerTypes ePlayer);
 
+	// Disable Quest Influence
+	bool IsQuestInfluenceDisabled(PlayerTypes ePlayer) const;
+	void SetQuestInfluenceDisabled(PlayerTypes ePlayer, bool bValue);
+
 	// Austria UA Stuff
 	bool IsMarried(PlayerTypes eMajor) const;
 	void SetMajorMarried(PlayerTypes eMajor, bool bValue);
@@ -723,7 +737,7 @@ public:
 	const ReachablePlots& GetBullyRelevantPlots();
 	int GetBullyGoldAmount(PlayerTypes eBullyPlayer, bool bIgnoreScaling = false, bool bForUnit = false);
 
-	int CalculateBullyScore(PlayerTypes eBullyPlayer, bool bForUnit, CvString* sTooltipSink = NULL);
+	int CalculateBullyScore(PlayerTypes eBullyPlayer, bool bHeavyTribute, CvString* sTooltipSink = NULL);
 
 	bool CanMajorBullyGold(PlayerTypes ePlayer);
 	bool CanMajorBullyGold(PlayerTypes ePlayer, int iSpecifiedBullyMetric);
@@ -741,9 +755,6 @@ public:
 
 #if defined(MOD_BALANCE_CORE_AFRAID_ANNEX)
 	void DoMajorBullyAnnex(PlayerTypes eBully);
-#endif
-#if defined(MOD_BALANCE_CORE)
-	int GetYieldTheftAmount(PlayerTypes eBully, bool bIgnoreScaling = false);
 #endif
 	
 	void DoBulliedByMajorReaction(PlayerTypes eBully, int iInfluenceChangeTimes100);
@@ -909,6 +920,7 @@ private:
 	int m_aiTurnLastPledged[MAX_MAJOR_CIVS];
 	int m_aiTurnLastBrokePledge[MAX_MAJOR_CIVS];
 	bool m_abUnitSpawningDisabled[MAX_MAJOR_CIVS];
+	bool m_abQuestInfluenceDisabled[MAX_MAJOR_CIVS];
 	bool m_abEverFriends[MAX_MAJOR_CIVS];
 	bool m_abFriends[MAX_MAJOR_CIVS];
 	bool m_abPledgeToProtect[MAX_MAJOR_CIVS];

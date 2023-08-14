@@ -137,7 +137,7 @@
 	</Concepts_RelatedConcept>
 	<Language_en_US>
 		<Row Tag="TXT_KEY_CONCEPT_CITIES_YIELDS_SCALING_WITH_ERA_TOPIC">
-			<Text>[COLOR_GREEN]Scaling with Era[ENDCOLOR]</Text>
+			<Text>[COLOR_GREEN]Yields Scaling with Era[ENDCOLOR]</Text>
 		</Row>
 		<Row Tag="TXT_KEY_CONCEPT_CITIES_YIELDS_SCALING_WITH_ERA_SUMMARY">
 			<Text>Many Yields, especially those from Policies, Beliefs, and Buildings, state that they [COLOR_POSITIVE_TEXT]''Scale with Era''[ENDCOLOR]. This means that, as the game progresses, indicated Yield values increase in a linear fashion based on the current Era:[NEWLINE]1x in the Ancient and Classical Eras.[NEWLINE]2x in the Medieval Era.[NEWLINE]3x in the Renaissance Era.[NEWLINE]4x in the Industrial Era.[NEWLINE]5x in the Modern Era.[NEWLINE]6x in the Atomic Era.[NEWLINE]7x in the Information Era.[NEWLINE][NEWLINE]In special cases like Korea, they may scale with Odd Era or skipping an era before scaling and follow a format based on the Current era like:[NEWLINE]1x in the Ancient/Classical Eras.[NEWLINE]2x in the Medieval/Renaissance Eras.[NEWLINE]3x in the Industrial/Modern Eras.[NEWLINE]4x in the Atomic/Information Eras.</Text>
@@ -235,9 +235,7 @@
 			<Text>[COLOR_GREEN]Calculation of Needs Thresholds[ENDCOLOR]</Text>
 		</Row>
 		<Row Tag="TXT_KEY_HAPPINESS_NEED_THRESHOLDS_BODY">
-			<Text>
-				The calculation of Unhappiness from Needs is done by comparing a City's yield outputs per population to certain reference values, the Needs Thresholds. These values are based on the global median of yield outputs per population (i.e. the value of yield output per population that is exceeded by exactly 50% of cities worldwide). Only Cities with a population of at least 3 are considered when calculating the median, softening Unhappiness in the very early game. The Needs Thresholds are modified by a number of Needs Modifiers in each City. A positive Need Modifier makes it harder to reach the threshold and might therefore increase local Unhappiness, while a negative one might reduce it. The following modifiers are always applied:[NEWLINE] [COLOR_NEGATIVE_TEXT]Capital Status[ENDCOLOR]: The Needs Thresholds of the Capital are increased by 25%.[NEWLINE] [COLOR_NEGATIVE_TEXT]Empire Size[ENDCOLOR]: Each City in your Empire (excluding the Capital and Puppet Cities) increases the Needs Thresholds in every City by 5%. Additionally, every four Citizens in your Empire (excluding Citizens in Puppet Cities) increase them by 1%.[NEWLINE] [COLOR_POSITIVE_TEXT]Difficulty Level[ENDCOLOR]: On the Difficulty Levels "Settler" and "Chieftain", Needs Thresholds are reduced for human players and increased for the AI. On Difficulty Levels above Chieftain, no modifiers are applied.[NEWLINE][NEWLINE]Certain Policies and Spy Events can also modify Needs Thresholds in a City. In addition, the Processes that convert Production into some other yield provide a reduction of the respective Need Threshold equal to the conversion rate (which can be increased using Power Plants), e.g. Farming converts 25% of Production into Food and decreases the Distress Need Threshold by 25%.
-			</Text>
+			<Text>The calculation of Unhappiness from Needs is done by comparing a City's yield outputs per population to certain reference values, the Needs Thresholds. These values are based on the global median of yield outputs per population (i.e. the value of yield output per population that is exceeded by exactly 50% of cities worldwide). Only Cities with a population of at least 3 are considered when calculating the median, softening Unhappiness in the very early game. The Needs Thresholds are modified by a number of Needs Modifiers in each City. A positive Need Modifier makes it harder to reach the threshold and might therefore increase local Unhappiness, while a negative one might reduce it. The following modifiers are always applied:[NEWLINE] [COLOR_NEGATIVE_TEXT]Capital Status[ENDCOLOR]: The Needs Thresholds of the Capital are increased by 25%.[NEWLINE] [COLOR_NEGATIVE_TEXT]Empire Size[ENDCOLOR]: Each City in your Empire (excluding the Capital and Puppet Cities) increases the Needs Thresholds in every City by 5%. Additionally, every eight Citizens in your Empire (excluding Citizens in Puppet Cities) increase them by 1%.[NEWLINE] [COLOR_POSITIVE_TEXT]Difficulty Level[ENDCOLOR]: On the Difficulty Levels "Settler" and "Chieftain", Needs Thresholds are reduced for human players and increased for the AI. On Difficulty Levels above Chieftain, no modifiers are applied.[NEWLINE][NEWLINE]Certain Policies and Spy Events can also modify Needs Thresholds in a City. In addition, the Processes that convert Production into some other yield provide a reduction of the respective Need Threshold equal to the conversion rate (which can be increased using Power Plants), e.g. Farming converts 25% of Production into Food and decreases the Distress Need Threshold by 25%.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_HAPPINESS_NEED_THRESHOLDS_ADV_QUEST">
 			<Text>How are Needs Thresholds calculated?</Text>
@@ -528,7 +526,7 @@
 
 
 		<Row Tag="TXT_KEY_UNIT_SUPPLY_REMAINING_TOOLTIP">
-			<Text>Number of Military Units: {2_Num}[NEWLINE]Current Military Supply: {1_Num}[NEWLINE][COLOR_NEGATIVE_TEXT]War Weariness Supply Cap Reduction: {6_Num}%[ENDCOLOR][NEWLINE][NEWLINE]Military Supply Base Values:[NEWLINE]  [ICON_BULLET]+{4_Num} from owned [ICON_CITY_STATE] Cities[NEWLINE]  [ICON_BULLET]+{3_Num} from total [ICON_CITIZEN] Population[NEWLINE]  [ICON_BULLET]+{5_Num} from [ICON_CHECKBOX] Difficulty Level[NEWLINE]  [ICON_BULLET]+{10_Num} from [ICON_GREAT_GENERAL]/[ICON_GREAT_ADMIRAL] Great People[NEWLINE][NEWLINE][NEWLINE]Military Supply Reductions:[NEWLINE]  [ICON_BULLET] -{8_Num} from [ICON_RESEARCH] Tech Level[NEWLINE]  [ICON_BULLET] -{7_Num} from [ICON_WAR] War Weariness[NEWLINE][NEWLINE]Military Unit [ICON_GOLD]/[ICON_PEACE] Costs increased by {9_Num}% due to [ICON_WAR] War Weariness.[NEWLINE]</Text>
+			<Text>Number of Military Units: {11_Num} ({2_Num} Military Supply Used)[NEWLINE]Total Military Supply: {1_Num}[NEWLINE][COLOR_NEGATIVE_TEXT]War Weariness Supply Cap Reduction: {6_Num}%[ENDCOLOR][NEWLINE][NEWLINE]Military Supply Base Values:[NEWLINE]  [ICON_BULLET]+{4_Num} from owned [ICON_CITY_STATE] Cities[NEWLINE]  [ICON_BULLET]+{3_Num} from total [ICON_CITIZEN] Population[NEWLINE]  [ICON_BULLET]+{5_Num} from [ICON_CHECKBOX] Difficulty Level[NEWLINE]  [ICON_BULLET]+{10_Num} from [ICON_GREAT_GENERAL]/[ICON_GREAT_ADMIRAL] Great People[NEWLINE][NEWLINE][NEWLINE]Military Supply Reductions:[NEWLINE]  [ICON_BULLET] -{8_Num} from [ICON_RESEARCH] Tech Level[NEWLINE]  [ICON_BULLET] -{7_Num} from [ICON_WAR] War Weariness[NEWLINE][NEWLINE]Military Unit [ICON_GOLD]/[ICON_PEACE] Costs increased by {9_Num}% due to [ICON_WAR] War Weariness.[NEWLINE]</Text>
 		</Row>
 
 		<Row Tag="TXT_KEY_UNIT_EXPENDED_SUPPLY">
@@ -839,24 +837,22 @@
 			<Text>Connecting this Resource to your trade network will cause this City to celebrate Carnival, which increases [ICON_FOOD] Growth and reduces [ICON_HAPPINESS_3] Unhappiness!</Text>
 		</Row>
 
-		<!-- Bully Metric Values -->
-		<Row Tag="TXT_KEY_POPUP_MINOR_BULLY_FOOD_AMOUNT">
-			<Text>Take {1_GoldValue} [ICON_GOLD] Gold and {2_Value} [ICON_FOOD] Food (-{3_NumInfluence} [ICON_INFLUENCE])</Text>
+		<!-- Deny Quest Influence -->
+		<Row Tag="TXT_KEY_CITY_STATE_DISABLED_QUEST_INFLUENCE_YES_TT">
+			<Text>You currently refuse to receive [ICON_INFLUENCE] Influence from completing Quests for [COLOR_POSITIVE_TEXT]{1_Name}[ENDCOLOR]. You may change your stance and allow [ICON_INFLUENCE] Influence to be rewarded again for completing Quests.</Text>
 		</Row>
-		<Row Tag="TXT_KEY_POPUP_MINOR_BULLY_CULTURE_AMOUNT">
-			<Text>Take {1_GoldValue} [ICON_GOLD] Gold and {2_Value} [ICON_CULTURE] Culture (-{3_NumInfluence} [ICON_INFLUENCE])</Text>
+		<Row Tag="TXT_KEY_CITY_STATE_DISABLED_QUEST_INFLUENCE_NO_TT">
+			<Text>You may reject the [ICON_INFLUENCE] Influence from completing Quests for [COLOR_POSITIVE_TEXT]{1_Name}[ENDCOLOR]. This attempts to avoid political repercussions from other civilizations when they see you competing for the [ICON_INFLUENCE] Influence of this City-State.</Text>
 		</Row>
-		<Row Tag="TXT_KEY_POPUP_MINOR_BULLY_SCIENCE_AMOUNT">
-			<Text>Take {1_GoldValue} [ICON_GOLD] Gold and {2_Value} [ICON_RESEARCH] Science (-{3_NumInfluence} [ICON_INFLUENCE])</Text>
+		<Row Tag="TXT_KEY_CITY_STATE_DISABLED_QUEST_INFLUENCE_YES">
+			<Text>Enable [ICON_INFLUENCE] Quest Influence Rewards</Text>
 		</Row>
-		<Row Tag="TXT_KEY_POPUP_MINOR_BULLY_PRODUCTION_AMOUNT">
-			<Text>Take {1_GoldValue} [ICON_GOLD] Gold and {2_Value} [ICON_PRODUCTION] Production (-{3_NumInfluence} [ICON_INFLUENCE])</Text>
+		<Row Tag="TXT_KEY_CITY_STATE_DISABLED_QUEST_INFLUENCE_NO">
+			<Text>Disable [ICON_VP_NOINFLUENCE] Quest Influence Rewards</Text>
 		</Row>
-		<Row Tag="TXT_KEY_POPUP_MINOR_BULLY_FAITH_AMOUNT">
-			<Text>Take {1_GoldValue} [ICON_GOLD] Gold and {2_Value} [ICON_PEACE] Faith (-{3_NumInfluence} [ICON_INFLUENCE])</Text>
-		</Row>
+		
 		<Row Tag="TXT_KEY_POP_CSTATE_BULLY_VARIABLE_CBP">
-			<Text>If this City-State is more [COLOR_POSITIVE_TEXT]afraid[ENDCOLOR] of you than they are [COLOR_WARNING_TEXT]resilient[ENDCOLOR], you can take heavy tribute from them. Doing so will net you [ICON_GOLD] Gold as well as [ICON_CULTURE] Culture, [ICON_RESEARCH] Science, [ICON_PRODUCTION] Production, [ICON_PEACE] Faith, or [ICON_FOOD] Food, depending on the City-State being targeted.[NEWLINE][NEWLINE]Local Yields, like [ICON_FOOD] Food or [ICON_PRODUCTION] Production, will be delivered to your Capital.[NEWLINE][NEWLINE]{1_FearLevel}{2_FactorDetails}</Text>
+			<Text>If this City-State is more [COLOR_POSITIVE_TEXT]afraid[ENDCOLOR] of you than they are [COLOR_WARNING_TEXT]resilient[ENDCOLOR], you can take heavy tribute from them. Doing so will net you [ICON_GOLD] Gold as well half of the non-influence yields of all active quests from the City-States. The quests will then be canceled.[NEWLINE][NEWLINE]{1_FearLevel}{2_FactorDetails}</Text>
 		</Row>
 
 		<!-- City-State Diplo Popup -->
@@ -1772,11 +1768,14 @@
 		<Row Tag="TXT_KEY_AIR_PATROL_BOMBED_GROUND_TARGETS">
 			<Text>Your {@1_UnitName} encountered no resistance, and attacked enemy air and anti-air units on the ground!</Text>
 		</Row>
+		<Row Tag="TXT_KEY_CITY_SAPPED">
+			<Text>City is [ICON_VP_SAPPED] Sapped for [COLOR_POSITIVE_TEXT]{1_Turns}[ENDCOLOR] Turns. This has the same effects as a [ICON_BLOCKADED] Blockade, but does not require an enemy unit nearby to take effect!</Text>
+		</Row>
 		<Row Tag="TXT_KEY_CITY_MINED">
-			<Text>Deep Water Mine Field Present</Text>
+			<Text>Enemy Naval Units and Embarked Units expend all [ICON_MOVES] Movement when entering water territory owned by this City. Units ending their turn in Ocean tiles owned by this City take [COLOR_NEGATIVE_TEXT]5 Damage[ENDCOLOR].</Text>
 		</Row>
 		<Row Tag="TXT_KEY_CITY_HAS_AIRPORT">
-			<Text>Has Airport</Text>
+			<Text>Allows [COLOR_POSITIVE_TEXT]Airlifts[ENDCOLOR] to or from this City. Increased Air Unit Capacity of the City. +10 [ICON_STRENGTH] Damage to Enemy Air Units during Air Strikes on the City.</Text>
 		</Row>
 		<Row Tag="TXT_KEY_AUTOMATE_PRODUCTION_TT">
 			<Text>Automate production for this city.</Text>

@@ -2438,13 +2438,11 @@ int CvGameReligions::GetNumReligionsStillToFound() const
 	// VP: Max # of religions is based on number of players, not map size
 	if (MOD_BALANCE_VP)
 	{
-		int iMaxReligions = GC.getGame().countMajorCivsEverAlive() / 2;
-		iMaxReligions++;
-		if (iMaxReligions > 8)
-			iMaxReligions = 8;
-
-		return iMaxReligions - GetNumReligionsFounded(bIgnoreLocal);
+		int iMaxReligions = GC.getGame().countMajorCivsEverAlive() * 100 / /*200*/ max(GD_INT_GET(RELIGION_MAXIMUM_PER_PLAYER_DIVISOR), 1);
+		iMaxReligions += /*1*/ GD_INT_GET(RELIGION_MAXIMUM_FIXED_AMOUNT);
+		return range(iMaxReligions, 1, /*8*/ GD_INT_GET(RELIGION_MAXIMUM_CAP)) - GetNumReligionsFounded(bIgnoreLocal);
 	}
+
 	return (GC.getMap().getWorldInfo().getMaxActiveReligions() - GetNumReligionsFounded(bIgnoreLocal));
 #else
 	return (GC.getMap().getWorldInfo().getMaxActiveReligions() - GetNumReligionsFounded());
@@ -2908,13 +2906,15 @@ int CvGameReligions::GetAdjacentCityReligiousPressure(ReligionTypes eReligion, C
 	int iBasePressure = GC.getGame().getGameSpeedInfo().getReligiousPressureAdjacentCity();
 	int iPressureMod = 0;
 
-	// India: +1 base pressure per follower
+	// India: +10% base pressure per follower
 	if (GET_PLAYER(pFromCity->getOwner()).GetPlayerTraits()->IsPopulationBoostReligion())
 	{
 		if (eReligion == GET_PLAYER(pFromCity->getOwner()).GetReligions()->GetStateReligion(true))
 		{
 			int iPopExtraPressure = pFromCity->GetCityReligions()->GetNumFollowers(eReligion);
-			iBasePressure += min(24, iPopExtraPressure) * /*10*/ GD_INT_GET(RELIGION_MISSIONARY_PRESSURE_MULTIPLIER);
+			int iBasePressureMod = min(35, iPopExtraPressure) * 10;
+			iBasePressure *= 100 + iBasePressureMod;
+			iBasePressure /= 100;
 		}
 	}
 
@@ -8167,7 +8167,7 @@ int CvReligionAI::ScoreBeliefAtCity(CvBeliefEntry* pEntry, CvCity* pCity) const
 
 			iTempValue += (pEntry->GetYieldPerLux(iI) * max(1, iNumLuxuries)) * ModifierValue;
 		}
-		if (pEntry->GetYieldPerBorderGrowth((YieldTypes)iI) > 0)
+		if (pEntry->GetYieldPerBorderGrowth((YieldTypes)iI) > 0) // FIXME: also evaluate the yields that are scaling with era
 		{
 			int iVal = ((pEntry->GetYieldPerBorderGrowth((YieldTypes)iI) * iCulture) / max(4, pCity->GetJONSCultureLevel() * 4));
 			if (m_pPlayer->GetPlayerTraits()->IsBuyOwnedTiles()) // America UA has an anti-synergy with this

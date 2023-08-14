@@ -22,8 +22,8 @@
  ****************************************************************************
  ****************************************************************************/
 #define MOD_DLL_GUID {0xbf9bf7f0, 0xe078, 0x4d4e, { 0x8a, 0x3e, 0x84, 0x71, 0x2f, 0x85, 0xaa, 0x2b }} //{BF9BF7F0-E078-4d4e-8A3E-84712F85AA2B}
-#define MOD_DLL_NAME "Community Patch v116 (PNM v51+)"
-#define MOD_DLL_VERSION_NUMBER ((uint) 116)
+#define MOD_DLL_NAME "Community Patch v118 (PNM v51+)"
+#define MOD_DLL_VERSION_NUMBER ((uint) 118)
 #define MOD_DLL_VERSION_STATUS ""			// a (alpha), b (beta) or blank (released)
 #define MOD_DLL_CUSTOM_BUILD_NAME ""
 
@@ -291,6 +291,7 @@
 #define MOD_BALANCE_CORE_INQUISITOR_TWEAKS			(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_INQUISITOR_TWEAKS())
 #define MOD_CORE_DISABLE_LUA_HOOKS					(MOD_COMMUNITY_PATCH && gCustomMods.isCORE_DISABLE_LUA_HOOKS())
 #define MOD_CORE_AREA_EFFECT_PROMOTIONS				(MOD_COMMUNITY_PATCH && gCustomMods.isCORE_AREA_EFFECT_PROMOTIONS())
+#define MOD_BALANCE_CORE_GOODY_RECON_ONLY			(MOD_COMMUNITY_PATCH && gCustomMods.isBALANCE_CORE_GOODY_RECON_ONLY())
 #define MOD_YIELD_MODIFIER_FROM_UNITS				(MOD_COMMUNITY_PATCH && gCustomMods.isYIELD_MODIFIER_FROM_UNITS())
 #endif
 
@@ -1375,6 +1376,7 @@ public:
 	MOD_OPT_DECL(CORE_DISABLE_LUA_HOOKS);
 	MOD_OPT_DECL(CORE_AREA_EFFECT_PROMOTIONS);
 	MOD_OPT_DECL(YIELD_MODIFIER_FROM_UNITS);
+	MOD_OPT_DECL(BALANCE_CORE_GOODY_RECON_ONLY);
 
 	MOD_OPT_DECL(CIV6_WORKER);
 	MOD_OPT_DECL(CIV6_ROADS);

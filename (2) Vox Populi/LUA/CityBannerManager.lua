@@ -269,8 +269,15 @@ function RefreshCityBanner(cityBanner, iActiveTeam, iActivePlayer)
 			
 		-- Blockaded
 		if (city:IsBlockaded()) then
-			controls.BlockadedIcon:SetHide(false);
-			controls.BlockadedIcon:SetToolTipString(Locale.ConvertTextKey("TXT_KEY_CITY_BLOCKADED"));
+			if (city:GetSappedTurns() > 0) then
+				controls.BlockadedIcon:SetHide(false);
+				controls.BlockadedIcon:SetText("[ICON_VP_SAPPED]");
+				controls.BlockadedIcon:SetToolTipString(Locale.ConvertTextKey("TXT_KEY_CITY_SAPPED", tostring(city:GetSappedTurns())));
+			else
+				controls.BlockadedIcon:SetHide(false);
+				controls.BlockadedIcon:SetText("[ICON_BLOCKADED]")
+				controls.BlockadedIcon:SetToolTipString(Locale.ConvertTextKey("TXT_KEY_CITY_BLOCKADED"));
+			end
 		else
 			controls.BlockadedIcon:SetHide(true);
 		end
@@ -302,6 +309,46 @@ function RefreshCityBanner(cityBanner, iActiveTeam, iActivePlayer)
 			end
 		else
 			controls.PuppetIcon:SetHide(true);
+		end
+
+		-- Rome UA (Annexed City-States)
+		controls.CityStateIcon:SetHide ( not player:IsAnnexedCityStatesGiveYields())
+		if Players[city:GetOriginalOwner()]:IsMinorCiv() and player:IsAnnexedCityStatesGiveYields() then
+			local cityOriginalOwner = Players[city:GetOriginalOwner()];	
+			if (cityOriginalOwner ~= nil) then
+				local iTrait = cityOriginalOwner:GetMinorCivTrait();
+				if (iTrait == MinorCivTraitTypes.MINOR_CIV_TRAIT_CULTURED) then
+					controls.CityStateIcon:SetToolTipString(Locale.ConvertTextKey("TXT_KEY_CITY_STATE_CULTURED_TT_ANNEXED"));
+				elseif (iTrait == MinorCivTraitTypes.MINOR_CIV_TRAIT_MILITARISTIC) then
+					controls.CityStateIcon:SetToolTipString(Locale.ConvertTextKey("TXT_KEY_CITY_STATE_MILITARISTIC_NO_UU_TT_ANNEXED"));
+					if (cityOriginalOwner:IsMinorCivHasUniqueUnit()) then
+						local eUniqueUnit = cityOriginalOwner:GetMinorCivUniqueUnit();
+						if (GameInfo.Units[eUniqueUnit] ~= nil) then
+							local ePrereqTech = GameInfo.Units[eUniqueUnit].PrereqTech;
+							if (ePrereqTech == nil) then
+								-- If no prereq then just make it Agriculture, but make sure that Agriculture is in our database. Otherwise, show the fallback tooltip.
+								if (GameInfo.Technologies["TECH_AGRICULTURE"] ~= nil) then
+									ePrereqTech = GameInfo.Technologies["TECH_AGRICULTURE"].ID;
+								end
+							end
+							
+							if (ePrereqTech ~= nil) then
+								if (GameInfo.Technologies[ePrereqTech] ~= nil) then
+									controls.CityStateIcon:SetToolTipString(Locale.ConvertTextKey("TXT_KEY_CITY_STATE_MILITARISTIC_TT_ANNEXED", GameInfo.Units[eUniqueUnit].Description, GameInfo.Technologies[ePrereqTech].Description));
+								end
+							end
+						else
+							print("Scripting error - City-State's unique unit not found!");
+						end
+					end
+				elseif (iTrait == MinorCivTraitTypes.MINOR_CIV_TRAIT_MARITIME) then
+					controls.CityStateIcon:SetToolTipString(Locale.ConvertTextKey("TXT_KEY_CITY_STATE_MARITIME_TT_ANNEXED"));
+				elseif (iTrait == MinorCivTraitTypes.MINOR_CIV_TRAIT_MERCANTILE) then
+					controls.CityStateIcon:SetToolTipString(Locale.ConvertTextKey("TXT_KEY_CITY_STATE_MERCANTILE_TT_ANNEXED"));
+				elseif (iTrait == MinorCivTraitTypes.MINOR_CIV_TRAIT_RELIGIOUS) then
+					controls.CityStateIcon:SetToolTipString(Locale.ConvertTextKey("TXT_KEY_CITY_STATE_RELIGIOUS_TT_ANNEXED"));
+				end
+			end
 		end
 		
 		-- Occupation Status
@@ -381,7 +428,13 @@ function RefreshCityBanner(cityBanner, iActiveTeam, iActivePlayer)
 		end
 		
 		local ttText = Locale.ConvertTextKey("TXT_KEY_CITYVIEW_CITY_COMB_STRENGTH_TT")
-		local ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. city:GetStrengthValue(true) / 100
+		local iRange, iIndirect = city:GetBombardRange()
+		if (iIndirect == 1) then
+			ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. city:GetStrengthValue(true) / 100 .. "[NEWLINE][ICON_RANGE_STRENGTH] " .. Locale.Lookup("TXT_KEY_COMBAT_RANGE_HEADING3_TITLE") .. ": " .. iRange .. "[NEWLINE][COLOR_POSITIVE_TEXT]" .. Locale.Lookup("TXT_KEY_PROMOTION_INDIRECT_FIRE") .. "[ENDCOLOR]"
+		else 
+			ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. city:GetStrengthValue(true) / 100 .. "[NEWLINE][ICON_RANGE_STRENGTH] " .. Locale.Lookup("TXT_KEY_COMBAT_RANGE_HEADING3_TITLE") .. ": " .. iRange .. "[NEWLINE][COLOR_NEGATIVE_TEXT]" .. Locale.Lookup("TXT_KEY_PROMOTION_INDIRECT_FIRE") .. "[ENDCOLOR]"
+		end
+		--local ttText = ttText .. ": [ICON_RANGE_STRENGTH] " .. city:GetStrengthValue(true) / 100
 
 		controls.CityStrength:SetToolTipString(ttText)
 
